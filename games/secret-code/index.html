@@ -87,8 +87,6 @@
 #pkSegLevel button.on[data-v="normal"]{background:#3d8bff;border-color:#3d8bff;color:#fff}
 #pkSegLevel button.on[data-v="hard"]{background:#e5453b;border-color:#e5453b;color:#fff}
 #pkSegLevel button{white-space:nowrap;min-width:0;padding:10px 6px;font-size:15px}
-#pkSegLevel button[data-v="random"]{flex:1.3 1 0}
-@media (max-width:560px){#pkSegLevel{flex-wrap:wrap}#pkSegLevel button{flex:1 1 40%}#pkSegLevel button[data-v="random"]{flex:1 1 100%}}
 /* hình nhỏ trong thẻ Luật chơi */
 .scr{display:flex;gap:6px;align-items:flex-end;justify-content:center;--cw:34px}
 .scr .sc-card{cursor:default}
@@ -346,7 +344,6 @@ const scIsAnswer = (pz, pick) => pick.length === 4 && [...pick].sort((a, b) => a
 /* RULES-END */
 
 /* ---------- 1 MÃ NGẪU NHIÊN: độ khó cũng chọn ngẫu nhiên (chủ game chọn thay cho mã hôm nay, 11/2026) ---------- */
-function scRandom(rng) { const lv = ["easy", "normal", "hard"][Math.floor(rng() * 3)], pz = scGen(lv, rng); pz.random = true; return pz; }
 
 /* ---------- VẼ ---------- */
 const SC_SVG = {
@@ -544,23 +541,19 @@ const SC_CARDS = [
 
 PK.start({
   id: "secret-code", ruleCards: SC_CARDS, ruleCardsBg: "#2c3133", peerPrefix: "secretcode-", proto: 1, kind: "self", showMiss: true,
-  solo: { stages: 3, stagesFor: lv => lv === "random" ? 1 : 3, useLevel: true, levels: ["random", "easy", "normal", "hard"],
-    gen: (stage, rng, level) => level === "random" ? scRandom(rng) : scGen(level, rng),
-    noteFor: lv => lv === "random" ? PK.tr("m_solo_random") : null,
-    labelFor: lv => lv === "random" ? null : PK.tr("lvs_" + lv) },
+  // chơi một mình: chọn ★/★★/★★★, mỗi lượt 1 mã (chủ game chọn 11/2026; trước đó có "1 mã ngẫu nhiên" và bộ 3 mã). bestTag "one": kỷ lục cũ là tổng 3 mã, không so được
+  solo: { stages: 1, useLevel: true, bestTag: "one", gen: (stage, rng, level) => scGen(level, rng) },
   online: { target: 2, maxRounds: 3, roundMs: 300000, levels: ["easy", "normal", "hard"], defaultLevel: "easy", wrong: "lock", lockMs: 20000, gen: (k, level, rng) => scGen(level, rng) },
   mount: mountSC,
-  prompt: (pz, ctx) => `<span class="q">${ctx.tr(pz.random ? "q_random" : "q_level", ctx.tr("lv_" + pz.level))}</span>${ctx.tr("prompt")}${scCluesHtml(pz, ctx.tr)}`,
-  stageNote: pz => (pz.random ? PK.tr("sn_random", PK.tr("lv_" + pz.level)) + " " : "") + PK.tr("sn_" + pz.level),
+  prompt: (pz, ctx) => `<span class="q">${ctx.tr("q_level", ctx.tr("lv_" + pz.level))}</span>${ctx.tr("prompt")}${scCluesHtml(pz, ctx.tr)}`,
+  stageNote: pz => PK.tr("sn_" + pz.level),
   rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
   i18n: {
     vi: {
       brand: "Mật mã bí mật", tagline: "26 lá bài và một loạt gợi ý. Chỉ có đúng một bộ 4 lá khớp mọi gợi ý.",
-      lv_random: "1 mã ngẫu nhiên", lv_easy: "★", lv_normal: "★★", lv_hard: "★★★", lvs_easy: "Bộ 3 mã ★", lvs_normal: "Bộ 3 mã ★★", lvs_hard: "Bộ 3 mã ★★★",
-      lvn_random: "Giải 1 mã, độ khó chọn ngẫu nhiên trong ★, ★★, ★★★.",
+      lv_easy: "★", lv_normal: "★★", lv_hard: "★★★",
       lvn_easy: "Nhiều gợi ý dễ, có sẵn số lá từng màu và từng hình.", lvn_normal: "Gợi ý kiểu trong show.", lvn_hard: "Ít gợi ý, nhiều phép trừ, phép nhân và thứ hạng.",
-      m_solo_note_lv: "Giải bộ {0} mã liên tiếp của độ khó bạn chọn. Đồng hồ chỉ chạy khi đang giải, gửi sai bị cộng 5 giây.", c_stage: "Mã", cv_stage: "Mã {0}/{1}", s_clear: "Giải xong mã {0}!", s_took: "Mã này mất <b>{0}</b>{1}. Tổng: <b>{2}</b>.", s_next: "Mã tiếp", s_done: "Phá đảo!", s_done_p: "Bạn đã giải cả {0} mã với tổng thời gian <b>{1}</b>.", s_again: "Chơi lại từ mã 1", c_best_v: "mã {0} · {1}", f_wrong: "Chưa đúng, bị cộng 5 giây.",
-      m_solo_random: "Giải 1 mã với độ khó ngẫu nhiên. Đồng hồ chỉ chạy khi đang giải, gửi sai bị cộng 5 giây.",
+      m_solo_note: "Giải 1 mã của độ khó bạn chọn. Đồng hồ chỉ chạy khi đang giải, gửi sai bị cộng 5 giây.", s_done: "Phá mã!", s_done_p: "Bạn giải xong mã trong <b>{1}</b>.", s_again: "Mã mới", f_wrong: "Chưa đúng, bị cộng 5 giây.",
       r_intro: "Có 26 lá từ A tới Z, mỗi lá mang một số (A là 1, Z là 26), một màu và một hình. Mật mã là 4 lá. Đọc các gợi ý và tìm ra bộ 4 lá duy nhất khớp tất cả.",
       c1_h: "26 lá, mỗi lá một màu một hình", c1_p: "Mỗi đề chia lại bộ bài. 5 màu và 5 hình có số lá khác nhau: 8, 6, 5, 4 và 3 lá.",
       c2_h: "Đọc gợi ý", c2_p: "Gợi ý nói về 4 lá của mật mã: tổng các số, có mấy màu, mấy hình, hai lá cộng, trừ, nhân ra bao nhiêu...",
@@ -572,10 +565,9 @@ PK.start({
         "Chỉ có đúng một bộ 4 lá khớp mọi gợi ý.",
         "Gõ chữ cái trên bàn phím cũng chọn được lá, Enter để gửi, Backspace bỏ lá vừa chọn.",
         "<b>Bỏ cuộc</b> (bấm 2 lần để chắc chắn): hiện đáp án. Chơi một mình thì kết thúc lượt chơi và không tính kỷ lục; online không có nút này."],
-      r_solo: ["<b>1 mã ngẫu nhiên</b>: giải 1 mã, độ khó chọn ngẫu nhiên trong ★, ★★, ★★★.",
-        "<b>Bộ 3 mã ★, ★★, ★★★</b>: giải 3 mã liên tiếp của mức bạn chọn, tính tổng thời gian.",
+      r_solo: ["Chọn độ khó ★, ★★ hoặc ★★★ rồi giải 1 mã, tính thời gian.",
         "Gửi sai bị cộng 5 giây, các lá vẫn nằm trong hàng mật mã để bạn đổi bớt. Sai từ lần thứ 3 trong cùng một mã thì phải chờ lâu dần.",
-        "Kỷ lục lưu riêng từng lựa chọn trên máy này."],
+        "Kỷ lục lưu riêng từng độ khó trên máy này."],
       r_online: ["Hai người cùng giải một mã, ai gửi đúng trước được 1 điểm. Ai đạt 2 điểm trước thì thắng (tối đa 3 mã).",
         "Gửi sai bị khoá 20 giây. Mỗi mã có 5 phút.", "Thứ tự đúng tính theo thời gian giải trên máy mỗi người, nên mạng chậm không bị thiệt."],
       r_tips: ["Bắt đầu từ gợi ý chặt nhất, thường là tổng hoặc hiệu, để khoanh vùng các số.",
@@ -583,8 +575,8 @@ PK.start({
         "Gợi ý ≤ và ≥ dùng mốc tròn, nên thử các số sát mốc trước."],
       r_note: "Lấy cảm hứng từ trò Secret Code trong The Devil's Plan mùa 3 (Netflix). Cách chia bài và ra đề theo bản web Secret Code của quoridorgame.com. Game không liên kết với Netflix.",
       prompt: "Tìm 4 lá khớp mọi gợi ý:",
-      q_random: "1 mã ngẫu nhiên · {0}", q_level: "Mức {0}",
-      sn_random: "Độ khó lần này: {0}.", sn_easy: "Nhiều gợi ý, có sẵn số lá từng màu và hình.", sn_normal: "Gợi ý kiểu trong show.", sn_hard: "Ít gợi ý, phải dùng phép trừ, nhân và thứ hạng.",
+      q_level: "Mức {0}",
+      sn_easy: "Nhiều gợi ý, có sẵn số lá từng màu và hình.", sn_normal: "Gợi ý kiểu trong show.", sn_hard: "Ít gợi ý, phải dùng phép trừ, nhân và thứ hạng.",
       b_submit: "Gửi mã", b_clear: "Bỏ hết",
       m_full: "Đã đủ 4 lá, bỏ bớt một lá trước.", m_ready: "Đủ 4 lá rồi, bấm Gửi mã để kiểm tra.", m_wrong: "{0} chưa đúng, đổi lá rồi gửi lại.", m_answer: "Đáp án: {0}",
       counts: "Số lá từng màu và từng hình",
@@ -604,11 +596,9 @@ PK.start({
     },
     en: {
       brand: "Secret Code", tagline: "26 cards and a string of clues. Exactly one set of 4 cards fits them all.",
-      lv_random: "1 random code", lv_easy: "★", lv_normal: "★★", lv_hard: "★★★", lvs_easy: "Set of 3 ★", lvs_normal: "Set of 3 ★★", lvs_hard: "Set of 3 ★★★",
-      lvn_random: "Crack 1 code at a random level: ★, ★★ or ★★★.",
+      lv_easy: "★", lv_normal: "★★", lv_hard: "★★★",
       lvn_easy: "More, easier clues, with the card counts listed.", lvn_normal: "Clues like the ones on the show.", lvn_hard: "Fewer clues, more gaps, products and ranks.",
-      m_solo_note_lv: "Crack a set of {0} codes in a row at the level you pick. The clock only runs while you solve, and each wrong code adds 5 seconds.", c_stage: "Code", cv_stage: "Code {0}/{1}", s_clear: "Code {0} cracked!", s_took: "This code took <b>{0}</b>{1}. Total: <b>{2}</b>.", s_next: "Next code", s_done_p: "You cracked all {0} codes in <b>{1}</b> total.", s_again: "Play again from code 1", c_best_v: "code {0} · {1}",
-      m_solo_random: "Crack 1 code at a random level. The clock only runs while you solve, and each wrong code adds 5 seconds.",
+      m_solo_note: "Crack 1 code at the level you pick. The clock only runs while you solve, and each wrong code adds 5 seconds.", s_done: "Code cracked!", s_done_p: "You cracked the code in <b>{1}</b>.", s_again: "New code",
       r_intro: "There are 26 cards from A to Z. Each has a number (A is 1, Z is 26), a color and a shape. The code is 4 cards. Read the clues and find the only set of 4 that fits them all.",
       c1_h: "26 cards, each a color and a shape", c1_p: "Every code deals a new deck. The 5 colors and 5 shapes come in different amounts: 8, 6, 5, 4 and 3 cards.",
       c2_h: "Read the clues", c2_p: "Clues talk about the 4 code cards: their total, how many colors or shapes they use, what two of them add, subtract or multiply to...",
@@ -620,10 +610,9 @@ PK.start({
         "Exactly one set of 4 cards fits every clue.",
         "You can also type letters on the keyboard to pick cards, Enter to submit, Backspace to drop the last card.",
         "<b>Give up</b> (tap twice to be sure) shows the answer. In solo it ends the run and doesn't count toward your best; there is no Give up online."],
-      r_solo: ["<b>1 random code</b>: crack one code at a random level (★, ★★ or ★★★).",
-        "<b>Set of 3 ★, ★★, ★★★</b>: crack 3 codes in a row at the level you pick, against the clock.",
+      r_solo: ["Pick ★, ★★ or ★★★ and crack 1 code against the clock.",
         "A wrong code adds 5 seconds and the cards stay in the code row so you can swap some. From the 3rd miss on the same code you wait longer and longer.",
-        "Your best is saved per choice on this device."],
+        "Your best is saved per level on this device."],
       r_online: ["Both players crack the same code and the first correct one scores a point. First to 2 points wins (up to 3 codes).",
         "A wrong code locks you for 20 seconds. Each code has 5 minutes.", "Who was first is decided by each player's own solving time, so a slow connection doesn't cost you."],
       r_tips: ["Start from the tightest clue, usually a total or a gap, to narrow down the numbers.",
@@ -631,8 +620,8 @@ PK.start({
         "≤ and ≥ clues use round numbers, so try values close to the mark first."],
       r_note: "Inspired by Secret Code on The Devil's Plan season 3 (Netflix). The deck and the clues are made the way the Secret Code web version on quoridorgame.com makes them. Not affiliated with Netflix.",
       prompt: "Find the 4 cards that fit every clue:",
-      q_random: "1 random code · {0}", q_level: "Level {0}",
-      sn_random: "This time: {0}.", sn_easy: "More clues, with the card counts listed.", sn_normal: "Clues like the ones on the show.", sn_hard: "Fewer clues: gaps, products and ranks.",
+      q_level: "Level {0}",
+      sn_easy: "More clues, with the card counts listed.", sn_normal: "Clues like the ones on the show.", sn_hard: "Fewer clues: gaps, products and ranks.",
       b_submit: "Submit", b_clear: "Clear",
       m_full: "Already 4 cards. Take one out first.", m_ready: "4 cards in. Press Submit to check.", m_wrong: "{0} is not it. Swap some cards and submit again.", m_answer: "Answer: {0}",
       counts: "Cards per color and per shape",

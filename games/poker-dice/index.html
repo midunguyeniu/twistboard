@@ -574,7 +574,7 @@ const I18N = {
     hn_7: "Ngũ quý {0}", hn_6: "Tứ quý {0}", hn_5: "Cù lũ {0}·{1}", hn_4b: "Sảnh lớn", hn_4s: "Sảnh nhỏ", hn_3: "Sám cô {0}", hn_2: "Thú {0}·{1}", hn_1: "Đôi {0}", hn_0: "Mậu thầu {0}",
     i_round: "Ván <b>{0}</b> · ante <b>{1}</b>", i_next: "Ante ván sau: {0}", i_cap: "Mỗi người bỏ tối đa {0} chip ván này", i_players: "Còn {0}/{1} người",
     i_mode_bot: "Đấu máy · {0}", i_mode_online: "Online · phòng {0}", i_mode_tut: "Ván hướng dẫn", i_timer: "Giờ online: mỗi lượt đổ lại hoặc cược 30 giây.",
-    l_hand: "Ván {0} · ante {1}", l_ante: "Mọi người nộp ante {0}", l_roll: "Mọi người đổ 5 viên (úp)",
+    l_hand: "Ván {0} · ante {1}", l_ante: "Mọi người nộp ante {0}", l_roll: "Mọi người đổ 5 viên (úp)", l_allup: "Mọi xúc xắc đều đã ngửa, bỏ qua vòng cược 2",
     l_re: "{0} đổ lại {1} viên · ngửa {2}", l_keep: "{0} giữ cả 5 · ngửa {2}",
     l_fold: "{0} bỏ bài", l_check: "{0} theo", l_call: "{0} theo {1}", l_bet: "{0} cược thêm {1}", l_raise: "{0} tố lên {1}",
     l_win: "{0} thắng với {2}, nhận {1}", l_win_split: "{0} chia pot với {2}, nhận {1}", l_win_fold: "{0} ăn {1} (mọi người bỏ bài)",
@@ -599,7 +599,7 @@ const I18N = {
     r_seq: "Vì đổ lần lượt, người đổ sau thấy được các viên ngửa của người đổ trước rồi mới quyết định.",
     r_h_bet: "Cược", r_moves: "Tới lượt thì chọn Theo (bằng mức đang cược, chưa ai cược thì không mất thêm chip), Cược thêm hoặc Tố (cao hơn mức đang cược ít nhất 1 chip), hoặc Bỏ bài.",
     r_cap: "Trong một ván, mỗi người bỏ vào pot tối đa bằng chồng chip nhỏ nhất bàn lúc đầu ván (tính cả ante). Vì vậy không có all-in hay pot phụ.",
-    r_skip: "Nếu ante đã bằng mức tối đa đó thì không ai cược thêm được, các vòng cược được bỏ qua.",
+    r_skip: "Nếu ante đã bằng mức tối đa đó thì không ai cược thêm được, các vòng cược được bỏ qua. Sau lần đổ lại 2 mà xúc xắc của mọi người còn trong ván đều đã ngửa (ai cũng giữ cả 5 viên) thì ai thắng đã rõ, vòng cược 2 cũng được bỏ qua.",
     r_h_rank: "Thứ tự tay (cao xuống thấp)",
     r_tie: "Cùng loại tay thì so các viên tạo thành tay trước (bộ nhiều viên trước, ví dụ Cù lũ so bộ ba rồi mới tới đôi), sau đó tới các viên lẻ, A > K > Q > J > 10 > 9.",
     r_split: "Giống hệt nhau thì chia đều pot, chip lẻ về người ngồi gần người đi đầu nhất.",
@@ -666,7 +666,7 @@ const I18N = {
     hn_7: "Five {0}s", hn_6: "Four {0}s", hn_5: "Full house {0}·{1}", hn_4b: "High straight", hn_4s: "Low straight", hn_3: "Three {0}s", hn_2: "Two pair {0}·{1}", hn_1: "Pair of {0}s", hn_0: "{0} high",
     i_round: "Hand <b>{0}</b> · ante <b>{1}</b>", i_next: "Next ante: {0}", i_cap: "Max {0} chips in per player this hand", i_players: "{0} of {1} players left",
     i_mode_bot: "Vs bots · {0}", i_mode_online: "Online · room {0}", i_mode_tut: "Tutorial hand", i_timer: "Online timers: 30s per reroll or betting turn.",
-    l_hand: "Hand {0} · ante {1}", l_ante: "Everyone paid the {0} ante", l_roll: "Everyone rolled 5 dice (hidden)",
+    l_hand: "Hand {0} · ante {1}", l_ante: "Everyone paid the {0} ante", l_roll: "Everyone rolled 5 dice (hidden)", l_allup: "All dice are face up, so betting round 2 is skipped",
     l_re: "{0} rerolled {1} · face up {2}", l_keep: "{0} kept all 5 · face up {2}",
     l_fold: "{0} folded", l_check: "{0} checked", l_call: "{0} called {1}", l_bet: "{0} bet {1}", l_raise: "{0} raised to {1}",
     l_win: "{0} won with {2}, took {1}", l_win_split: "{0} split the pot with {2}, took {1}", l_win_fold: "{0} took {1} (everyone else folded)",
@@ -691,7 +691,7 @@ const I18N = {
     r_seq: "Because rerolls go in turn, later players see the face-up dice of earlier players before they decide.",
     r_h_bet: "Betting", r_moves: "On your turn: Check or Call (match the current bet), Bet or Raise (at least 1 chip above the current bet), or Fold.",
     r_cap: "Within a hand nobody can put in more than the smallest stack at the table had at the start of the hand (ante included). So there are no all-ins and no side pots.",
-    r_skip: "If the ante already reaches that maximum, nobody can bet more and the betting rounds are skipped.",
+    r_skip: "If the ante already reaches that maximum, nobody can bet more and the betting rounds are skipped. If everyone still in keeps all 5 dice on the second re-roll, every die is face up and the winner is clear, so betting round 2 is skipped too.",
     r_h_rank: "Hand ranking (high to low)",
     r_tie: "Same kind of hand: compare the dice that make the hand first (the bigger group first, so a full house compares the three of a kind, then the pair), then the leftover dice, A > K > Q > J > 10 > 9.",
     r_split: "Identical hands split the pot; the odd chip goes to the winner closest to the first player.",
@@ -906,6 +906,9 @@ function startStreet(T, street) {
   // ante đã bằng trần (hoặc vòng 1 đã tố tới trần): không ai tố được nữa, bỏ qua vòng cược
   const ins = H.live.filter(s => inHand(H, s));
   if (ins.every(s => streetMax(H, s) <= H.curBet && H.bet[s] === H.curBet)) { H.skipped = (H.skipped || 0) | street; endStreet(T); return; }
+  // vòng cược 2 mà mọi xúc xắc của người còn trong ván đều đã ngửa (ai cũng giữ cả 5 viên): ai thắng đã rõ, cược thêm vô nghĩa,
+  // nên lật luôn (chủ game chọn 11/2026; trước đó máy biết chắc thua vẫn có thể tố tháu)
+  if (street === 2 && ins.length > 1 && ins.every(s => H.up[s].every(Boolean))) { H.skipped = (H.skipped || 0) | street; logT(T, "l_allup"); endStreet(T); return; }
   H.toAct = nextToAct(T, H.first, true);
   if (H.toAct < 0) endStreet(T);
 }
@@ -1246,7 +1249,7 @@ function startBotGame() {
    Phòng chờ: chủ phòng gửi "lobby" (danh sách ghế). Khách rớt mạng giữa trận thì máy chơi thay (away), mở lại link (cùng id
    lưu trong localStorage) là lấy lại ghế. Chủ phòng rời đi thì trận dừng.
    ============================================================ */
-const NET_PROTO = 1;
+const NET_PROTO = 2;   // 2: bỏ vòng cược 2 khi mọi xúc xắc đã ngửa
 const PEER_SRC = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
 const PEER_SRI = "sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR";
 const PEER_PREFIX = "pokerdice-";
@@ -1954,7 +1957,7 @@ function logLine(e) {
   switch (e.k) {
     case "l_hand": return tr(e.k, a[0], fmt(a[1]));
     case "l_ante": return tr(e.k, fmt(a[0]));
-    case "l_roll": return tr(e.k);
+    case "l_roll": case "l_allup": return tr(e.k);
     case "l_re": case "l_keep": return tr(e.k, nm(a[0]), a[1], faces(a[2]));
     case "l_win": case "l_win_split": { const ev = evalDice(a[2]); return tr(e.k, nm(a[0]), fmt(a[1]), escH(handName(ev.cat, ev.tb))); }
     case "l_out": return tr(e.k, nm(a[0]), a[1]);
