@@ -149,3 +149,11 @@ body.tb-home .tb-search:focus-within{background:#fff}
   .tb-soon h1{font-size:30px}
   body.tb-game .tb-search{display:none}   /* trong game: bỏ ô tìm kiếm để bàn cờ có thêm chỗ */
 }
+
+/* logo nhỏ trước tên game trong màn chơi (TB: mountGameLogo) */
+.tb-gbrand{display:flex;align-items:center;gap:10px}
+.tb-gtitle{display:flex;align-items:center;gap:10px;min-width:0}
+.tb-glogo{width:34px;height:34px;flex:none;align-self:center;border-radius:9px;object-fit:cover;box-shadow:0 1px 3px rgba(20,30,60,.18);user-select:none}
+.tb-rlogo{width:40px;height:40px;flex:none;border-radius:10px;object-fit:cover;box-shadow:0 1px 3px rgba(20,30,60,.18);user-select:none}
+.tb-rtitle{padding-right:34px}
+@media (max-width:560px){.tb-rlogo{width:34px;height:34px;border-radius:9px}}

@@ -284,6 +284,42 @@
   /* dòng ghi công chuẩn của mọi game: phần tử có class "tb-credit" (thường ở chân hộp Luật chơi), tự đổi theo ngôn ngữ */
   function paintCredits() { document.querySelectorAll(".tb-credit").forEach(e => { e.textContent = t("credit"); }); }
   document.addEventListener("DOMContentLoaded", paintCredits);
+  /* logo nhỏ của game đứng trước tên game (chủ game yêu cầu 11/2026). Tên game là ".brand h1" (game thường)
+     hoặc "#pkTitle" (game đố, dựng muộn); chữ trong h1 do i18n ghi đè nên logo đặt cạnh h1, không đặt bên trong. */
+  const logoDone = { head: false, rules: false };
+  function logoImg(g, cls) {
+    const img = document.createElement("img");
+    img.className = cls; img.src = ROOT + g.thumb; img.alt = ""; img.draggable = false; img.setAttribute("aria-hidden", "true");
+    return img;
+  }
+  function mountGameLogo() {
+    const g = GAMES.find(x => x.id === headerOpt.gameId); if (!g || !g.thumb) return true;
+    const h1 = !logoDone.head && document.querySelector(".brand h1, #pkTitle");
+    if (h1) {
+      logoDone.head = true;
+      const img = logoImg(g, "tb-glogo");
+      if (h1.id === "pkTitle") {   // .pk-top canh 2 đầu nên gói logo + tên vào một khối
+        const w = document.createElement("div"); w.className = "tb-gtitle";
+        h1.before(w); w.append(img, h1);
+      } else { h1.parentElement.classList.add("tb-gbrand"); h1.before(img); }
+    }
+    // tiêu đề hộp Luật chơi: gói logo + h2 vào một hàng, giữ nguyên khoảng cách trên/dưới của h2 cũ
+    const h2 = !logoDone.rules && document.querySelector("#mRules h2, #pkRulesTitle");
+    if (h2) {
+      logoDone.rules = true;
+      const cs = getComputedStyle(h2), w = document.createElement("div");
+      w.className = "tb-gtitle tb-rtitle"; w.style.margin = `${cs.marginTop} 0 ${cs.marginBottom}`;
+      h2.before(w); w.append(logoImg(g, "tb-rlogo"), h2); h2.style.margin = "0";
+    }
+    return logoDone.head && (logoDone.rules || document.readyState === "complete");
+  }
+  function watchGameLogo() {
+    if (headerOpt.page !== "game" || mountGameLogo()) return;
+    const mo = new MutationObserver(() => { if (mountGameLogo()) mo.disconnect(); });
+    mo.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => mo.disconnect(), 15000);
+  }
+  document.addEventListener("DOMContentLoaded", watchGameLogo);
   function setLang(l) {
     if (l !== "vi" && l !== "en") return;
     if (l === LANG) { paintHeader(); return; }
