@@ -229,6 +229,8 @@ body:not(.portrait) .eqrows.two{display:grid;grid-template-columns:1fr 1fr}
 .tagw{font-size:10.5px;font-weight:900;padding:1px 6px;border-radius:6px;color:#fff;margin-left:4px}
 .tagw.low{background:var(--low)} .tagw.high{background:var(--high)} .tagw.swing{background:var(--swing)} .tagw.bad{background:var(--lose)}
 .potline{font-size:12.5px;color:var(--muted);font-weight:700}
+.potline.why{color:var(--text);font-weight:600}
+.potline.why b{color:#13824a}
 
 #log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;max-height:420px;overflow:auto;font-size:12.5px}
 #log li{padding:3px 7px;border-radius:7px;background:var(--field);line-height:1.35}
@@ -555,6 +557,10 @@ const I18N = {
     sd_title: "Kết quả ván {0}", sd_fold: "<b>{0}</b> ăn {1} chip vì mọi người khác bỏ bài.", sd_next: "Ván tiếp", sd_next_in: "Ván tiếp sau {0} giây",
     sd_wait_host: "Chờ chủ phòng chia ván tiếp", sd_main: "Pot chính {0}", sd_side: "Pot phụ {0}", sd_lowwin: "Thấp: {0}", sd_highwin: "Cao: {0}",
     sd_swingwin: "Swing: {0} ăn cả", sd_chop: "không ai hợp lệ, chia đều", sd_nobody: "không ai", sd_invalid: "không hợp lệ", sd_fail: "Swing hụt", sd_hidden: "lá úp",
+    sd_tie_same: "{0} và {1} cùng ra đúng {2}", sd_tie_dist: "{0} và {1} cùng cách {2} một khoảng {3}",
+    sd_tie_val: "{0}. <b>{1}</b> thắng nhờ lá số {2}: của mình là {3}, của {4} là {5}.",
+    sd_tie_rank: "{0}, cùng có lá {1} là lá số {2}. <b>{3}</b> thắng nhờ hạng: lá của mình {4} chấm, của {5} {6} chấm ({7} chấm hơn thắng).",
+    sd_lowest: "nhỏ nhất", sd_highest: "lớn nhất", sd_fewer: "ít", sd_more: "nhiều",
     i_blinds: "Ante <b>{0}</b>", i_next: "Ante ván sau: {0}", t_first: "Người đi đầu ván này", i_players: "Còn {0}/{1} người",
     i_mode_bot: "Đấu máy · {0}", i_mode_online: "Online · phòng {0}", i_mode_tut: "Ván hướng dẫn", i_timer: "Giờ online: cược 30 giây, bỏ dấu 20 giây, xếp phép tính 90 giây.",
     l_hand: "Ván {0} · ante {1}", l_ante: "Mọi người nộp ante {0}", l_mul: "{0} rút ×, được thêm lá {1}", l_sqrt: "{0} rút √, được thêm lá {1}",
@@ -651,6 +657,10 @@ const I18N = {
     sd_title: "Hand {0} results", sd_fold: "<b>{0}</b> takes {1} chips, everyone else folded.", sd_next: "Next hand", sd_next_in: "Next hand in {0}s",
     sd_wait_host: "Waiting for the host to deal", sd_main: "Main pot {0}", sd_side: "Side pot {0}", sd_lowwin: "Low: {0}", sd_highwin: "High: {0}",
     sd_swingwin: "Swing: {0} scoops", sd_chop: "no valid hand, split evenly", sd_nobody: "nobody", sd_invalid: "invalid", sd_fail: "Swing failed", sd_hidden: "hidden",
+    sd_tie_same: "{0} and {1} both hit exactly {2}", sd_tie_dist: "{0} and {1} are both {3} away from {2}",
+    sd_tie_val: "{0}. Winner: <b>{1}</b>, on the {2} number card ({3} vs {5} for {4}).",
+    sd_tie_rank: "{0}, and both have {1} as their {2} number card. Winner: <b>{3}</b>, on rank ({4} vs {6} dots for {5}; {7} dots win).",
+    sd_lowest: "lowest", sd_highest: "highest", sd_fewer: "fewer", sd_more: "more",
     i_blinds: "Ante <b>{0}</b>", i_next: "Next hand's ante: {0}", t_first: "Acts first this hand", i_players: "{0} of {1} players left",
     i_mode_bot: "Vs bots · {0}", i_mode_online: "Online · room {0}", i_mode_tut: "Tutorial hand", i_timer: "Online timers: 30s to bet, 20s to discard, 90s to build.",
     l_hand: "Hand {0} · ante {1}", l_ante: "Everyone paid the {0} ante", l_mul: "{0} drew ×, bonus card {1}", l_sqrt: "{0} drew √, bonus card {1}",
@@ -2135,6 +2145,26 @@ function eqLineHTML(eq, val, ok, target, err) {
   const v = ok ? `= ${fmtV(val)}` : `<span class="tagw bad">${tr("err_" + (err || "order"))}</span>`;
   return `<div class="eqline">${cards}<span class="eqv">${v}</span>${ok && target != null ? `<span class="note">&nbsp;${tr("eq_dist", target, fmtV(Math.abs(val - target)))}</span>` : ""}</div>`;
 }
+// bằng điểm mà vẫn có người thắng: giải thích lá kicker (lá số nhỏ nhất/lớn nhất, rồi hạng = số chấm)
+function tieWhy(r, p) {
+  const out = [];
+  for (const side of ["low", "high"]) {
+    const w = p.swing != null ? p.swing : p[side];
+    if (w == null) continue;
+    const kk = x => side === "low" ? r.R[x].lk : r.R[x].hk, W = r.R[w][side];
+    if (!W || !W.ok) continue;
+    const rivals = p.elig.filter(x => x !== w && r.R[x] && (r.R[x].bet === side || r.R[x].bet === "swing" && p.swing != null)
+      && r.R[x][side] && r.R[x][side].ok && Math.abs(r.R[x][side].d - W.d) < EPS);
+    if (!rivals.length) continue;
+    const o = bestOf(side, rivals.map(x => ({ s: x, d: W.d, kick: kk(x) }))).s;
+    const wn = escH(nameOf(w)), on = escH(nameOf(o)), a = kk(w), b = kk(o), T = side === "low" ? LOW_T : HIGH_T;
+    const pre = tr(side) + ": " + (W.d < EPS ? tr("sd_tie_same", wn, on, T) : tr("sd_tie_dist", wn, on, T, fmtV(W.d)));
+    const ext = tr(side === "low" ? "sd_lowest" : "sd_highest");
+    out.push(cVal(a) !== cVal(b) ? tr("sd_tie_val", pre, wn, ext, cVal(a), on, cVal(b))
+      : tr("sd_tie_rank", pre, cVal(a), ext, wn, cRank(a), on, cRank(b), tr(side === "low" ? "sd_fewer" : "sd_more")));
+  }
+  return out;
+}
 function showdownHTML() {
   const r = V.result;
   let h = `<h3 class="h3">${tr("sd_title", V.handNo)}</h3>`;
@@ -2154,10 +2184,12 @@ function showdownHTML() {
       <div class="eqs">${eqs}</div><div class="won${won ? "" : " zero"}">${won ? "+" + fmt(won) : "0"}</div></div>`;
   }
   h += `</div>`;
+  const seenWhy = new Set();
   h += r.pots.map((p, k) => {
     const nm = x => x == null ? tr("sd_nobody") : escH(nameOf(x));
     const what = p.swing != null ? tr("sd_swingwin", nm(p.swing)) : p.chop ? tr("sd_chop") : tr("sd_lowwin", nm(p.low)) + " · " + tr("sd_highwin", nm(p.high));
-    return `<p class="potline" style="margin:0">${tr(k ? "sd_side" : "sd_main", fmt(p.amt))}: ${what}</p>`;
+    const why = tieWhy(r, p).filter(t => !seenWhy.has(t) && seenWhy.add(t)).map(t => `<p class="potline why" style="margin:0">${t}</p>`).join("");
+    return `<p class="potline" style="margin:0">${tr(k ? "sd_side" : "sd_main", fmt(p.amt))}: ${what}</p>${why}`;
   }).join("");
   return h + `<div id="nextArea" class="eqfoot"></div>`;
 }
