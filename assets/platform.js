@@ -14,13 +14,13 @@
 
   /* ---------- MÁY CHỦ KẾT NỐI CHO CHƠI ONLINE (PeerJS) ----------
      Hai máy ở hai mạng khác nhau thường không nối thẳng được, phải đi vòng qua máy chủ trung chuyển TURN.
-     TURN công cộng của PeerJS (eu-0/us-0.turn.peerjs.com) đã chết (11/2026), nên dùng Metered Open Relay (20 GB/tháng
-     miễn phí) của chủ game. Mọi game gọi `new Peer(...)` sau khi nạp PeerJS; ở đây chặn lúc PeerJS gán window.Peer và
+     TURN công cộng của PeerJS (eu-0/us-0.turn.peerjs.com) đã chết (11/2026), nên dùng TURN Metered của chủ game
+     (gói miễn phí 500 MB/tháng, không cần thẻ; hết lượt thì chỉ còn nối thẳng, không bị tính tiền). Mọi game gọi `new Peer(...)` sau khi nạp PeerJS; ở đây chặn lúc PeerJS gán window.Peer và
      bọc lại để mọi Peer tự dùng danh sách ICE_SERVERS này, nên không phải sửa từng game. */
-  const TURN_USER = "", TURN_PASS = "";   // tài khoản Metered (TURN Server → Credentials) — điền khi chủ game gửi
+  const TURN_USER = "626d1e54e314f6fbc4cd398d", TURN_PASS = "1YiKY/GwBcb59EzP";   // credential Metered của chủ game (TURN Server → Credentials, gói 500 MB không thẻ, 11/2026); lộ công khai là chấp nhận
   const ICE_SERVERS = [
     { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun.cloudflare.com:3478" },
+    { urls: "stun:stun.relay.metered.ca:80" },
   ].concat(TURN_USER ? [{
     urls: ["turn:global.relay.metered.ca:80", "turn:global.relay.metered.ca:80?transport=tcp",
       "turn:global.relay.metered.ca:443", "turns:global.relay.metered.ca:443?transport=tcp"],
