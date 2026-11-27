@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bagh Chal · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<script src="../../assets/platform.js"></script>
+<style>
+:root{
+  --S:560px;
+  --bg:var(--tb-bg); --panel:var(--tb-surface); --line:var(--tb-border); --text:var(--tb-text); --muted:var(--tb-muted);
+  --btn:#fff; --btn-hover:var(--tb-hover); --btn-line:var(--tb-border-strong); --field:var(--tb-surface-2); --gold:#ffc928; --gold-ink:var(--tb-gold-ink);
+  --tiger:#f08a12; --tiger-soft:#fde9cf; --goat:#7a8496; --goat-soft:#eceff4;
+  --wood:#e9c98f; --wood-dark:#b98a45; --ink:#5b3a12;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--tb-font);min-height:100vh;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;transition:transform .12s ease-out,background-color .15s,filter .15s,opacity .15s}
+button:active:not(:disabled){transform:scale(.92)}
+#app{width:fit-content;margin:0 auto;padding:14px 12px 16px}
+body.portrait #app{width:100%;padding:8px 8px 24px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.brand h1{margin:0;font-family:var(--tb-font-brand);font-size:26px;line-height:1.1}
+.actions{display:flex;gap:8px}
+.btn{background:var(--btn);color:var(--text);border:1.5px solid var(--btn-line);border-radius:10px;padding:8px 15px;font-size:14px;font-weight:800;cursor:pointer}
+.btn:hover{background:var(--btn-hover)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.primary{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:transparent}
+.btn.primary:hover{background:var(--tb-primary-hover)}
+
+#status{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);margin-bottom:12px;font-size:14px;min-height:42px}
+.mk{flex:none;width:24px;height:24px;display:inline-grid;place-items:center}
+.mk svg{width:100%;height:100%}
+.mk.think{animation:blink .9s infinite}
+@keyframes blink{50%{opacity:.25}}
+
+#stage{display:flex;gap:20px;align-items:flex-start;justify-content:center}
+#boardWrap{position:relative;flex:none}
+#board{position:relative;width:var(--S);height:var(--S);border-radius:22px;user-select:none;-webkit-user-select:none;touch-action:manipulation;
+  background:radial-gradient(ellipse at 40% 30%,#f4dcac 0%,var(--wood) 55%,#d9b373 100%);box-shadow:inset 0 0 0 6px rgba(120,80,30,.25),0 14px 34px rgba(60,40,10,.28)}
+#lines{position:absolute;inset:0;width:100%;height:100%}
+#lines line{stroke:var(--ink);stroke-linecap:round}
+.pt{position:absolute;width:15%;height:15%;transform:translate(-50%,-50%);border-radius:50%;display:grid;place-items:center;z-index:2}
+.pt::before{content:"";width:16%;height:16%;border-radius:50%;background:var(--ink);opacity:.85}
+.pt.can,.pt.place,.pt.sel{cursor:pointer}
+.pt.can::after{content:"";position:absolute;width:34%;height:34%;border-radius:50%;background:rgba(31,174,75,.75);box-shadow:0 0 0 4px rgba(31,174,75,.25)}
+.pt.cap::after{content:"";position:absolute;width:62%;height:62%;border-radius:50%;border:4px solid #e5322b;background:rgba(229,50,43,.12)}
+.pt.place:hover::after{content:"";position:absolute;inset:12%;border-radius:50%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='%23fff' stroke='%237a8496' stroke-width='6'/%3E%3C/svg%3E") center/100% no-repeat;opacity:.55}
+.pt.lastf::after{content:"";position:absolute;width:56%;height:56%;border-radius:50%;border:3px dashed rgba(91,58,18,.55)}
+.pc{position:absolute;width:13.5%;height:13.5%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;transition:left .28s cubic-bezier(.3,.7,.3,1),top .28s cubic-bezier(.3,.7,.3,1),opacity .35s,filter .2s}
+.pc svg{width:100%;height:100%;display:block;filter:drop-shadow(0 3px 3px rgba(60,35,5,.35))}
+.pc.new{animation:pop .25s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}100%{transform:translate(-50%,-50%);opacity:1}}
+.pc.gone{opacity:0;transform:translate(-50%,-50%) scale(.6);transition:opacity .45s,transform .45s}
+.pc.sel svg{filter:drop-shadow(0 0 0 #ffc928) drop-shadow(0 0 6px #ffc928) drop-shadow(0 3px 3px rgba(60,35,5,.35))}
+.pc.movable svg{filter:drop-shadow(0 0 4px rgba(255,201,40,.95)) drop-shadow(0 3px 3px rgba(60,35,5,.35))}
+.pc.last::after{content:"";position:absolute;inset:-9%;border-radius:50%;border:3px solid #1fae4b}
+.pc.last.theirs::after{border-color:#e5322b}
+.pc.stuck{filter:grayscale(.65)}
+
+.side{width:290px;flex:none;display:flex;flex-direction:column;gap:10px}
+.panel{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:10px;row-gap:8px;padding:10px 12px;border-radius:12px;
+  background:var(--panel);border:2px solid var(--line);box-shadow:var(--tb-shadow);transition:border-color .2s,box-shadow .2s}
+.panel.active{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,201,40,.35)}
+.picon{width:38px;height:38px;display:grid;place-items:center}
+.picon svg{width:100%;height:100%}
+.pinfo{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.pinfo b{font-size:15px}
+.pinfo span{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clock{font-family:var(--tb-font-brand);font-size:24px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--muted);padding:5px 9px;border-radius:9px;background:var(--field)}
+.clock.run{background:#1d2330;color:#fff}
+.clock.low{color:#e8473e}
+.clock.low.run{background:#e8473e;color:#fff}
+.pline{grid-column:1/-1;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:800;color:var(--muted);flex-wrap:wrap}
+.pline i{width:18px;height:18px;border-radius:50%;background:var(--field);border:1.5px dashed var(--btn-line);display:inline-grid;place-items:center}
+.pline i.on{border:none;background:none}
+.pline i svg{width:100%;height:100%}
+.pline span{margin-left:6px}
+#info{padding:12px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);font-size:13.5px}
+#info dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
+#info dt{color:var(--muted)} #info dd{margin:0;font-weight:800;text-align:right}
+#tip{margin:10px 0 0;color:var(--gold-ink);font-weight:700;line-height:1.4}
+
+#gameover{position:absolute;inset:0;display:grid;place-items:center;background:rgba(40,25,5,.35);z-index:20;animation:fade .3s;border-radius:22px}
+.go-card{background:var(--panel);border:2px solid var(--gold);border-radius:16px;padding:22px 26px;text-align:center;max-width:90%;box-shadow:var(--tb-shadow-lg);position:relative}
+.go-card h2{margin:0 0 6px;font-family:var(--tb-font-brand);font-size:30px}
+.go-card p{margin:0 0 16px;color:var(--muted)}
+.go-card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#goNet{margin:-8px 0 14px}
+#goNet:empty{display:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.modal{position:fixed;inset:0;background:rgba(20,25,40,.5);display:grid;place-items:center;z-index:50;padding:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:20px 24px;box-shadow:var(--tb-shadow-lg);position:relative}
+.card h2{margin:0 0 10px;font-family:var(--tb-font-brand);font-size:26px;line-height:1.15}
+.card h3{margin:16px 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink)}
+.card p,.card li{font-size:14.5px;line-height:1.55}
+.card ul{margin:6px 0;padding-left:20px}
+.card .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;align-items:center}
+.card .foot .tb-credit{margin-right:auto}
+.note{color:var(--muted);font-size:12.5px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:110px;background:var(--btn);color:var(--text);border:2px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-weight:800;cursor:pointer}
+.seg button:hover{background:var(--btn-hover)}
+.seg button.on{background:var(--gold);color:var(--tb-primary-ink);border-color:var(--gold)}
+.seg button:disabled{cursor:not-allowed;pointer-events:none}
+#segTime button{min-width:0;padding:9px 4px}
+#segSide button{display:flex;align-items:center;justify-content:center;gap:8px}
+#segSide button svg{width:26px;height:26px;flex:none}
+#segLevel button{min-width:0;font-size:17px;letter-spacing:.08em}
+#segLevel button[data-v="easy"]{border-color:#ffd24a;background:rgba(255,210,74,.2)}
+#segLevel button[data-v="medium"]{border-color:#3d8bff;background:rgba(61,139,255,.16)}
+#segLevel button[data-v="hard"]{border-color:#e5453b;background:rgba(229,69,59,.16)}
+#segLevel button.on[data-v="easy"]{background:#ffd24a;border-color:#ffd24a;color:#3a2a00}
+#segLevel button.on[data-v="medium"]{background:#3d8bff;border-color:#3d8bff;color:#fff}
+#segLevel button.on[data-v="hard"]{background:#e5453b;border-color:#e5453b;color:#fff}
+.off{opacity:.28;filter:grayscale(1)}
+.off .seg button.on{background:var(--btn);color:var(--text);border-color:var(--line);box-shadow:none}
+#levelNote{min-height:2.8em;line-height:1.4;margin:6px 0 0}
+#timeNote{line-height:1.4;margin:6px 0 0}
+.netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.netrow .seg{flex:2 1 240px}
+#joinCode{flex:1 1 140px;min-width:0;background:#fff;color:var(--text);border:2px solid var(--btn-line);border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;font-size:18px;letter-spacing:.2em;text-transform:uppercase;text-align:center}
+#joinCode::placeholder{letter-spacing:normal;font-weight:600;font-size:14px;color:var(--muted);text-transform:none}
+#joinCode:disabled{opacity:.35}
+#mNet .card{max-width:460px;text-align:center}
+#mNet .foot{justify-content:center}
+.netcode{font-family:var(--tb-font-brand);font-size:46px;font-weight:800;letter-spacing:.22em;padding-left:.22em;color:var(--gold-ink);margin:4px 0 12px;user-select:all}
+.netlink{display:flex;gap:8px}
+.netlink input{flex:1;min-width:0;background:var(--field);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px}
+#netMsg{color:var(--muted);margin:14px 0 0}
+/* minh hoạ trong hộp Luật chơi */
+.figs{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:10px 0 4px}
+.fig{width:170px;text-align:center;font-size:12.5px;color:var(--muted);font-weight:700;line-height:1.35}
+.fig svg{width:150px;height:150px;display:block;margin:0 auto 6px;border-radius:12px;background:var(--wood)}
+
+body.portrait .brand{display:none}
+body.portrait .actions{width:100%} body.portrait #btnNew{margin-left:auto}
+body.portrait #status{font-size:13px;margin-bottom:8px;min-height:58px}
+body.portrait #stage{flex-direction:column;align-items:center;gap:10px}
+body.portrait .side{display:contents}
+body.portrait .panel{width:var(--S)}
+body.portrait .panel.top-p{order:1} body.portrait #boardWrap{order:2} body.portrait .panel.bot-p{order:3} body.portrait #info{order:4;width:var(--S)}
+body.portrait .clock{font-size:20px}
+@media (max-width:600px){.figs{gap:8px;flex-wrap:nowrap}.fig{width:calc((100% - 16px) / 3);font-size:11px}.fig svg{width:100%;height:auto}}
+@media (max-width:600px){#segTime button{flex:0 0 calc((100% - 16px) / 3)}#segTime{justify-content:center}.seg button{min-width:0}}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "bagh-chal" });</script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="icTiger" viewBox="0 0 100 100">
+    <circle cx="23" cy="21" r="13" fill="#f08a12" stroke="#5a2c00" stroke-width="4"/><circle cx="23" cy="21" r="6" fill="#ffd9a8"/>
+    <circle cx="77" cy="21" r="13" fill="#f08a12" stroke="#5a2c00" stroke-width="4"/><circle cx="77" cy="21" r="6" fill="#ffd9a8"/>
+    <circle cx="50" cy="53" r="42" fill="#f08a12" stroke="#5a2c00" stroke-width="4.5"/>
+    <path d="M50 14v13M39 17l3 11M61 17l-3 11M9 47h14M11 59h12M91 47H77M89 59H77" stroke="#3a1c00" stroke-width="4.5" stroke-linecap="round"/>
+    <ellipse cx="50" cy="71" rx="21" ry="15" fill="#fff4e3"/>
+    <ellipse cx="35" cy="49" rx="5" ry="6.5" fill="#2b1500"/><ellipse cx="65" cy="49" rx="5" ry="6.5" fill="#2b1500"/>
+    <circle cx="36.5" cy="47" r="1.8" fill="#fff"/><circle cx="66.5" cy="47" r="1.8" fill="#fff"/>
+    <path d="M43 62h14l-7 7Z" fill="#e2566e"/>
+    <path d="M50 69v5M50 74q-6 6-12 2M50 74q6 6 12 2" stroke="#3a1c00" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="icGoat" viewBox="0 0 100 100">
+    <path d="M34 26C27 13 15 10 9 16c8 0 15 6 18 16Z" fill="#b08550" stroke="#5e4220" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M66 26C73 13 85 10 91 16c-8 0-15 6-18 16Z" fill="#b08550" stroke="#5e4220" stroke-width="3" stroke-linejoin="round"/>
+    <ellipse cx="13" cy="46" rx="12" ry="7" fill="#f3f4f7" stroke="#5f6878" stroke-width="3.5" transform="rotate(18 13 46)"/>
+    <ellipse cx="87" cy="46" rx="12" ry="7" fill="#f3f4f7" stroke="#5f6878" stroke-width="3.5" transform="rotate(-18 87 46)"/>
+    <circle cx="50" cy="53" r="40" fill="#fbfbfd" stroke="#5f6878" stroke-width="4.5"/>
+    <path d="M38 22q12 8 24 0" stroke="#d4d8e0" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="36" cy="49" rx="4.5" ry="5.5" fill="#2a2f3a"/><ellipse cx="64" cy="49" rx="4.5" ry="5.5" fill="#2a2f3a"/>
+    <circle cx="37.3" cy="47.3" r="1.6" fill="#fff"/><circle cx="65.3" cy="47.3" r="1.6" fill="#fff"/>
+    <ellipse cx="50" cy="71" rx="15" ry="11" fill="#f2d4d8"/>
+    <circle cx="44" cy="69" r="2.3" fill="#8c5a62"/><circle cx="56" cy="69" r="2.3" fill="#8c5a62"/>
+    <path d="M45 77q5 4 10 0" stroke="#8c5a62" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </symbol>
+</svg>
+<div id="app">
+  <header class="top">
+    <div class="brand"><h1 data-i18n="brand">Bagh Chal</h1></div>
+    <div class="actions">
+      <button class="btn" id="btnRules" data-i18n="b_rules">Luật chơi</button>
+      <button class="btn" id="btnUndo" data-i18n="b_undo">Đi lại</button>
+      <button class="btn primary" id="btnNew" data-i18n="b_new">Ván mới</button>
+    </div>
+  </header>
+  <div id="status"><span class="mk" id="stMark"></span><span id="statusText"></span></div>
+  <main id="stage">
+    <div id="boardWrap">
+      <div id="board"><svg id="lines" viewBox="0 0 100 100" aria-hidden="true"></svg><div id="pts"></div><div id="pcs"></div></div>
+      <div id="gameover" hidden>
+        <div class="go-card">
+          <h2 id="goTitle"></h2>
+          <p id="goSub"></p>
+          <p class="note" id="goNet"></p>
+          <div class="row">
+            <button class="btn primary" id="goNew" data-i18n="b_new">Ván mới</button>
+            <button class="btn" id="goView" data-i18n="b_view">Xem bàn cờ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="side">
+      <section class="panel" id="panel-1"><span class="picon"><svg><use href="#icTiger"/></svg></span><div class="pinfo"><b></b><span></span></div><div class="clock"></div><div class="pline"></div></section>
+      <section class="panel" id="panel-2"><span class="picon"><svg><use href="#icGoat"/></svg></span><div class="pinfo"><b></b><span></span></div><div class="clock"></div><div class="pline"></div></section>
+      <section id="info"><dl id="infoList"></dl><p id="tip"></p></section>
+    </aside>
+  </main>
+</div>
+
+<div class="modal" id="mRules" hidden>
+  <div class="card">
+    <h2 data-i18n="brand">Bagh Chal</h2>
+    <p data-i18n="r_intro"></p>
+    <div class="figs" id="rulesFigs"></div>
+    <h3 data-i18n="r_h_rules"></h3>
+    <ul><li data-i18n="r_board"></li><li data-i18n="r_start"></li><li data-i18n="r_goat"></li><li data-i18n="r_tiger"></li></ul>
+    <h3 data-i18n="r_h_end"></h3>
+    <ul><li data-i18n="r_twin"></li><li data-i18n="r_gwin"></li><li data-i18n="r_stuck"></li><li data-i18n="r_draw"></li></ul>
+    <h3 data-i18n="r_h_opp"></h3>
+    <ul><li data-i18n="r_ai"></li><li data-i18n="r_online"></li></ul>
+    <p class="note" data-i18n="r_origin"></p>
+    <div class="foot"><span class="note credit tb-credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok"></button></div>
+  </div>
+</div>
+
+<div class="modal" id="mMode" hidden>
+  <div class="card">
+    <h2 data-i18n="m_title"></h2>
+    <h3 data-i18n="m_vs"></h3>
+    <div class="seg" id="segVs"><button data-v="bot" data-i18n="m_bot"></button><button data-v="online" data-i18n="m_online"></button></div>
+    <div id="netOpts">
+      <h3 data-i18n="m_net"></h3>
+      <div class="netrow">
+        <div class="seg" id="segNet"><button data-v="create" data-i18n="m_create"></button><button data-v="join" data-i18n="m_join"></button></div>
+        <input id="joinCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+      <p class="note" id="netNote"></p>
+    </div>
+    <div id="sideOpts">
+      <h3 data-i18n="m_side"></h3>
+      <div class="seg" id="segSide"><button data-v="goat"></button><button data-v="tiger"></button></div>
+    </div>
+    <div id="timeOpts">
+      <h3 data-i18n="m_time"></h3>
+      <div class="seg" id="segTime"></div>
+      <p class="note" id="timeNote"></p>
+    </div>
+    <div id="levelOpts">
+      <h3 data-i18n="m_level"></h3>
+      <div class="seg" id="segLevel"><button data-v="easy" data-i18n="lv_easy"></button><button data-v="medium" data-i18n="lv_medium"></button><button data-v="hard" data-i18n="lv_hard"></button></div>
+      <p class="note" id="levelNote"></p>
+    </div>
+    <div class="foot">
+      <button class="btn" id="modeCancel" data-i18n="cancel"></button>
+      <button class="btn primary" id="modeStart" data-i18n="m_start"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mNet" hidden>
+  <div class="card">
+    <h2 id="netTitle"></h2>
+    <div id="netCodeBox" hidden>
+      <div class="netcode" id="netCode"></div>
+      <div class="netlink"><input id="netLink" readonly><button class="btn" id="netCopy" data-i18n="n_copy"></button></div>
+    </div>
+    <p id="netMsg"></p>
+    <div class="foot"><button class="btn" id="netCancel" data-i18n="cancel"></button></div>
+  </div>
+</div>
+
+<script id="bcRules">
+"use strict";
+/* RULES-AI-START */
+/* Luật + AI của Bagh Chal, không đụng DOM: chạy trong trang, được chép nguyên văn vào Web Worker cho AI,
+   và cắt ra chạy bằng Node (tools/test-bagh-chal.js).
+   Bàn 5x5 điểm, điểm i = r*5 + c (hàng 0 ở trên). Đường chéo đi qua các điểm có (r + c) chẵn (kiểu bàn truyền thống).
+   b[i]: 0 trống, 1 Hổ, 2 Dê. 4 Hổ ở 4 góc, 20 Dê ngoài bàn, Dê đi trước.
+   Nước đi là số nguyên m = from*32 + to; from = 31 (PLACE) là Dê đặt quân. Hổ nhảy qua Dê (from cách to 2 điểm) là ăn Dê ở giữa. */
+const TIGER = 1, GOAT = 2, GOATS = 20, WIN_CAPS = 5, PLACE = 31;
+const ADJ = [], JMP = [], JMID = new Int8Array(625).fill(-1);
+(function () {
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+    const i = r * 5 + c; ADJ[i] = []; JMP[i] = [];
+    for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+      if (dr && dc && (r + c) % 2) continue;   // điểm lẻ không có đường chéo
+      const r1 = r + dr, c1 = c + dc, r2 = r + 2 * dr, c2 = c + 2 * dc;
+      if (r1 < 0 || r1 > 4 || c1 < 0 || c1 > 4) continue;
+      ADJ[i].push(r1 * 5 + c1);
+      if (r2 >= 0 && r2 <= 4 && c2 >= 0 && c2 <= 4) { JMP[i].push([r1 * 5 + c1, r2 * 5 + c2]); JMID[i * 25 + r2 * 5 + c2] = r1 * 5 + c1; }
+    }
+  }
+})();
+/* mã Zobrist (2 số 32 bit) cho bảng chuyển vị và đếm thế cờ lặp */
+const Z1 = new Int32Array(75), Z2 = new Int32Array(75), ZP1 = new Int32Array(21), ZP2 = new Int32Array(21);
+let ZT1 = 0, ZT2 = 0;
+(function () {
+  let a = 0x9E3779B9 | 0;
+  const rnd = () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return (t ^ t >>> 14) | 0; };
+  for (let k = 0; k < 75; k++) { Z1[k] = rnd(); Z2[k] = rnd(); }
+  for (let k = 0; k <= 20; k++) { ZP1[k] = rnd(); ZP2[k] = rnd(); }
+  ZT1 = rnd(); ZT2 = rnd();
+})();
+function rehash(s) {
+  let a = 0, b = 0;
+  for (let i = 0; i < 25; i++) if (s.b[i]) { a ^= Z1[s.b[i] * 25 + i]; b ^= Z2[s.b[i] * 25 + i]; }
+  a ^= ZP1[s.placed]; b ^= ZP2[s.placed];
+  if (s.turn === TIGER) { a ^= ZT1; b ^= ZT2; }
+  s.h1 = a; s.h2 = b; return s;
+}
+function newState() {
+  const s = { b: new Int8Array(25), placed: 0, caps: 0, turn: GOAT, h1: 0, h2: 0 };
+  for (const i of [0, 4, 20, 24]) s.b[i] = TIGER;
+  return rehash(s);
+}
+const cloneState = s => ({ b: s.b.slice(), placed: s.placed, caps: s.caps, turn: s.turn, h1: s.h1, h2: s.h2 });
+const plainState = s => ({ b: Array.from(s.b), placed: s.placed, caps: s.caps, turn: s.turn });
+const fromPlain = o => rehash({ b: Int8Array.from(o.b), placed: o.placed, caps: o.caps, turn: o.turn, h1: 0, h2: 0 });
+const posKey = s => s.h1 + "," + s.h2;
+const mFrom = m => m >> 5, mTo = m => m & 31;
+const capOf = m => (m >> 5) === PLACE ? -1 : JMID[(m >> 5) * 25 + (m & 31)];
+function genMoves(s) {
+  const out = [], b = s.b;
+  if (s.turn === GOAT) {
+    if (s.placed < GOATS) { for (let i = 0; i < 25; i++) if (!b[i]) out.push(PLACE << 5 | i); }
+    else for (let i = 0; i < 25; i++) if (b[i] === GOAT) for (const j of ADJ[i]) if (!b[j]) out.push(i << 5 | j);
+  } else {
+    for (let i = 0; i < 25; i++) if (b[i] === TIGER) {
+      for (const [mid, land] of JMP[i]) if (b[mid] === GOAT && !b[land]) out.push(i << 5 | land);
+      for (const j of ADJ[i]) if (!b[j]) out.push(i << 5 | j);
+    }
+  }
+  return out;
+}
+function isLegal(s, m) { return Number.isInteger(m) && genMoves(s).includes(m); }
+/* đi nước m (đã hợp lệ); trả về điểm Dê bị ăn hoặc -1 */
+function make(s, m) {
+  const f = m >> 5, t = m & 31, b = s.b; let cap = -1;
+  if (f === PLACE) {
+    b[t] = GOAT; s.h1 ^= Z1[50 + t] ^ ZP1[s.placed] ^ ZP1[s.placed + 1]; s.h2 ^= Z2[50 + t] ^ ZP2[s.placed] ^ ZP2[s.placed + 1]; s.placed++;
+  } else {
+    const p = b[f]; b[f] = 0; b[t] = p; s.h1 ^= Z1[p * 25 + f] ^ Z1[p * 25 + t]; s.h2 ^= Z2[p * 25 + f] ^ Z2[p * 25 + t];
+    if (p === TIGER) { const mid = JMID[f * 25 + t]; if (mid >= 0) { b[mid] = 0; s.h1 ^= Z1[50 + mid]; s.h2 ^= Z2[50 + mid]; s.caps++; cap = mid; } }
+  }
+  s.turn = 3 - s.turn; s.h1 ^= ZT1; s.h2 ^= ZT2;
+  return cap;
+}
+function unmake(s, m, cap) {
+  const f = m >> 5, t = m & 31, b = s.b;
+  s.turn = 3 - s.turn; s.h1 ^= ZT1; s.h2 ^= ZT2;
+  if (f === PLACE) {
+    s.placed--; b[t] = 0; s.h1 ^= Z1[50 + t] ^ ZP1[s.placed] ^ ZP1[s.placed + 1]; s.h2 ^= Z2[50 + t] ^ ZP2[s.placed] ^ ZP2[s.placed + 1];
+  } else {
+    const p = b[t]; b[t] = 0; b[f] = p; s.h1 ^= Z1[p * 25 + f] ^ Z1[p * 25 + t]; s.h2 ^= Z2[p * 25 + f] ^ Z2[p * 25 + t];
+    if (cap >= 0) { b[cap] = GOAT; s.h1 ^= Z1[50 + cap]; s.h2 ^= Z2[50 + cap]; s.caps--; }
+  }
+}
+/* Kết quả: 0 đang chơi, TIGER / GOAT là bên thắng.
+   Hổ ăn đủ 5 Dê thì Hổ thắng; bên tới lượt không còn nước đi thì thua (Hổ bị vây hết: Dê thắng; Dê hết nước: Hổ thắng — mình tự chọn). */
+function outcome(s) {
+  if (s.caps >= WIN_CAPS) return TIGER;
+  if (!genMoves(s).length) return 3 - s.turn;
+  return 0;
+}
+/* Hổ không đi được (bị vây) — dùng cho giao diện */
+function tigerStuck(s, i) {
+  for (const j of ADJ[i]) if (!s.b[j]) return false;
+  for (const [mid, land] of JMP[i]) if (s.b[mid] === GOAT && !s.b[land]) return false;
+  return true;
+}
+
+/* ---------- AI: negamax + alpha-beta + bảng chuyển vị, tăng dần độ sâu tới hết giờ ----------
+   Đánh giá theo phía Hổ: Dê đã bị ăn, số nước Hổ đi được, Hổ bị vây, số Dê đang bị đe doạ (Hổ tới lượt thì gần như ăn chắc). */
+const W = { cap: 300, mob: 6, trap: 45, thr: 30, thrNow: 200, edge: 3 };
+const EDGE = new Int8Array(25).map((_, i) => { const r = (i / 5) | 0, c = i % 5; return (r === 0 || r === 4 ? 1 : 0) + (c === 0 || c === 4 ? 1 : 0); });
+function evalTiger(s) {
+  const b = s.b; let mob = 0, trapped = 0, thr = 0, edge = 0;
+  for (let i = 0; i < 25; i++) {
+    if (b[i] === TIGER) {
+      let mv = 0;
+      for (const j of ADJ[i]) if (!b[j]) mv++;
+      for (const [mid, land] of JMP[i]) if (b[mid] === GOAT && !b[land]) { mv++; thr |= 1 << mid; }
+      mob += mv; if (!mv) trapped++;
+    } else if (b[i] === GOAT) edge += EDGE[i];
+  }
+  let n = 0; while (thr) { thr &= thr - 1; n++; }
+  let e = s.caps * W.cap + mob * W.mob - trapped * W.trap + n * W.thr - edge * W.edge;
+  if (s.turn === TIGER && n) e += W.thrNow;
+  return e;
+}
+const WIN = 1000000;
+const TT_BITS = 20, TT_MASK = (1 << TT_BITS) - 1;
+let TT = null;
+function ttInit() { TT = { k: new Int32Array(1 << TT_BITS), c: new Int32Array(1 << TT_BITS), d: new Int8Array(1 << TT_BITS).fill(-1), v: new Int32Array(1 << TT_BITS), f: new Int8Array(1 << TT_BITS), m: new Int16Array(1 << TT_BITS) }; }
+class Abort {}
+function negamax(s, depth, alpha, beta, ply, C) {
+  if (s.caps >= WIN_CAPS) return -(WIN - ply);   // Hổ vừa ăn con thứ 5: bên tới lượt (Dê) thua
+  if ((++C.nodes & 2047) === 0 && Date.now() > C.deadline) throw new Abort();
+  const idx = s.h1 & TT_MASK;
+  let ttMove = -1;
+  if (TT.k[idx] === s.h1 && TT.c[idx] === s.h2) {
+    ttMove = TT.m[idx];
+    if (TT.d[idx] >= depth) {
+      let v = TT.v[idx]; if (v > WIN - 1000) v -= ply; else if (v < -WIN + 1000) v += ply;
+      const f = TT.f[idx];
+      if (f === 0 || (f === 1 && v >= beta) || (f === 2 && v <= alpha)) return v;
+    }
+  }
+  const moves = genMoves(s);
+  if (!moves.length) return -(WIN - ply);
+  if (depth <= 0) { const e = evalTiger(s); return s.turn === TIGER ? e : -e; }
+  // xếp nước: nước trong bảng chuyển vị, nước ăn Dê (Hổ đã sinh trước), nước killer
+  const k1 = C.killer[ply] | 0;
+  let best = -Infinity, bestM = moves[0];
+  const a0 = alpha;
+  const order = moves;
+  if (ttMove >= 0) { const j = order.indexOf(ttMove); if (j > 0) { order[j] = order[0]; order[0] = ttMove; } }
+  if (k1) { const j = order.indexOf(k1); if (j > 1) { order.splice(j, 1); order.splice(1, 0, k1); } }
+  for (const m of order) {
+    const cap = make(s, m);
+    let v;
+    try { v = -negamax(s, depth - 1, -beta, -alpha, ply + 1, C); } finally { unmake(s, m, cap); }
+    if (v > best) { best = v; bestM = m; }
+    if (v > alpha) alpha = v;
+    if (alpha >= beta) { if (capOf(m) < 0) C.killer[ply] = m; break; }
+  }
+  let sv = best; if (sv > WIN - 1000) sv += ply; else if (sv < -WIN + 1000) sv -= ply;
+  TT.k[idx] = s.h1; TT.c[idx] = s.h2; TT.d[idx] = depth; TT.v[idx] = sv; TT.m[idx] = bestM;
+  TT.f[idx] = best <= a0 ? 2 : best >= beta ? 1 : 0;
+  return best;
+}
+/* 3 mức: depth = độ sâu tối đa, ms = giới hạn thời gian, noise = nhiễu cộng vào điểm từng nước ở gốc, rand = tỉ lệ đi bừa */
+const AI_LEVELS = {
+  easy:   { depth: 2,  ms: 400,  noise: 140, rand: .12 },
+  medium: { depth: 4,  ms: 700,  noise: 25,  rand: 0 },
+  hard:   { depth: 30, ms: 1500, noise: 0,   rand: 0 },
+};
+/* Chọn nước. seen: Map(posKey -> số lần đã gặp) của ván thật, để tránh/nhắm hoà do lặp 3 lần. */
+function aiPick(s, level, opt = {}) {
+  const L = AI_LEVELS[level] || AI_LEVELS.medium, rnd = opt.rnd || Math.random, seen = opt.seen || new Map();
+  if (!TT) ttInit();
+  s = cloneState(s);
+  const moves = genMoves(s);
+  if (moves.length <= 1) return moves[0];
+  for (let i = moves.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = moves[i]; moves[i] = moves[j]; moves[j] = t; }
+  // thắng ngay thì đi luôn
+  for (const m of moves) { const cap = make(s, m); const o = outcome(s); unmake(s, m, cap); if (o === s.turn) return m; }
+  if (rnd() < L.rand) return moves[Math.floor(rnd() * moves.length)];
+  const C = { nodes: 0, deadline: Date.now() + (opt.ms || L.ms), killer: [] };
+  const rep = m => { const cap = make(s, m); const n = seen.get(posKey(s)) || 0; unmake(s, m, cap); return n; };
+  const repN = new Map(moves.map(m => [m, rep(m)]));
+  let bestM = moves[0], scores = null, reached = 0;
+  for (let d = 1; d <= L.depth; d++) {
+    try {
+      const sc = new Map(); let alpha = -Infinity, bm = moves[0];
+      for (const m of moves) {
+        let v;
+        if (repN.get(m) >= 2) v = 0;   // đi nước này là thế cờ lặp lần 3: hoà
+        else {
+          const cap = make(s, m);
+          try { v = L.noise ? -negamax(s, d - 1, -Infinity, Infinity, 1, C) : -negamax(s, d - 1, -Infinity, -alpha, 1, C); } finally { unmake(s, m, cap); }
+          if (repN.get(m) === 1 && Math.abs(v) < WIN - 1000) v -= 4;   // ngại đi lại thế cũ
+        }
+        sc.set(m, v);
+        if (v > alpha) { alpha = v; bm = m; }
+      }
+      bestM = bm; scores = sc; reached = d;
+      moves.sort((x, y) => sc.get(y) - sc.get(x));   // vòng sau xét nước tốt trước
+      if (alpha > WIN - 1000 || alpha < -WIN + 1000) break;
+    } catch (e) { if (e instanceof Abort) break; throw e; }
+    if (Date.now() > C.deadline) break;
+  }
+  if (opt.stats) { opt.stats.depth = reached; opt.stats.nodes = C.nodes; }
+  if (L.noise && scores) {
+    let best = -Infinity, pick = bestM;
+    for (const [m, v] of scores) { const x = v + (Math.abs(v) > WIN - 1000 ? 0 : (rnd() * 2 - 1) * L.noise); if (x > best) { best = x; pick = m; } }
+    return pick;
+  }
+  return bestM;
+}
+/* RULES-AI-END */
+</script>
+
+<script>
+"use strict";
+/* ============================================================
+   BAGH CHAL (Hổ và Dê, trò chơi dân gian Nepal; luật theo quoridorgame.com/en/bagh-chal/rules, đọc 11/2026)
+   4 Hổ ở 4 góc, 20 Dê đặt dần lên bàn rồi mới được đi. Hổ ăn 5 Dê thì thắng, Dê vây kín mọi Hổ thì thắng.
+   Thế cờ lặp lần 3 là hoà (chủ game chọn). Đấu AI (3 mức sao, chọn bên) hoặc online 1v1 có đồng hồ tổng.
+   ============================================================ */
+const $ = (s, root = document) => root.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------- ĐA NGÔN NGỮ (vi / en) ---------- */
+const I18N = {
+vi: {
+  title: "Bagh Chal", brand: "Bagh Chal",
+  b_rules: "Luật chơi", b_new: "Ván mới", b_view: "Xem bàn cờ", b_undo: "Đi lại", cancel: "Huỷ",
+  r_intro: "Trò chơi dân gian Nepal (Bagh Chal nghĩa là \"Hổ đi\"): <b>4 Hổ</b> săn <b>20 Dê</b>. Hổ cần ăn 5 Dê, còn Dê phải vây kín cả 4 Hổ.",
+  f1: "Hổ đi 1 bước theo đường kẻ, hoặc nhảy qua 1 Dê để ăn.", f2: "Dê đặt quân trước, đủ 20 con mới được đi.", f3: "Dê vây kín: không Hổ nào đi được.",
+  r_h_rules: "Luật chơi",
+  r_board: "Bàn 5×5 điểm, quân đứng ở giao điểm và đi theo đường kẻ. Đường chéo chỉ đi qua một số điểm.",
+  r_start: "4 Hổ đứng sẵn ở 4 góc, 20 Dê ở ngoài bàn. <b>Dê đi trước</b>, hai bên thay phiên.",
+  r_goat: "<b>Dê</b>: mỗi lượt đặt 1 Dê vào điểm trống. Đặt đủ 20 con rồi mới được đi: mỗi lượt đi 1 Dê sang điểm trống kề bên. Dê không ăn được Hổ.",
+  r_tiger: "<b>Hổ</b>: mỗi lượt đi 1 Hổ sang điểm trống kề bên, hoặc nhảy qua 1 Dê theo đường thẳng tới điểm trống ngay sau để <b>ăn con Dê đó</b>. Mỗi lượt ăn tối đa 1 con, không bắt buộc phải ăn. Hổ được đi ngay cả khi Dê còn đang đặt quân.",
+  r_h_end: "Thắng, thua, hoà",
+  r_twin: "<b>Hổ thắng</b> khi ăn được 5 Dê.",
+  r_gwin: "<b>Dê thắng</b> khi không còn Hổ nào đi được.",
+  r_stuck: "Dê tới lượt mà không còn nước đi thì Dê thua.",
+  r_draw: "Cùng một thế cờ xuất hiện lần thứ 3 thì <b>hoà</b>.",
+  r_h_opp: "Đối thủ",
+  r_ai: "<b>AI</b> có 3 mức ★ ★★ ★★★, bạn chọn cầm Dê hoặc Hổ. Khi chơi với AI có nút <b>Đi lại</b>.",
+  r_online: "<b>Chơi online</b>: một người tạo phòng rồi gửi mã 5 ký tự hoặc link mời. Chủ phòng chọn bên và thời gian; chơi lại thì hai bên đổi bên. Hết giờ là thua.",
+  r_origin: "Bagh Chal là ván thứ hai của trận chung kết The Devil's Plan mùa 2.",
+  r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
+  m_title: "Ván mới", m_vs: "Đối thủ", m_bot: "Chơi với AI", m_online: "Chơi online",
+  m_net: "Phòng online", m_create: "Tạo phòng", m_join: "Vào phòng", m_code_ph: "Mã phòng",
+  m_net_create: "Bên cầm quân và thời gian bạn chọn ở dưới áp dụng cho cả hai người.",
+  m_net_join: "Nhập mã phòng bạn bè gửi, hoặc mở thẳng link mời của họ. Chủ phòng chọn luật.",
+  m_side: "Bạn cầm", m_goat: "Dê (đi trước)", m_tiger: "Hổ",
+  m_time: "Thời gian (chơi online)", tc_none: "Không tính giờ",
+  tcn: "Mỗi bên {0} phút cho cả ván, cộng {1} giây sau mỗi nước. Hết giờ là thua.", tcn_none: "Không có đồng hồ.",
+  tcn_bot: "Chơi với AI không tính giờ.", tcn_join: "Chủ phòng chọn thời gian.",
+  m_level: "Độ khó của AI", m_start: "Bắt đầu ván mới", m_forfeit: "Bỏ ván này, chơi ván mới",
+  lv_easy: "★", lv_medium: "★★", lv_hard: "★★★",
+  lvn_easy: "Nhìn trước rất ngắn và hay đi ẩu, hợp để làm quen luật.",
+  lvn_medium: "Tính trước vài nước, ít khi để mất quân vô ích.",
+  lvn_hard: "Tính sâu nhất có thể trong 1,5 giây mỗi nước. Thắng được mức này là chơi rất tốt.",
+  n_1: "Hổ", n_2: "Dê",
+  role_you: "BẠN", role_bot: "AI · {0}", role_opp: "ĐỐI THỦ",
+  t_caps: "Đã ăn {0}/5 Dê", g_info: "Chưa đặt {0} · Trên bàn {1}", t_stuck: "{0}/4 Hổ bị vây",
+  st_notstarted: "<b>Chưa bắt đầu</b> · Bấm <b>Ván mới</b> để chọn chế độ và bắt đầu chơi",
+  st_place: "<b>Lượt Dê</b> · Đặt 1 Dê vào điểm trống (còn {0} con)",
+  st_goat: "<b>Lượt Dê</b> · Chọn 1 Dê rồi chọn điểm kề bên để đi",
+  st_tiger: "<b>Lượt Hổ</b> · Chọn 1 Hổ: đi 1 bước, hoặc nhảy qua Dê để ăn",
+  st_sel: "Chọn điểm xanh để đi{0}, hoặc bấm quân khác",
+  st_sel_cap: ", vòng đỏ là nước ăn Dê",
+  st_bot: "<b>AI đang nghĩ…</b>", st_remote: "<b>Lượt đối thủ</b> · đang chờ đối thủ đi…",
+  st_win_you: "<b>Bạn thắng!</b> {0}", st_win_bot: "<b>AI thắng.</b> {0}", st_win_opp: "<b>Đối thủ thắng.</b> {0}",
+  why_caps: "Hổ đã ăn 5 Dê.", why_trap: "Dê đã vây kín cả 4 Hổ.", why_gstuck: "Dê không còn nước đi.",
+  st_flag_you: "<b>Hết giờ!</b> Bạn thua vì hết thời gian.", st_flag_opp: "<b>Đối thủ hết giờ</b> · bạn thắng!",
+  st_draw: "<b>Hoà</b> · thế cờ lặp lại lần thứ 3.", st_left: "<b>Bạn thắng</b> · đối thủ đã rời phòng.",
+  st_aborted: "<b>Ván online đã dừng</b> · mất kết nối hoặc lệch trạng thái.",
+  go_you: "BẠN THẮNG!", go_bot: "AI THẮNG!", go_opp: "ĐỐI THỦ THẮNG!", go_draw: "HOÀ", go_flag: "HẾT GIỜ!", go_aborted: "VÁN ĐÃ DỪNG",
+  gs_moves: " Ván dài {0} nước.", gs_flag_you: "Bạn đã dùng hết thời gian.", gs_flag_opp: "Đối thủ đã dùng hết thời gian.",
+  gs_draw: "Thế cờ lặp lại lần thứ 3.", gs_left: "Đối thủ đã rời phòng.", gs_aborted: "Ván online bị dừng giữa chừng.",
+  go_rematch: "Chơi lại", go_rm_wait: "Đã mời chơi lại, đang chờ đối thủ đồng ý…", go_rm_them: "Đối thủ muốn chơi lại! Bấm Chơi lại để bắt đầu (hai bên đổi bên).",
+  i_mode: "Chế độ", i_mode_bot: "Đấu AI · {0}", i_mode_online: "Online", i_time: "Thời gian", i_moves: "Số nước đã đi", i_phase: "Giai đoạn", ph_place: "Dê đặt quân", ph_move: "Dê đi quân",
+  tip_goat: "Mẹo cho Dê: đặt quân ở mép và góc trước, luôn để Dê đứng thành khối sát nhau, đừng để trống điểm ngay sau lưng Dê.",
+  tip_tiger: "Mẹo cho Hổ: tản ra các phía, giữ chỗ trống quanh mình và tìm Dê đứng lẻ có điểm trống phía sau.",
+  n_title_host: "Phòng của bạn", n_title_join: "Vào phòng", n_title_err: "Không kết nối được",
+  n_connecting: "Đang kết nối…", n_wait: "Gửi mã hoặc link này cho bạn bè. Đang chờ đối thủ vào phòng…",
+  n_joining: "Đang vào phòng {0}…", n_copy: "Chép link", n_copied: "Đã chép!", n_close: "Đóng",
+  n_err_code: "Mã phòng gồm 5 ký tự, bạn kiểm tra lại nhé.",
+  n_err_nopeer: "Không tìm thấy phòng {0}. Mã có thể sai, hoặc chủ phòng đã đóng phòng.",
+  n_err_full: "Phòng này đã đủ 2 người.",
+  n_err_version: "Hai máy đang chạy hai phiên bản game khác nhau. Tải lại trang (Ctrl+F5) ở cả hai máy rồi thử lại.",
+  n_err_timeout: "Chờ quá lâu mà không nối được tới chủ phòng. Mạng của một trong hai bên có thể đang chặn kết nối.",
+  n_err_desync: "Hai máy bị lệch trạng thái ván cờ nên ván online đã dừng.",
+  n_err_net: "Lỗi kết nối ({0}). Thử lại sau ít phút.",
+  n_err_lib: "Không tải được thư viện kết nối PeerJS. Kiểm tra mạng rồi thử lại.",
+},
+en: {
+  title: "Bagh Chal", brand: "Bagh Chal",
+  b_rules: "Rules", b_new: "New game", b_view: "View board", b_undo: "Undo", cancel: "Cancel",
+  r_intro: "A traditional game from Nepal (Bagh Chal means \"tiger moves\"): <b>4 tigers</b> hunt <b>20 goats</b>. The tigers need to capture 5 goats; the goats must trap all 4 tigers.",
+  f1: "A tiger steps along a line, or jumps over a goat to capture it.", f2: "Goats are placed first and can move only once all 20 are in.", f3: "Goats win when no tiger can move.",
+  r_h_rules: "Rules",
+  r_board: "The board has 5×5 points; pieces sit on the points and move along the lines. Diagonals pass through only some points.",
+  r_start: "The 4 tigers start on the corners and the 20 goats start off the board. <b>Goats move first</b>, then the sides alternate.",
+  r_goat: "<b>Goats</b>: each turn, place one goat on an empty point. Once all 20 are placed, each turn move one goat to an adjacent empty point. Goats cannot capture.",
+  r_tiger: "<b>Tigers</b>: each turn, move one tiger to an adjacent empty point, or jump over one goat in a straight line to the empty point right behind it, <b>capturing that goat</b>. At most one capture per turn, and capturing is never forced. Tigers can move while goats are still being placed.",
+  r_h_end: "Winning and drawing",
+  r_twin: "<b>Tigers win</b> by capturing 5 goats.",
+  r_gwin: "<b>Goats win</b> when no tiger can move.",
+  r_stuck: "If the goats have no legal move on their turn, the goats lose.",
+  r_draw: "If the same position appears for the 3rd time, the game is a <b>draw</b>.",
+  r_h_opp: "Opponent",
+  r_ai: "The <b>AI</b> has 3 levels ★ ★★ ★★★, and you choose to play goats or tigers. Against the AI you can <b>Undo</b>.",
+  r_online: "<b>Online</b>: one player creates a room and sends the 5-letter code or invite link. The host picks the sides and the time control; in a rematch the sides are swapped. Run out of time and you lose.",
+  r_origin: "Bagh Chal was the second game of The Devil's Plan season 2 final.",
+  r_ok: "Got it", m_back: "Back to Rules",
+  m_title: "New Game", m_vs: "Opponent", m_bot: "Play vs AI", m_online: "Play online",
+  m_net: "Online room", m_create: "Create room", m_join: "Join room", m_code_ph: "Room code",
+  m_net_create: "The side and time control you pick below apply to both players.",
+  m_net_join: "Enter the room code your friend sent you, or just open their invite link. The host picks the rules.",
+  m_side: "You play", m_goat: "Goats (move first)", m_tiger: "Tigers",
+  m_time: "Time control (online)", tc_none: "No clock",
+  tcn: "{0} minutes each for the whole game, plus {1} seconds per move. Run out of time and you lose.", tcn_none: "No clock.",
+  tcn_bot: "Games against the AI have no clock.", tcn_join: "The host picks the time control.",
+  m_level: "AI difficulty", m_start: "Start new game", m_forfeit: "Abandon this game, start new",
+  lv_easy: "★", lv_medium: "★★", lv_hard: "★★★",
+  lvn_easy: "Looks only a little ahead and often plays carelessly. Good for learning the rules.",
+  lvn_medium: "Thinks a few moves ahead and rarely loses pieces for nothing.",
+  lvn_hard: "Searches as deep as it can in 1.5 seconds per move. Beating it means you play very well.",
+  n_1: "Tigers", n_2: "Goats",
+  role_you: "YOU", role_bot: "AI · {0}", role_opp: "OPPONENT",
+  t_caps: "Captured {0}/5 goats", g_info: "To place {0} · On board {1}", t_stuck: "{0}/4 tigers trapped",
+  st_notstarted: "<b>Not started</b> · Press <b>New game</b> to choose a mode and start playing",
+  st_place: "<b>Goats' turn</b> · Place a goat on an empty point ({0} left)",
+  st_goat: "<b>Goats' turn</b> · Pick a goat, then an adjacent point to move to",
+  st_tiger: "<b>Tigers' turn</b> · Pick a tiger: step one point, or jump over a goat to capture",
+  st_sel: "Pick a green point to move{0}, or pick another piece",
+  st_sel_cap: "; red rings are captures",
+  st_bot: "<b>The AI is thinking…</b>", st_remote: "<b>Opponent's turn</b> · waiting for their move…",
+  st_win_you: "<b>You win!</b> {0}", st_win_bot: "<b>The AI wins.</b> {0}", st_win_opp: "<b>Your opponent wins.</b> {0}",
+  why_caps: "The tigers captured 5 goats.", why_trap: "The goats trapped all 4 tigers.", why_gstuck: "The goats have no legal move.",
+  st_flag_you: "<b>Time's up!</b> You ran out of time.", st_flag_opp: "<b>Your opponent ran out of time</b> · you win!",
+  st_draw: "<b>Draw</b> · the same position appeared for the 3rd time.", st_left: "<b>You win</b> · your opponent left the room.",
+  st_aborted: "<b>Online game stopped</b> · connection lost or out of sync.",
+  go_you: "YOU WIN!", go_bot: "AI WINS!", go_opp: "OPPONENT WINS!", go_draw: "DRAW", go_flag: "TIME'S UP!", go_aborted: "GAME STOPPED",
+  gs_moves: " The game lasted {0} moves.", gs_flag_you: "You used up all your time.", gs_flag_opp: "Your opponent used up all their time.",
+  gs_draw: "The same position appeared for the 3rd time.", gs_left: "Your opponent left the room.", gs_aborted: "The online game was stopped midway.",
+  go_rematch: "Rematch", go_rm_wait: "Rematch requested, waiting for your opponent…", go_rm_them: "Your opponent wants a rematch! Press Rematch to start (sides are swapped).",
+  i_mode: "Mode", i_mode_bot: "Vs AI · {0}", i_mode_online: "Online", i_time: "Time", i_moves: "Moves played", i_phase: "Phase", ph_place: "Placing goats", ph_move: "Moving goats",
+  tip_goat: "Goat tip: fill edges and corners first, keep your goats in tight blocks, and never leave an empty point right behind a goat.",
+  tip_tiger: "Tiger tip: spread out, keep open space around you, and hunt lone goats with an empty point behind them.",
+  n_title_host: "Your room", n_title_join: "Joining room", n_title_err: "Could not connect",
+  n_connecting: "Connecting…", n_wait: "Send this code or link to a friend. Waiting for an opponent to join…",
+  n_joining: "Joining room {0}…", n_copy: "Copy link", n_copied: "Copied!", n_close: "Close",
+  n_err_code: "Room codes have 5 characters, please check it again.",
+  n_err_nopeer: "Room {0} was not found. The code may be wrong, or the host has closed the room.",
+  n_err_full: "This room already has 2 players.",
+  n_err_version: "The two devices are running different versions of the game. Reload the page (Ctrl+F5) on both and try again.",
+  n_err_timeout: "Timed out connecting to the host. One of the networks may be blocking the connection.",
+  n_err_desync: "The two devices got out of sync, so the online game was stopped.",
+  n_err_net: "Connection error ({0}). Try again in a few minutes.",
+  n_err_lib: "Could not load the PeerJS connection library. Check your network and try again.",
+}
+};
+let LANG = "vi";
+try { const s = localStorage.getItem("lang"); LANG = (s === "vi" || s === "en") ? s : ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"); } catch (e) { LANG = (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"; }
+const tr = (key, ...a) => String((I18N[LANG][key] ?? I18N.vi[key] ?? key)).replace(/\{(\d)\}/g, (m, i) => a[i]);
+const ICON = p => `<svg viewBox="0 0 100 100"><use href="#${p === TIGER ? "icTiger" : "icGoat"}"/></svg>`;
+function applyI18n() {
+  document.documentElement.lang = LANG; document.title = tr("title") + " · Twistboard";
+  document.querySelectorAll("[data-i18n]").forEach(e => { e.innerHTML = tr(e.dataset.i18n); });
+  $("#segSide").querySelector('[data-v="goat"]').innerHTML = ICON(GOAT) + tr("m_goat");
+  $("#segSide").querySelector('[data-v="tiger"]').innerHTML = ICON(TIGER) + tr("m_tiger");
+  $("#segTime").querySelectorAll("button").forEach(b => { const tc = TIME_CONTROLS[b.dataset.v]; b.textContent = tc ? tc.label : tr("tc_none"); });
+  buildFigs();
+}
+
+/* ---------- ÂM THANH (Web Audio) ---------- */
+let AC = null;
+try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+function tone(freq, start, dur, type = "sine", vol = .18) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
+  g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + .01); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.start(start); o.stop(start + dur + .02);
+}
+function sfx(name) {
+  if (!AC) return;
+  try {
+    if (AC.state !== "running") AC.resume().catch(() => {});
+    const t = AC.currentTime + .01;
+    if (name === "place") { tone(520, t, .09, "triangle", .2); tone(780, t + .03, .08, "sine", .1); }
+    else if (name === "move") { tone(380, t, .08, "triangle", .18); tone(570, t + .04, .07, "sine", .08); }
+    else if (name === "capture") { tone(220, t, .14, "sawtooth", .12); tone(165, t + .08, .2, "triangle", .16); }
+    else if (name === "win") [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * .11, .3, "triangle", .2));
+    else if (name === "lose") [392, 330, 262, 196].forEach((f, i) => tone(f, t + i * .15, .35, "triangle", .18));
+    else if (name === "draw") [440, 440].forEach((f, i) => tone(f, t + i * .18, .25, "triangle", .16));
+    else if (name === "tick") tone(1100, t, .05, "square", .05);
+  } catch (e) {}
+}
+
+/* ---------- CHẾ ĐỘ, CÀI ĐẶT ---------- */
+const LEVELS = ["easy", "medium", "hard"];
+const TIME_CONTROLS = {
+  "1+2": { base: 60e3, inc: 2e3, label: "1′ + 2″" },
+  "3+2": { base: 180e3, inc: 2e3, label: "3′ + 2″" },
+  "5+3": { base: 300e3, inc: 3e3, label: "5′ + 3″" },
+  "10+5": { base: 600e3, inc: 5e3, label: "10′ + 5″" },
+  none: null,
+};
+const TC_KEYS = Object.keys(TIME_CONTROLS);
+const PREFS_KEY = "baghchal.prefs";
+let PREFS = { vs: "bot", human: "goat", level: "easy", tc: "5+3", net: "create", code: "" };
+try { const s = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); if (s && typeof s === "object") for (const k of ["vs", "human", "level", "tc"]) if (s[k] !== undefined) PREFS[k] = s[k]; } catch (e) {}
+if (!LEVELS.includes(PREFS.level)) PREFS.level = "easy";
+if (!TC_KEYS.includes(PREFS.tc)) PREFS.tc = "5+3";
+if (PREFS.vs !== "online") PREFS.vs = "bot";
+if (PREFS.human !== "tiger") PREFS.human = "goat";
+function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify({ vs: PREFS.vs, human: PREFS.human, level: PREFS.level, tc: PREFS.tc })); } catch (e) {} }
+
+let MODE = clone(PREFS);
+const humanP = () => (MODE.human === "tiger" ? TIGER : GOAT);
+const isBot = p => MODE.vs === "bot" && p !== humanP();
+const isRemote = p => MODE.vs === "online" && p !== humanP();
+const isLocal = p => !isBot(p) && !isRemote(p);
+
+/* ---------- TRẠNG THÁI ---------- */
+let S = newState(), over = null, moves = [], started = false, gameId = 0, overDismissed = false;
+let rep = new Map();      // posKey -> số lần thế cờ đã xuất hiện (luật hoà lặp 3 lần)
+let undoStack = [];       // đấu AI: thế cờ trước mỗi nước của người chơi
+let SEL = -1;             // điểm của quân đang chọn
+/* over = { winner: TIGER | GOAT | null, why: "caps" | "trap" | "gstuck" | "rep", flag?, left?, aborted? } */
+
+/* ---------- ĐỒNG HỒ TỔNG (chỉ online) ---------- */
+let TC = null, clock = null;
+const clockLeft = p => clock[p] - (clock.run === p ? performance.now() - clock.since : 0);
+function clockStart(p) { clock.run = p; clock.since = performance.now(); }
+function clockStop() { if (clock && clock.run) { clock[clock.run] = clockLeft(clock.run); clock.run = 0; } }
+function fmtClock(ms) {
+  ms = Math.max(0, ms);
+  if (ms < 20e3) return "0:" + (Math.floor(ms / 100) / 10).toFixed(1).padStart(4, "0");
+  const t = Math.ceil(ms / 1000);
+  return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+}
+function flagFall(p, fromNet) {
+  if (!started || over || !TC) return;
+  clockStop(); clock[p] = 0;
+  over = { winner: 3 - p, flag: p };
+  render();
+  if (MODE.vs === "online" && !fromNet) netSend({ t: "flag", s: p, h: stateHash() });
+}
+let lastBeep = -1;
+setInterval(() => {
+  if (!TC || !started || !clock) return;
+  renderClocks();
+  if (over || !clock.run) return;
+  const left = clockLeft(clock.run);
+  if (isLocal(clock.run)) { const s = Math.ceil(left / 1000); if (s <= 5 && s > 0 && s !== lastBeep) { lastBeep = s; sfx("tick"); } }
+  if (left <= 0 && (!isRemote(clock.run) || left <= -3000)) flagFall(clock.run);
+}, 100);
+
+/* ---------- KHỞI TẠO VÁN ---------- */
+function newGame(blank) {
+  gameId++; aiCancel();
+  S = newState(); over = null; moves = []; started = !blank; overDismissed = false; undoStack = []; SEL = -1;
+  rep = new Map([[posKey(S), 1]]);
+  TC = MODE.vs === "online" ? TIME_CONTROLS[MODE.tc] || null : null;
+  clock = TC ? { 1: TC.base, 2: TC.base, run: 0, since: 0 } : null;
+  if (TC && started) clockStart(GOAT);   // Dê đi trước: đồng hồ Dê chạy ngay
+  resetPieces(); fit(); render();
+  if (!blank) scheduleBot();
+}
+
+/* ---------- HÀNH ĐỘNG (mọi nước đi thật đều qua đây) ---------- */
+function act(m) {
+  const p = S.turn;
+  if (TC) { clock[p] = clockLeft(p) + TC.inc; clock.run = 0; }
+  const cap = make(S, m);
+  moves.push(m); SEL = -1;
+  movePieces(m, cap);
+  const k = posKey(S), n = (rep.get(k) || 0) + 1; rep.set(k, n);
+  const o = outcome(S);
+  if (o) over = { winner: o, why: S.caps >= WIN_CAPS ? "caps" : o === GOAT ? "trap" : "gstuck" };
+  else if (n >= 3) over = { winner: null, why: "rep" };
+  sfx(cap >= 0 ? "capture" : mFrom(m) === PLACE ? "place" : "move");
+  if (TC && !over) clockStart(S.turn);
+  lastBeep = -1;
+  render(); scheduleBot();
+}
+function humanAct(m) {
+  if (!started || over || !isLocal(S.turn) || !isLegal(S, m)) return false;
+  if (MODE.vs === "bot") undoStack.push({ s: plainState(S), moves: moves.slice(), rep: [...rep] });
+  act(m);
+  if (MODE.vs === "online") netSend({ t: "mv", m, h: stateHash(), cl: TC ? clock[3 - S.turn] : null });
+  return true;
+}
+function undo() {   // đấu AI: quay về trước nước gần nhất của người chơi (rút cả nước AI vừa đáp)
+  if (MODE.vs !== "bot" || !undoStack.length) return;
+  const u = undoStack.pop();
+  gameId++; aiCancel();
+  S = fromPlain(u.s); moves = u.moves; rep = new Map(u.rep); over = null; overDismissed = false; SEL = -1;
+  resetPieces(); render(); scheduleBot();
+}
+
+/* ---------- AI (chạy trong Web Worker; lỗi thì chạy thẳng trong trang) ---------- */
+let worker = null, botTimer = null, botThinking = false, aiReq = 0;
+function workerStart() {
+  try {
+    const src = $("#bcRules").textContent + "\nself.onmessage = e => { const d = e.data; let m = -1; try { m = aiPick(fromPlain(d.s), d.level, { seen: new Map(d.seen) }); } catch (err) { m = -1; } self.postMessage({ id: d.id, m }); };";
+    worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+    worker.onmessage = e => aiDone(e.data.id, e.data.m);
+    worker.onerror = () => { worker = null; };
+  } catch (e) { worker = null; }
+}
+let aiPending = null;   // { id, gid, t0 }
+function aiCancel() { clearTimeout(botTimer); botThinking = false; aiPending = null; }
+function scheduleBot() {
+  clearTimeout(botTimer); botThinking = false; aiPending = null;
+  if (!started || over || !isBot(S.turn)) { renderStatus(); return; }
+  if (anyModal()) { botTimer = setTimeout(scheduleBot, 300); return; }   // đang mở bảng: chờ đóng rồi mới nghĩ
+  botThinking = true; renderStatus();
+  const id = ++aiReq, gid = gameId; aiPending = { id, gid, t0: Date.now() };
+  const req = { id, s: plainState(S), level: MODE.level, seen: [...rep] };
+  if (worker) worker.postMessage(req);
+  else botTimer = setTimeout(() => { let m = -1; try { m = aiPick(fromPlain(req.s), req.level, { seen: new Map(req.seen) }); } catch (e) {} aiDone(id, m); }, 30);
+}
+function aiDone(id, m) {
+  const p = aiPending;
+  if (!p || p.id !== id || p.gid !== gameId) return;
+  const wait = Math.max(0, 450 - (Date.now() - p.t0));   // nghĩ nhanh quá thì chờ chút cho tự nhiên
+  botTimer = setTimeout(() => {
+    if (!aiPending || aiPending.id !== id || over || !isBot(S.turn)) return;
+    if (anyModal()) return scheduleBot();
+    aiPending = null; botThinking = false;
+    if (!isLegal(S, m)) { const L = genMoves(S); m = L[Math.floor(Math.random() * L.length)]; }
+    act(m);
+  }, wait);
+}
+function anyModal() { return [...document.querySelectorAll(".modal")].some(m => !m.hidden); }
+
+/* ============================================================
+   CHƠI ONLINE (PeerJS), cùng kiểu Ultimate Tic Tac Toe.
+   Chủ phòng gửi start (bên của khách, thể thức đồng hồ). Mỗi nước gửi mv {m} kèm stateHash và cl (giờ còn lại của người đi, đã cộng giây).
+   Tin: hello, start, mv, flag, rematch, bye, err.
+   ============================================================ */
+const NET_PROTO = 1;   // tăng số này mỗi khi đổi luật/giao thức
+const PEER_SRC = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+const PEER_SRI = "sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR";
+const PEER_PREFIX = "baghchal-";
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", CODE_LEN = 5;
+const NET = { peer: null, conn: null, role: null, code: "", playing: false, hostSide: "goat", rm: { me: false, them: false }, gen: 0 };
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
+const newCode = () => Array.from({ length: CODE_LEN }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+const netOpen = () => !!(NET.conn && NET.conn.open);
+const netSend = d => { if (netOpen()) NET.conn.send(d); };
+const stateHash = () => moves.join(",") + "|" + S.turn + "|" + S.caps + "|" + (over ? over.winner : "-");
+const inviteLink = code => location.href.split("#")[0] + "#room=" + code;
+
+let peerLoading = null;
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  return peerLoading || (peerLoading = new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = PEER_SRC; s.integrity = PEER_SRI; s.crossOrigin = "anonymous";
+    s.onload = () => (window.Peer ? ok() : fail());
+    s.onerror = () => { peerLoading = null; s.remove(); fail(); };
+    document.head.appendChild(s);
+  }));
+}
+function showNet(title, msg, opt = {}) {
+  $("#netTitle").textContent = title; $("#netMsg").textContent = msg;
+  $("#netCodeBox").hidden = !opt.code;
+  if (opt.code) { $("#netCode").textContent = opt.code; $("#netLink").value = inviteLink(opt.code); }
+  $("#netCancel").textContent = tr(opt.done ? "n_close" : "cancel");
+  $("#mNet").hidden = false;
+}
+function startOnline() {
+  netClose(true);
+  MODE = clone(modeDraft); $("#mMode").hidden = true; $("#mRules").hidden = true;
+  newGame(true);
+  if (MODE.net === "join") netJoin(MODE.code); else netHost();
+}
+async function netHost(tries = 0) {
+  const gen = ++NET.gen;
+  NET.role = "host"; NET.hostSide = MODE.human;
+  showNet(tr("n_title_host"), tr("n_connecting"));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const code = newCode(), peer = new Peer(PEER_PREFIX + code);
+  NET.peer = peer; NET.code = code;
+  peer.on("open", () => { if (gen === NET.gen) showNet(tr("n_title_host"), tr("n_wait"), { code }); });
+  peer.on("connection", conn => {
+    if (gen !== NET.gen || NET.conn) { conn.on("open", () => { conn.send({ t: "err", code: "full" }); setTimeout(() => conn.close(), 500); }); return; }
+    NET.conn = conn; bindConn(conn, gen);
+  });
+  peer.on("disconnected", () => {
+    if (gen === NET.gen && !NET.playing && !peer.destroyed) setTimeout(() => { if (gen === NET.gen && !peer.destroyed) peer.reconnect(); }, 1500);
+  });
+  peer.on("error", e => {
+    if (gen !== NET.gen) return;
+    if (e.type === "unavailable-id" && tries < 3) { peer.destroy(); NET.peer = null; netHost(tries + 1); return; }
+    netError(e);
+  });
+}
+async function netJoin(code) {
+  const gen = ++NET.gen;
+  NET.role = "guest"; NET.code = code;
+  showNet(tr("n_title_join"), tr("n_joining", code));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const peer = new Peer(); NET.peer = peer;
+  peer.on("open", () => {
+    if (gen !== NET.gen) return;
+    const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+    NET.conn = conn; bindConn(conn, gen);
+    setTimeout(() => { if (gen === NET.gen && !NET.playing) netFail("n_err_timeout"); }, 25000);
+  });
+  peer.on("error", e => { if (gen === NET.gen) netError(e); });
+}
+function bindConn(conn, gen) {
+  conn.on("open", () => { if (gen === NET.gen && NET.role === "guest") conn.send({ t: "hello", v: NET_PROTO }); });
+  conn.on("data", d => { if (gen === NET.gen) onNetData(d); });
+  conn.on("close", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+  conn.on("error", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+}
+function beginOnlineGame() {
+  NET.playing = true; NET.rm = { me: false, them: false };
+  for (const id of ["#mNet", "#mMode", "#mRules"]) $(id).hidden = true;
+}
+function hostStartGame(side) {
+  NET.hostSide = side;
+  netSend({ t: "start", v: NET_PROTO, side: side === "goat" ? "tiger" : "goat", tc: MODE.tc });
+  MODE.human = side; beginOnlineGame(); newGame(false);
+}
+function onNetData(d) {
+  if (!d || typeof d !== "object") return;
+  switch (d.t) {
+    case "hello":
+      if (NET.role !== "host" || NET.playing) return;
+      if (d.v !== NET_PROTO) { netSend({ t: "err", code: "version" }); const c = NET.conn; NET.conn = null; setTimeout(() => c.close(), 500); return; }
+      return hostStartGame(NET.hostSide);
+    case "start":
+      if (NET.role !== "guest") return;
+      if (d.v !== NET_PROTO) return netFail("n_err_version");
+      MODE.human = d.side === "tiger" ? "tiger" : "goat";
+      MODE.tc = TC_KEYS.includes(d.tc) ? d.tc : "none";
+      beginOnlineGame(); newGame(false);
+      return;
+    case "mv": {
+      if (!started || over || !isRemote(S.turn) || !isLegal(S, d.m)) return netDesync();
+      const mover = S.turn;
+      act(d.m);
+      if (TC && typeof d.cl === "number" && d.cl > 0) clock[mover] = d.cl;
+      if (d.h !== stateHash()) netDesync();
+      return;
+    }
+    case "flag":
+      if (d.s === 1 || d.s === 2) flagFall(d.s, true);
+      return;
+    case "rematch":
+      if (!over || NET.rm.them) return;
+      NET.rm.them = true;
+      if (NET.role === "host" && NET.rm.me) return hostStartGame(NET.hostSide === "goat" ? "tiger" : "goat");
+      overDismissed = false; render();
+      return;
+    case "bye": return onNetLost();
+    case "err": return netFail(d.code === "full" ? "n_err_full" : d.code === "version" ? "n_err_version" : "n_err_desync");
+  }
+}
+function requestRematch() {
+  if (NET.rm.me) return;
+  NET.rm.me = true; netSend({ t: "rematch" });
+  if (NET.role === "host" && NET.rm.them) return hostStartGame(NET.hostSide === "goat" ? "tiger" : "goat");   // đổi bên mỗi ván
+  renderOver();
+}
+function netDesync() { netSend({ t: "err", code: "desync" }); netFail("n_err_desync"); }
+function netError(e) {
+  const type = (e && e.type) || "";
+  if (netOpen()) { console.warn("PeerJS:", type, e); return; }
+  if (type === "peer-unavailable") return netFail("n_err_nopeer", NET.code);
+  netFail("n_err_net", type || String(e));
+}
+function netFail(key, arg) {
+  const midGame = NET.playing && started && !over;
+  netClose(false);
+  if (midGame) { over = { winner: null, aborted: true }; clockStop(); render(); }
+  showNet(tr("n_title_err"), tr(key, arg), { done: true });
+}
+function onNetLost() {
+  if (NET.role === "host" && !NET.playing) { NET.conn = null; return; }
+  netClose(false);
+  if (started && !over) { over = { winner: humanP(), left: true }; clockStop(); }
+  render();
+}
+function netClose(bye) {
+  NET.gen++;
+  if (bye) try { netSend({ t: "bye" }); } catch (e) {}
+  const peer = NET.peer, conn = NET.conn;
+  NET.peer = NET.conn = null; NET.playing = false; NET.rm = { me: false, them: false };
+  if (peer || conn) setTimeout(() => { try { if (conn) conn.close(); } catch (e) {} try { if (peer) peer.destroy(); } catch (e) {} }, bye ? 400 : 0);
+}
+
+/* ---------- BÀN CỜ ---------- */
+const POS = i => [10 + (i % 5) * 20, 10 + ((i / 5) | 0) * 20];   // toạ độ % của điểm i
+function linesSVG(sw) {
+  let h = "";
+  for (let k = 0; k < 5; k++) { const x = 10 + k * 20; h += `<line x1="${x}" y1="10" x2="${x}" y2="90" stroke-width="${sw}"/><line x1="10" y1="${x}" x2="90" y2="${x}" stroke-width="${sw}"/>`; }
+  for (let i = 0; i < 25; i++) for (const j of ADJ[i]) if (j > i && (i % 5) !== (j % 5) && ((i / 5) | 0) !== ((j / 5) | 0)) {
+    const [x1, y1] = POS(i), [x2, y2] = POS(j); h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${sw}"/>`;
+  }
+  return h;
+}
+const ptEls = [];
+(function buildBoard() {
+  $("#lines").innerHTML = `<rect x="10" y="10" width="80" height="80" fill="none" stroke="#5b3a12" stroke-width="1.6"/>` + linesSVG(.9);
+  const pts = $("#pts");
+  for (let i = 0; i < 25; i++) {
+    const e = document.createElement("div"); e.className = "pt"; e.dataset.i = i;
+    const [x, y] = POS(i); e.style.left = x + "%"; e.style.top = y + "%";
+    pts.appendChild(e); ptEls.push(e);
+  }
+})();
+/* Quân là phần tử giữ theo mã (pid[điểm]) để trượt có hiệu ứng */
+let pid = new Array(25).fill(0), nextPid = 1, newPid = 0, lastMoveTo = -1, lastMoveFrom = -1;
+const pcEls = new Map();
+function resetPieces() {
+  for (const e of pcEls.values()) e.remove();
+  pcEls.clear(); pid = new Array(25).fill(0); newPid = 0;
+  for (let i = 0; i < 25; i++) if (S.b[i]) pid[i] = nextPid++;
+  lastMoveFrom = lastMoveTo = -1;
+  if (moves.length) { const m = moves[moves.length - 1]; lastMoveTo = mTo(m); lastMoveFrom = mFrom(m) === PLACE ? -1 : mFrom(m); }
+}
+function movePieces(m, cap) {
+  const f = mFrom(m), t = mTo(m);
+  if (f === PLACE) { pid[t] = nextPid++; newPid = pid[t]; }
+  else { pid[t] = pid[f]; pid[f] = 0; }
+  if (cap >= 0) {
+    const e = pcEls.get(pid[cap]);
+    if (e) { pcEls.delete(pid[cap]); setTimeout(() => e.classList.add("gone"), 160); setTimeout(() => e.remove(), 700); }
+    pid[cap] = 0;
+  }
+  lastMoveTo = t; lastMoveFrom = f === PLACE ? -1 : f;
+}
+const canAct = () => started && !over && isLocal(S.turn);
+function renderBoard() {
+  const my = canAct(), L = my ? genMoves(S) : [];
+  const lastMine = moves.length && ((moves.length % 2 === 1) === (humanP() === GOAT));
+  // quân
+  const live = new Set();
+  for (let i = 0; i < 25; i++) {
+    if (!S.b[i]) continue;
+    const id = pid[i]; live.add(id);
+    let e = pcEls.get(id);
+    if (!e) { e = document.createElement("div"); e.className = "pc"; $("#pcs").appendChild(e); pcEls.set(id, e); e.dataset.p = ""; }
+    if (e.dataset.p !== String(S.b[i])) { e.dataset.p = S.b[i]; e.innerHTML = ICON(S.b[i]); }
+    const [x, y] = POS(i); e.style.left = x + "%"; e.style.top = y + "%";
+    const movable = my && SEL < 0 && S.b[i] === S.turn && L.some(m => mFrom(m) === i);
+    e.className = "pc" + (id === newPid ? " new" : "") + (i === SEL ? " sel" : "") + (movable ? " movable" : "")
+      + (started && i === lastMoveTo ? " last" + (lastMine ? "" : " theirs") : "") + (S.b[i] === TIGER && started && tigerStuck(S, i) ? " stuck" : "");
+  }
+  for (const [id, e] of pcEls) if (!live.has(id)) { e.remove(); pcEls.delete(id); }
+  newPid = 0;
+  // điểm
+  const targets = new Map();
+  if (my && SEL >= 0) for (const m of L) if (mFrom(m) === SEL) targets.set(mTo(m), capOf(m) >= 0);
+  const placing = my && S.turn === GOAT && S.placed < GOATS;
+  ptEls.forEach((e, i) => {
+    const tg = targets.has(i);
+    e.className = "pt" + (tg ? (targets.get(i) ? " cap" : " can") : "") + (placing && !S.b[i] ? " place" : "")
+      + (my && !placing && S.b[i] === S.turn && L.some(m => mFrom(m) === i) ? " sel" : "") + (started && i === lastMoveFrom && !S.b[i] && !tg ? " lastf" : "");
+  });
+}
+function roleOf(p) {
+  if (isBot(p)) return tr("role_bot", tr("lv_" + MODE.level));
+  if (isRemote(p)) return tr("role_opp");
+  return tr("role_you");
+}
+function renderClocks() {
+  if (over && clock && clock.run) clockStop();
+  for (const p of [TIGER, GOAT]) {
+    const e = $("#panel-" + p + " .clock");
+    e.hidden = !TC; if (!TC) continue;
+    const left = clockLeft(p);
+    e.textContent = fmtClock(left);
+    e.classList.toggle("run", clock.run === p);
+    e.classList.toggle("low", left < Math.min(TC.base * .1, 20e3));
+  }
+}
+function renderPanels() {
+  for (const p of [TIGER, GOAT]) {
+    const el = $("#panel-" + p);
+    el.querySelector(".pinfo b").textContent = tr("n_" + p);
+    el.querySelector(".pinfo span").textContent = started ? roleOf(p) : "";
+    el.classList.toggle("active", started && !over && S.turn === p);
+    el.classList.toggle("top-p", p !== humanP()); el.classList.toggle("bot-p", p === humanP());
+  }
+  let stuck = 0; for (let i = 0; i < 25; i++) if (S.b[i] === TIGER && tigerStuck(S, i)) stuck++;
+  $("#panel-1 .pline").innerHTML = Array.from({ length: WIN_CAPS }, (_, k) => `<i class="${k < S.caps ? "on" : ""}">${k < S.caps ? ICON(GOAT) : ""}</i>`).join("")
+    + `<span>${tr("t_caps", S.caps)}${stuck ? " · " + tr("t_stuck", stuck) : ""}</span>`;
+  $("#panel-2 .pline").innerHTML = `<span style="margin-left:0">${tr("g_info", GOATS - S.placed, S.placed - S.caps)}</span>`;
+  const side = $(".side");   // màn ngang: đối thủ ở trên, mình ở dưới
+  if (humanP() === TIGER) side.insertBefore($("#panel-2"), $("#panel-1")); else side.insertBefore($("#panel-1"), $("#panel-2"));
+  renderClocks();
+}
+function whyText(o) { return tr(o.why === "caps" ? "why_caps" : o.why === "trap" ? "why_trap" : "why_gstuck"); }
+function renderStatus() {
+  const mk = $("#stMark"); let h; const p = over ? over.winner : S.turn;
+  mk.innerHTML = p ? ICON(p) : ""; mk.className = "mk";
+  if (!started) { h = tr("st_notstarted"); mk.innerHTML = ""; }
+  else if (over) {
+    const me = humanP();
+    if (over.aborted) h = tr("st_aborted");
+    else if (over.left) h = tr("st_left");
+    else if (over.winner === null) h = tr("st_draw");
+    else if (over.flag) h = over.flag === me ? tr("st_flag_you") : tr("st_flag_opp");
+    else h = tr(over.winner === me ? "st_win_you" : MODE.vs === "bot" ? "st_win_bot" : "st_win_opp", whyText(over));
+  }
+  else if (isBot(S.turn)) { h = tr("st_bot"); mk.classList.add("think"); }
+  else if (isRemote(S.turn)) h = tr("st_remote");
+  else if (SEL >= 0) { const hasCap = genMoves(S).some(m => mFrom(m) === SEL && capOf(m) >= 0); h = (S.turn === TIGER ? tr("st_tiger") : tr("st_goat")).split(" · ")[0] + " · " + tr("st_sel", hasCap ? tr("st_sel_cap") : ""); }
+  else h = S.turn === TIGER ? tr("st_tiger") : S.placed < GOATS ? tr("st_place", GOATS - S.placed) : tr("st_goat");
+  $("#statusText").innerHTML = h;
+}
+function renderInfo() {
+  $("#infoList").innerHTML = `<dt>${tr("i_mode")}</dt><dd>${MODE.vs === "bot" ? tr("i_mode_bot", tr("lv_" + MODE.level)) : tr("i_mode_online")}</dd>` +
+    (MODE.vs === "online" ? `<dt>${tr("i_time")}</dt><dd>${TC ? TC.label : tr("tc_none")}</dd>` : "") +
+    `<dt>${tr("i_phase")}</dt><dd>${tr(S.placed < GOATS ? "ph_place" : "ph_move")}</dd><dt>${tr("i_moves")}</dt><dd>${moves.length}</dd>`;
+  $("#tip").textContent = tr(humanP() === TIGER ? "tip_tiger" : "tip_goat");
+  const u = $("#btnUndo"); u.hidden = MODE.vs !== "bot"; u.disabled = !undoStack.length;
+}
+function renderOver() {
+  const go = $("#gameover");
+  if (!over || overDismissed) { go.hidden = true; return; }
+  const me = humanP();
+  if (go.hidden) sfx(over.aborted || over.winner === null ? "draw" : over.winner === me ? "win" : "lose");
+  go.hidden = false;
+  $("#goTitle").textContent = over.aborted ? tr("go_aborted") : over.winner === null ? tr("go_draw") : over.flag === me ? tr("go_flag")
+    : over.winner === me ? tr("go_you") : MODE.vs === "bot" ? tr("go_bot") : tr("go_opp");
+  $("#goSub").textContent = over.aborted ? tr("gs_aborted") : over.left ? tr("gs_left") : over.winner === null ? tr("gs_draw") + tr("gs_moves", moves.length)
+    : over.flag ? (over.flag === me ? tr("gs_flag_you") : tr("gs_flag_opp")) : whyText(over) + tr("gs_moves", moves.length);
+  const rematch = MODE.vs === "online" && netOpen();
+  $("#goNew").textContent = tr(rematch ? "go_rematch" : "b_new");
+  $("#goNew").disabled = rematch && NET.rm.me;
+  $("#goNet").textContent = !rematch ? "" : NET.rm.me ? tr("go_rm_wait") : NET.rm.them ? tr("go_rm_them") : "";
+}
+function render() { renderBoard(); renderPanels(); renderStatus(); renderInfo(); renderOver(); }
+
+/* ---------- KÍCH THƯỚC ---------- */
+function fit() {
+  const vw = document.documentElement.clientWidth, vh = window.innerHeight - ((document.getElementById("tb-header") || {}).offsetHeight || 0);
+  const portrait = vw < 860;
+  document.body.classList.toggle("portrait", portrait);
+  let S2 = portrait ? Math.min(vw - 16, Math.max(320, vh - 250)) : Math.min(vw - 24 - 290 - 20, vh - 136);
+  S2 = Math.floor(Math.max(300, Math.min(S2, 640)));
+  document.documentElement.style.setProperty("--S", S2 + "px");
+}
+
+/* ---------- ĐIỀU KHIỂN: bấm quân rồi bấm điểm (Dê đặt quân: bấm điểm trống) ---------- */
+$("#pts").addEventListener("click", e => {
+  const pt = e.target.closest(".pt"); if (!pt || !canAct()) return;
+  const i = +pt.dataset.i;
+  if (S.turn === GOAT && S.placed < GOATS) { if (!S.b[i]) humanAct(PLACE << 5 | i); return; }
+  if (SEL >= 0 && !S.b[i]) { const m = SEL << 5 | i; if (isLegal(S, m)) { humanAct(m); return; } }
+  if (S.b[i] === S.turn && genMoves(S).some(m => mFrom(m) === i)) SEL = SEL === i ? -1 : i;
+  else SEL = -1;
+  renderBoard(); renderStatus();
+});
+
+/* ---------- BẢNG CHỌN CHẾ ĐỘ ---------- */
+let modeDraft = null;
+$("#segTime").innerHTML = TC_KEYS.map(k => `<button data-v="${k}"></button>`).join("");
+const MODE_SEGS = [["#segVs", "vs"], ["#segNet", "net"], ["#segSide", "human"], ["#segTime", "tc"], ["#segLevel", "level"]];
+function syncMode() {
+  for (const [id, key] of MODE_SEGS) document.querySelectorAll(id + " button").forEach(b => b.classList.toggle("on", b.dataset.v === modeDraft[key]));
+  const online = modeDraft.vs === "online", join = online && modeDraft.net === "join";
+  $("#netOpts").classList.toggle("off", !online);
+  $("#segNet").querySelectorAll("button").forEach(b => { b.disabled = !online; });
+  $("#joinCode").disabled = !join; $("#joinCode").placeholder = tr("m_code_ph");
+  if (!$("#joinCode").value && modeDraft.code) $("#joinCode").value = modeDraft.code;
+  $("#netNote").textContent = tr(join ? "m_net_join" : "m_net_create");
+  $("#sideOpts").classList.toggle("off", join);
+  $("#segSide").querySelectorAll("button").forEach(b => { b.disabled = join; });
+  const timeOff = !online || join;
+  $("#timeOpts").classList.toggle("off", timeOff);
+  $("#segTime").querySelectorAll("button").forEach(b => { b.disabled = timeOff; });
+  const tc = TIME_CONTROLS[modeDraft.tc];
+  $("#timeNote").textContent = !online ? tr("tcn_bot") : join ? tr("tcn_join") : tc ? tr("tcn", tc.base / 60e3, tc.inc / 1e3) : tr("tcn_none");
+  $("#levelOpts").classList.toggle("off", online);
+  $("#segLevel").querySelectorAll("button").forEach(b => { b.disabled = online; });
+  $("#levelNote").textContent = tr("lvn_" + modeDraft.level);
+  $("#modeStart").textContent = online ? tr(join ? "m_join" : "m_create") : started && !over ? tr("m_forfeit") : tr("m_start");
+}
+function openMode() {
+  modeDraft = clone(PREFS); modeDraft.net = MODE.net || "create"; modeDraft.code = "";
+  syncMode();
+  $("#modeCancel").textContent = started ? tr("cancel") : tr("m_back");
+  $("#mMode").hidden = false;
+}
+let returnToMode = true;
+function openRules() { $("#mRules").hidden = false; }
+/* 3 hình minh hoạ trong Luật chơi */
+function buildFigs() {
+  const board = (pieces, extra = "") => {
+    let h = `<svg viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" fill="none" stroke="#5b3a12" stroke-width="1.4"/><g stroke="#5b3a12" stroke-linecap="round">${linesSVG(.8)}</g>${extra}`;
+    for (const [i, p, cls] of pieces) { const [x, y] = POS(i); h += `<use href="#${p === TIGER ? "icTiger" : "icGoat"}" x="${x - 8}" y="${y - 8}" width="16" height="16" ${cls === "x" ? 'opacity=".35"' : ""}/>`; }
+    return h + "</svg>";
+  };
+  const arrow = (a, b, col) => { const [x1, y1] = POS(a), [x2, y2] = POS(b); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="2.6" stroke-dasharray="3 2.5"/><circle cx="${x2}" cy="${y2}" r="3.2" fill="${col}"/>`; };
+  const f1 = board([[12, TIGER], [17, GOAT]], arrow(12, 22, "#e5322b") + arrow(12, 13, "#1fae4b"));
+  const f2 = board([[0, TIGER], [4, TIGER], [20, TIGER], [24, TIGER], [1, GOAT], [5, GOAT], [10, GOAT], [3, GOAT], [9, GOAT]]);
+  // 4 Hổ ở 4 góc đều không đi được, không nhảy được (17 Dê)
+  const f3 = board([[0, TIGER], [4, TIGER], [20, TIGER], [24, TIGER], ...[1, 2, 3, 5, 6, 8, 9, 10, 12, 14, 15, 16, 18, 19, 21, 22, 23].map(i => [i, GOAT])]);
+  $("#rulesFigs").innerHTML = [[f1, "f1"], [f2, "f2"], [f3, "f3"]].map(([s, k]) => `<div class="fig">${s}${tr(k)}</div>`).join("");
+}
+
+/* ---------- NGÔN NGỮ ---------- */
+function setLang(l) {
+  LANG = l; try { localStorage.setItem("lang", l); } catch (e) {}
+  if (window.TB) TB.setLang(l);
+  applyI18n(); if (modeDraft && !$("#mMode").hidden) syncMode();
+  render();
+}
+if (window.TB) TB.onLang(l => { if (l !== LANG) setLang(l); });
+
+/* ---------- SỰ KIỆN ---------- */
+for (const [id, key] of MODE_SEGS)
+  document.querySelectorAll(id + " button").forEach(b => b.addEventListener("click", () => {
+    modeDraft[key] = b.dataset.v; syncMode();
+    if (modeDraft.vs === "online" && modeDraft.net === "join" && (key === "net" || key === "vs")) $("#joinCode").focus();
+  }));
+$("#joinCode").addEventListener("input", e => { const v = normCode(e.target.value); if (e.target.value !== v) e.target.value = v; });
+$("#joinCode").addEventListener("keydown", e => { if (e.key === "Enter") $("#modeStart").click(); });
+$("#netCancel").addEventListener("click", () => { netClose(true); $("#mNet").hidden = true; if (!started) openMode(); });
+$("#netCopy").addEventListener("click", () => {
+  const inp = $("#netLink"), btn = $("#netCopy");
+  const done = () => { btn.textContent = tr("n_copied"); setTimeout(() => { btn.textContent = tr("n_copy"); }, 1500); };
+  const legacy = () => { inp.select(); try { document.execCommand("copy"); done(); } catch (e) {} };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done, legacy); else legacy();
+});
+window.addEventListener("pagehide", () => { if (netOpen()) try { NET.conn.send({ t: "bye" }); } catch (e) {} });
+$("#modeCancel").addEventListener("click", () => {
+  $("#mMode").hidden = true;
+  if (!started) { returnToMode = true; openRules(); }
+});
+$("#modeStart").addEventListener("click", () => {
+  for (const k of ["vs", "human", "level", "tc"]) if (!(modeDraft.vs === "online" && modeDraft.net === "join" && k !== "vs")) PREFS[k] = modeDraft[k];
+  savePrefs();
+  if (modeDraft.vs === "online") {
+    if (modeDraft.net === "join") {
+      modeDraft.code = normCode($("#joinCode").value);
+      if (modeDraft.code.length !== CODE_LEN) { $("#netNote").textContent = tr("n_err_code"); $("#joinCode").focus(); return; }
+    }
+    return startOnline();
+  }
+  netClose(true);
+  MODE = clone(modeDraft); $("#mMode").hidden = true; newGame(false);
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("#mNet").hidden) $("#netCancel").click();
+  else if (!$("#mRules").hidden) $("#rulesOk").click();
+  else if (!$("#mMode").hidden) { if (started) $("#mMode").hidden = true; }
+  else if (SEL >= 0) { SEL = -1; renderBoard(); renderStatus(); }
+});
+$("#btnNew").addEventListener("click", () => {
+  if (MODE.vs === "online" && netOpen() && over) { overDismissed = false; return renderOver(); }
+  openMode();
+});
+$("#btnUndo").addEventListener("click", undo);
+$("#goNew").addEventListener("click", () => { if (MODE.vs === "online" && netOpen()) return requestRematch(); openMode(); });
+$("#goView").addEventListener("click", () => { overDismissed = true; renderOver(); });
+$("#btnRules").addEventListener("click", () => { returnToMode = false; openRules(); });
+$("#rulesOk").addEventListener("click", () => { $("#mRules").hidden = true; if (returnToMode) { returnToMode = false; openMode(); } });
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("mousedown", e => {
+  if (e.target !== m || m.id === "mNet" || (m.id === "mMode" && !started)) return;
+  if (m.id === "mRules") return $("#rulesOk").click();
+  m.hidden = true;
+}));
+window.addEventListener("resize", fit);
+
+/* ---------- KHỞI ĐỘNG ---------- */
+(function init() {
+  workerStart();
+  applyI18n(); newGame(true);
+  const room = normCode((location.hash.match(/room=([A-Za-z0-9]+)/) || [])[1]);
+  if (room.length === CODE_LEN) {   // mở từ link mời: vào phòng luôn
+    try { history.replaceState(null, "", location.href.split("#")[0]); } catch (e) {}
+    modeDraft = { ...clone(PREFS), vs: "online", net: "join", code: room };
+    startOnline();
+  } else openRules();
+  if (window.TB && TB.closeX) TB.closeX({ "#mRules": "#rulesOk", "#mMode": "#modeCancel", "#mNet": "#netCancel", "#gameover": "#goView" });
+  window.game = {   // tiện debug ở console
+    get mode() { return MODE; }, get state() { return { S, over, moves, clock, undoStack, rep }; },
+    humanAct, act, undo, aiPick, genMoves, stateHash, flagFall, PLACE,
+  };
+})();
+</script>
+</body>
+</html>

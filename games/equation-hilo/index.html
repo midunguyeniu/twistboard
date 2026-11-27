@@ -71,6 +71,12 @@ body.portrait #felt{left:7%;right:7%;top:8%;bottom:8%;border-radius:150px}
 .chip{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--cc,#ef3f5a);box-shadow:inset 0 0 0 3px var(--cc,#ef3f5a),inset 0 0 0 5px rgba(255,255,255,.9),0 1px 2px rgba(0,0,0,.4);flex:none}
 
 #seats,#bets,#fx{position:absolute;inset:0;pointer-events:none}
+/* chip người đi đầu: tím, số 1 trắng, nằm cạnh ô tên, chuyển sang người kế tiếp mỗi ván */
+.fchip{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#7c4ddb;border:2px dashed rgba(255,255,255,.55);box-shadow:0 0 0 1.5px #4b2a9c,0 2px 5px rgba(0,0,0,.45);display:grid;place-items:center;pointer-events:auto;z-index:3}
+.fchip[hidden]{display:none}
+.fchip b{color:#fff;font-size:14px;font-weight:900;line-height:1;text-shadow:0 1px 1px rgba(0,0,0,.35)}
+body.portrait .fchip{width:22px;height:22px;margin:-11px 0 0 -11px}
+body.portrait .fchip b{font-size:12px}
 /* xèng bay từ ô tên ra phiếu cược khi theo / tố / cược thêm */
 .chip.fly{position:absolute;left:0;top:0;width:20px;height:20px;will-change:transform;box-shadow:inset 0 0 0 3.5px var(--cc),inset 0 0 0 6px rgba(255,255,255,.95),0 3px 6px rgba(0,0,0,.45);z-index:5}
 .bet.bhide{visibility:hidden}
@@ -86,9 +92,10 @@ body.portrait #felt{left:7%;right:7%;top:8%;bottom:8%;border-radius:150px}
 .seat.l .cards{right:calc(100% + 12px);top:50%;transform:translateY(-50%)}
 .seat .cards .minis{margin-top:0;flex-wrap:nowrap;max-width:none}   /* bài trên ghế luôn 1 hàng để phiếu cược khỏi bị đẩy xuống */
 .seat.u .stag{bottom:auto;top:-13px}       /* nhãn trạng thái luôn nằm phía trong bàn */
-.seat.u .mk{top:auto;bottom:-7px}          /* nút D/SB/BB luôn nằm phía ngoài */
+.seat.u .mk{top:auto;bottom:-7px}          /* dấu người đi đầu luôn nằm phía ngoài */
 .sbox{position:relative;display:flex;align-items:center;gap:7px;background:#fff;border-radius:999px;padding:4px 12px 4px 4px;box-shadow:0 3px 10px rgba(20,30,60,.22);border:2.5px solid #fff;max-width:150px;transition:border-color .2s,box-shadow .2s}
-.seat.turn .sbox{border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,201,40,.45),0 3px 10px rgba(20,30,60,.22)}
+.seat.turn .sbox{border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,201,40,.45),0 3px 10px rgba(20,30,60,.22);animation:turnpulse 1.2s ease-in-out var(--tp,0s) infinite}
+@keyframes turnpulse{50%{border-color:rgba(255,201,40,.3);box-shadow:0 0 0 4px rgba(255,201,40,.06),0 3px 10px rgba(20,30,60,.22)}}
 .seat.me .sbox{background:#fffbea}
 .seat.fold .sbox,.seat.fold .cards{opacity:.5}
 .seat.out{opacity:.4;filter:grayscale(1)}
@@ -103,6 +110,8 @@ body.portrait #felt{left:7%;right:7%;top:8%;bottom:8%;border-radius:150px}
 .mk.d{left:-5px;background:#fff;color:#1d2330;border:1.5px solid #1d2330}
 .mk.sb,.mk.bb{right:-6px;background:#1d2330;color:#fff}
 .mk.bb{background:#b3241e}
+.mk.first{left:-5px;background:var(--gold);color:#1d2330;border:1.5px solid #1d2330}   /* người đi đầu ván này (thay nút D/SB/BB) */
+.mk.first svg{width:9px;height:9px;margin-left:1px}
 .stag{position:absolute;bottom:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10.5px;font-weight:900;padding:1px 8px;border-radius:999px;background:#1d2330;color:#fff;letter-spacing:.02em}
 .stag.fold{background:#8a8f9c} .stag.all{background:#b3241e} .stag.ok{background:var(--win)} .stag.think{background:#4a6fd8;animation:blink 1.2s infinite}
 .stag.low{background:var(--low)} .stag.high{background:var(--high)} .stag.swing{background:var(--swing)}
@@ -131,12 +140,15 @@ body.portrait #felt{left:7%;right:7%;top:8%;bottom:8%;border-radius:150px}
 .cd.op.sqrt{background:linear-gradient(160deg,#fff,#eafafb)}
 .cd.hid{background:repeating-linear-gradient(135deg,#fff 0 7px,#f2f5ff 7px 14px);border-color:#9aaee8}
 .cd .eye{position:absolute;top:calc(var(--w) * .08);left:50%;transform:translateX(-50%);width:calc(var(--w) * .26);height:calc(var(--w) * .26);color:#4a6fd8}
-.cd.back{background:radial-gradient(circle at 50% 50%,#6f8ff0 0 18%,transparent 19%),repeating-linear-gradient(45deg,#3b5fc9 0 5px,#4a6fd8 5px 10px);border-color:#2d4ba8;box-shadow:0 1px 0 #233c8a,0 2px 6px rgba(20,30,60,.25)}
+.cd.back{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cdefs%3E%3Cpattern id='p' width='7' height='7' patternUnits='userSpaceOnUse'%3E%3Crect width='7' height='7' fill='%232d5a92'/%3E%3Cpath d='M3.5 0 7 3.5 3.5 7 0 3.5Z' fill='none' stroke='%23fff' stroke-width='.7'/%3E%3Ccircle cx='3.5' cy='3.5' r='1' fill='%23fff'/%3E%3Ccircle cx='0' cy='0' r='.8' fill='%23fff'/%3E%3Ccircle cx='7' cy='0' r='.8' fill='%23fff'/%3E%3Ccircle cx='0' cy='7' r='.8' fill='%23fff'/%3E%3Ccircle cx='7' cy='7' r='.8' fill='%23fff'/%3E%3C/pattern%3E%3C/defs%3E%3Crect x='8' y='8' width='84' height='124' rx='2.5' fill='%232d5a92'/%3E%3Crect x='11' y='11' width='78' height='118' fill='url(%23p)'/%3E%3Crect x='11' y='11' width='78' height='118' fill='none' stroke='%23fff' stroke-width='1'/%3E%3Cpath d='M50 40 80 70 50 100 20 70Z' fill='%232d5a92' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M50 46 74 70 50 94 26 70Z' fill='none' stroke='%23fff' stroke-width='.8'/%3E%3Cpath d='M50 49v-3M50 91v3M29 70h-3M71 70h3' stroke='%23fff' stroke-width='1.2'/%3E%3Cpath d='M50 70L50.00 57.50M50 70L52.87 63.07M50 70L58.84 61.16M50 70L56.93 67.13M50 70L62.50 70.00M50 70L56.93 72.87M50 70L58.84 78.84M50 70L52.87 76.93M50 70L50.00 82.50M50 70L47.13 76.93M50 70L41.16 78.84M50 70L43.07 72.87M50 70L37.50 70.00M50 70L43.07 67.13M50 70L41.16 61.16M50 70L47.13 63.07' stroke='%23fff' stroke-width='1.3' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='70' r='3.2' fill='%232d5a92' stroke='%23fff' stroke-width='1.2'/%3E%3C/svg%3E") center/100% 100% no-repeat;border-color:#cfd3dc;box-shadow:0 1px 0 #b9bec9,0 2px 6px rgba(20,30,60,.25)}   /* mặt sau: viền trắng, lưới màu, hình thoi ngôi sao giữa */
 .cd.mini{--w:25px;border-width:1px;box-shadow:0 1px 0 #c8cdd9,0 2px 4px rgba(0,0,0,.2)}
 .cd.mini .pp u{width:3px;height:3px}
 .cd.mini .pp.b{display:none}
 .cd.mini.op::before{display:none}
 .cd.new{animation:deal .35s cubic-bezier(.2,.9,.3,1.2)}
+/* chia bài: lá úp bay từ giữa bàn (.dfly trong lớp #fx), tới nơi thì lá thật lật ra (dealin, delay = lúc tới) */
+.cd.dfly{position:absolute;left:0;top:0;z-index:4;will-change:transform;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+@keyframes dealin{0%{transform:scaleX(0)}100%{transform:none}}
 @keyframes deal{0%{transform:translateY(-14px) rotate(-8deg) scale(.7);opacity:0}100%{transform:none;opacity:1}}
 .cd.dim{opacity:.35}
 
@@ -324,6 +336,14 @@ body #center.stack{display:block;width:auto}
 body #center.stack .phase{position:absolute;top:auto;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;text-align:center}
 @media (max-width:1040px){#stage{grid-template-columns:1fr}#side{display:grid;grid-template-columns:1fr 1fr}}
 @media (max-width:640px){#side{grid-template-columns:1fr}}
+/* ghế của mình: "Tên (bạn)", tên dài thì cắt bớt tên nhưng luôn giữ "(bạn)" */
+.youtag{font-weight:700;opacity:.6;white-space:nowrap}
+.sinfo b.me{display:flex;max-width:150px}
+.sinfo b.me .nm{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sinfo b.me .youtag{flex:none;margin-left:.28em}   /* trong flex dấu cách đầu bị bỏ */
+.seat.me .sbox{max-width:220px}
+body.portrait .seat.me .sbox{max-width:190px}
+body.portrait .sinfo b.me{max-width:130px}
 </style>
 </head>
 <body>
@@ -349,6 +369,7 @@ body #center.stack .phase{position:absolute;top:auto;bottom:calc(100% + 6px);lef
         </div>
         <div id="bets"></div>
         <div id="seats"></div>
+        <div id="fchip" class="fchip" hidden><b>1</b></div>
         <div id="fx"></div>
       </div>
       <section class="card2" id="mine"></section>
@@ -387,7 +408,7 @@ body #center.stack .phase{position:absolute;top:auto;bottom:calc(100% + 6px);lef
   <div class="card">
     <h2 data-i18n="m_title"></h2>
     <h3 data-i18n="m_name"></h3>
-    <input class="field" id="myName" maxlength="16" autocomplete="off" spellcheck="false">
+    <input class="field" id="myName" maxlength="12" autocomplete="off" spellcheck="false">
     <h3 data-i18n="m_vs"></h3>
     <div class="seg" id="segVs"><button data-v="bot" data-i18n="m_bot"></button><button data-v="online" data-i18n="m_online"></button></div>
     <div id="botOpts">
@@ -534,9 +555,9 @@ const I18N = {
     sd_title: "Kết quả ván {0}", sd_fold: "<b>{0}</b> ăn {1} chip vì mọi người khác bỏ bài.", sd_next: "Ván tiếp", sd_next_in: "Ván tiếp sau {0} giây",
     sd_wait_host: "Chờ chủ phòng chia ván tiếp", sd_main: "Pot chính {0}", sd_side: "Pot phụ {0}", sd_lowwin: "Thấp: {0}", sd_highwin: "Cao: {0}",
     sd_swingwin: "Swing: {0} ăn cả", sd_chop: "không ai hợp lệ, chia đều", sd_nobody: "không ai", sd_invalid: "không hợp lệ", sd_fail: "Swing hụt", sd_hidden: "lá úp",
-    i_blinds: "Blind <b>{0}/{1}</b>", i_next: "Lên {0}/{1} sau {2} ván nữa", i_max: "Mức blind cao nhất", i_players: "Còn {0}/{1} người",
+    i_blinds: "Ante <b>{0}</b>", i_next: "Ante ván sau: {0}", t_first: "Người đi đầu ván này", i_players: "Còn {0}/{1} người",
     i_mode_bot: "Đấu máy · {0}", i_mode_online: "Online · phòng {0}", i_mode_tut: "Ván hướng dẫn", i_timer: "Giờ online: cược 30 giây, bỏ dấu 20 giây, xếp phép tính 90 giây.",
-    l_hand: "Ván {0} · blind {1}/{2}", l_blinds: "{0} đặt SB {1}, {2} đặt BB {3}", l_mul: "{0} rút ×, được thêm lá {1}", l_sqrt: "{0} rút √, được thêm lá {1}",
+    l_hand: "Ván {0} · ante {1}", l_ante: "Mọi người nộp ante {0}", l_mul: "{0} rút ×, được thêm lá {1}", l_sqrt: "{0} rút √, được thêm lá {1}",
     l_disc: "{0} bỏ dấu {1}", l_fold: "{0} bỏ bài", l_check: "{0} theo", l_call: "{0} theo {1}", l_callall: "{0} theo {1} (all-in)", l_bet: "{0} cược thêm {1}",
     l_betall: "{0} cược thêm {1} (all-in)", l_raise: "{0} tố lên {1}", l_raiseall: "{0} tố lên {1} (all-in)", l_win_low: "{0} thắng cửa Thấp, nhận {1}",
     l_win_high: "{0} thắng cửa Cao, nhận {1}", l_win_swing: "{0} Swing thành công, ăn {1}", l_win_chop: "Không ai hợp lệ, chia đều {0}",
@@ -554,17 +575,17 @@ const I18N = {
     r_mul: "Rút được <b>×</b>: nhận thêm 1 lá số, rồi phải bỏ hẳn 1 dấu là + hoặc − hoặc chính lá ×. Dấu ÷ không bao giờ bỏ được.",
     r_deal2: "Sau vòng cược 1, ai còn trong ván rút thêm 1 lá ngửa (√ và × tính như trên). Cuối cùng ai cũng có đúng 4 lá số và 3 dấu, cộng các lá √ nếu có.",
     r_zero: "Ai đã có ba lá 0 thì không bị chia lá 0 thứ tư, vì lúc đó phép tính nào cũng phải chia cho 0.",
-    r_h_bet: "Cược", r_blinds: "Mỗi ván, người ngồi small blind (SB) đặt sẵn nửa mức cược, người kế tiếp theo chiều kim đồng hồ đặt big blind (BB). Ghế SB xoay một ghế sau mỗi ván.",
-    r_rounds: "Vòng cược 1 diễn ra sau 3 lá đầu, người ngồi sau BB đi trước. Vòng cược 2 diễn ra sau lá thứ tư, SB đi trước.",
+    r_h_bet: "Cược", r_blinds: "Không có blind. Đầu mỗi ván, mọi người cùng nộp ante vào pot; ante tính luôn là tiền cược của vòng cược 1.",
+    r_rounds: "Mỗi ván có một người đi đầu (cầm chip tím số 1 cạnh ghế), người này đi trước ở cả hai vòng cược: vòng 1 sau 3 lá đầu, vòng 2 sau lá thứ tư. Ván 1 người đi đầu được bốc ngẫu nhiên, sau đó chuyển sang người kế tiếp theo chiều kim đồng hồ.",
     r_nl: "Cược không giới hạn: Theo (bằng mức đang cược, chưa ai cược thì không mất thêm chip), Cược thêm (khi chưa ai cược), Tố (mỗi lần tố ít nhất bằng lần tố trước) hoặc Bỏ bài. All-in lúc nào cũng được; phần cược vượt quá số chip của người all-in tách thành pot phụ.",
-    r_rise: "Mỗi người vào trận với 1.000 chip. Blind bắt đầu 10/20 và tăng sau mỗi 5 ván: 20/40, 30/60, 50/100, 75/150, 100/200...",
+    r_rise: "Mỗi người vào trận với 50 chip. Ante là 1 chip ở ván 1 và 2, 2 chip ở ván 3 và 4, cứ hai ván tăng 1 cho tới 8 chip ở ván 15 và 16. Từ ván 17, ante tăng 5 sau mỗi hai ván: 13, 18, 23...",
     r_h_eq: "Ghép phép tính", r_eq1: "Dùng tất cả lá đang cầm. Số và dấu xen kẽ, bắt đầu và kết thúc bằng số; lá √ đứng ngay trước số của nó (không chồng √√).",
     r_eq2: "× và ÷ tính trước + và −; cùng bậc thì tính từ trái sang phải. Chia cho 0 (kể cả √0) làm phép tính không hợp lệ.",
     r_eq3: "Chọn cửa: <b>Thấp</b> (gần 1), <b>Cao</b> (gần 20) hoặc <b>Swing</b> (xếp 2 phép tính từ cùng bộ lá, một về 1, một về 20).",
     r_eq4: "Xếp xong bấm Khoá. Chơi online có 90 giây; hết giờ thì phép tính được nộp theo thứ tự đang xếp.",
     r_h_win: "Thắng thua", r_low: "Cửa Thấp: kết quả gần 1 nhất thắng. Lệch lên hay xuống như nhau, 0 và 2 đều cách 1 một đơn vị.",
     r_high: "Cửa Cao: kết quả gần 20 nhất thắng.", r_swing: "Swing phải thắng cả hai cửa mới ăn trọn pot. Thua một cửa là mất hết, cửa đó về người không Swing giỏi nhất.",
-    r_split: "Ai chọn cửa nào chỉ đấu với người cùng cửa. Có người thắng cả cửa Thấp lẫn cửa Cao thì mỗi người nửa pot; chỉ có một cửa thì người thắng cửa đó ăn cả. Chip lẻ về người thắng ngồi gần SB nhất theo chiều kim đồng hồ.",
+    r_split: "Ai chọn cửa nào chỉ đấu với người cùng cửa. Có người thắng cả cửa Thấp lẫn cửa Cao thì mỗi người nửa pot; chỉ có một cửa thì người thắng cửa đó ăn cả. Chip lẻ về người thắng ngồi gần người đi đầu nhất theo chiều kim đồng hồ.",
     r_tie: "Bằng khoảng cách: cửa Thấp so lá số nhỏ nhất của mỗi người, nhỏ hơn thắng (bằng nữa thì hạng thấp hơn thắng); cửa Cao so lá số lớn nhất, lớn hơn thắng (bằng nữa thì hạng cao hơn thắng).",
     r_none: "Phép tính không hợp lệ thì không được tính. Nếu cả pot không còn ai hợp lệ, pot chia đều cho những người còn trong ván.",
     r_h_end: "Hết trận", r_out: "Hết chip là bị loại. Người cuối cùng còn chip vô địch.",
@@ -577,19 +598,19 @@ const I18N = {
     tut_hidden_h: "Lá úp của bạn", tut_hidden: "Lá 6 có hình con mắt gạch chéo là lá úp: bạn thấy, đối thủ thì không. Các lá còn lại cả bàn cùng thấy.",
     tut_ranks_h: "Lá số và hạng", tut_ranks: "Số chấm cam ở góc là hạng của lá (từ 1 đến 4). Hạng chỉ dùng khi hai người bằng điểm.",
     tut_ops_h: "Lá dấu", tut_ops: "Ai cũng cầm sẵn + − ÷. Phép tính xen kẽ số, dấu, số, dấu... Nhân chia tính trước, cộng trừ tính sau.",
-    tut_blinds_h: "Blind", tut_blinds: "Hypatia ngồi small blind (SB) nên đặt sẵn 10, Euclid ngồi big blind (BB) đặt sẵn 20. Muốn ở lại ván, bạn phải theo cho đủ 20.",
-    tut_call1_h: "Vòng cược đầu", tut_call1: "Bài đang có triển vọng: 6 nhân 4 đã được 24. Bấm <b>Theo 20</b>.", tut_call1_do: "Bấm Theo 20",
-    tut_bots_h: "Tới lượt đối thủ", tut_bots: "Hypatia và Euclid đi tiếp. Xong vòng này, ai còn trong ván được chia thêm một lá ngửa.",
+    tut_blinds_h: "Ante", tut_blinds: "Không có blind: đầu ván ai cũng nộp ante vào pot, ván này mỗi người 2 chip. Hypatia cầm chip tím số 1 nên đi đầu ván này: ante, chia bài và cược đều bắt đầu từ người cầm chip. Ván sau chip chuyển sang người kế tiếp.",
+    tut_call1_h: "Vòng cược đầu", tut_call1: "Hai người đều Theo, chưa ai cược thêm. Bài bạn đang có triển vọng: 6 nhân 4 đã được 24. Bấm <b>Theo</b>. Xong vòng này, ai còn trong ván được chia thêm một lá ngửa.", tut_call1_do: "Bấm Theo",
+    tut_bots_h: "Đối thủ đi trước", tut_bots: "Hypatia đi đầu, rồi tới Euclid, sau đó mới tới bạn.",
     tut_mul_h: "Bạn rút được ×", tut_mul: "Lá × cho bạn thêm một lá số (lá 2). Đổi lại phải bỏ hẳn một dấu. Bỏ <b>+</b> đi, vì <code>6 × 4 − 8 ÷ 2</code> không cần dấu cộng.", tut_mul_do: "Bấm Bỏ dưới lá +",
     tut_sqrt_h: "Hypatia rút √", tut_sqrt: "Lá √ cũng cho thêm một lá số. Nó đặt ngay trước một số để lấy căn: √9 = 3. Chạm vào ghế đối thủ bất cứ lúc nào để xem kỹ bài họ.",
-    tut_call2_h: "Vòng cược thứ hai", tut_call2: "Hypatia cược 60, Euclid bỏ bài. Bài bạn ghép được đúng 20 rồi, bấm <b>Theo 60</b>.", tut_call2_do: "Bấm Theo 60",
+    tut_call2_h: "Vòng cược thứ hai", tut_call2: "Hypatia cược 6, Euclid bỏ bài. Bài bạn ghép được đúng 20 rồi, bấm <b>Theo 6</b>.", tut_call2_do: "Bấm Theo 6",
     tut_side_h: "Chọn cửa", tut_side: "Giờ là lúc ghép phép tính. Bài bạn hợp cửa Cao, bấm <b>Cao</b>.", tut_side_do: "Chọn Cao",
     tut_arr_h: "Xếp phép tính", tut_arr: "Kéo thả các lá (hoặc chạm 2 lá để đổi chỗ) thành <code>6 × 4 − 8 ÷ 2</code>. Kết quả hiện ngay bên dưới.", tut_arr_do: "Xếp ra đúng 20",
     tut_lock_h: "Chính xác!", tut_lock: "6 × 4 = 24, 8 ÷ 2 = 4, rồi 24 − 4 = 20. Bấm <b>Khoá phép tính</b>.", tut_lock_do: "Bấm Khoá",
-    tut_show_h: "Lật bài", tut_show: "Hypatia chọn cửa Thấp với <code>√9 − 3 + 2 ÷ 2 = 1</code>. Hai người khác cửa nên không đấu nhau: pot 180 chia đôi, mỗi người 90.",
+    tut_show_h: "Lật bài", tut_show: "Hypatia chọn cửa Thấp với <code>√9 − 3 + 2 ÷ 2 = 1</code>. Hai người khác cửa nên không đấu nhau: pot 18 chia đôi, mỗi người 9.",
     tut_tie_h: "Khi bằng điểm", tut_tie: "Nếu hai người cùng cửa cách mục tiêu bằng nhau: cửa Thấp thì ai có lá số nhỏ nhất thắng, cửa Cao thì ai có lá số lớn nhất thắng. Bằng nữa thì so hạng (số chấm).",
     tut_swing_h: "Swing", tut_swing: "Muốn ăn cả pot, chọn Swing và xếp 2 phép tính từ cùng bộ lá: một về 1, một về 20. Phải thắng cả hai cửa, thua một cửa là mất trắng.",
-    tut_end_h: "Bạn đã sẵn sàng!", tut_end: "Mỗi người có 1.000 chip, blind tăng sau mỗi 5 ván, ai hết chip bị loại, người cuối cùng còn chip vô địch. Chúc may mắn!",
+    tut_end_h: "Bạn đã sẵn sàng!", tut_end: "Mỗi người có 50 chip, ante tăng dần qua các ván, ai hết chip bị loại, người cuối cùng còn chip vô địch. Chúc may mắn!",
   },
   en: {
     title: "Equation Hi-Lo", brand: "Equation Hi-Lo", tagline: "Build an equation close to 1 or 20, bet like poker",
@@ -630,9 +651,9 @@ const I18N = {
     sd_title: "Hand {0} results", sd_fold: "<b>{0}</b> takes {1} chips, everyone else folded.", sd_next: "Next hand", sd_next_in: "Next hand in {0}s",
     sd_wait_host: "Waiting for the host to deal", sd_main: "Main pot {0}", sd_side: "Side pot {0}", sd_lowwin: "Low: {0}", sd_highwin: "High: {0}",
     sd_swingwin: "Swing: {0} scoops", sd_chop: "no valid hand, split evenly", sd_nobody: "nobody", sd_invalid: "invalid", sd_fail: "Swing failed", sd_hidden: "hidden",
-    i_blinds: "Blinds <b>{0}/{1}</b>", i_next: "Rise to {0}/{1} in {2} more hands", i_max: "Top blind level", i_players: "{0} of {1} players left",
+    i_blinds: "Ante <b>{0}</b>", i_next: "Next hand's ante: {0}", t_first: "Acts first this hand", i_players: "{0} of {1} players left",
     i_mode_bot: "Vs bots · {0}", i_mode_online: "Online · room {0}", i_mode_tut: "Tutorial hand", i_timer: "Online timers: 30s to bet, 20s to discard, 90s to build.",
-    l_hand: "Hand {0} · blinds {1}/{2}", l_blinds: "{0} posted SB {1}, {2} posted BB {3}", l_mul: "{0} drew ×, bonus card {1}", l_sqrt: "{0} drew √, bonus card {1}",
+    l_hand: "Hand {0} · ante {1}", l_ante: "Everyone paid the {0} ante", l_mul: "{0} drew ×, bonus card {1}", l_sqrt: "{0} drew √, bonus card {1}",
     l_disc: "{0} discarded {1}", l_fold: "{0} folded", l_check: "{0} checked", l_call: "{0} called {1}", l_callall: "{0} called {1} (all-in)", l_bet: "{0} bet {1}",
     l_betall: "{0} bet {1} (all-in)", l_raise: "{0} raised to {1}", l_raiseall: "{0} raised to {1} (all-in)", l_win_low: "{0} won Low, took {1}",
     l_win_high: "{0} won High, took {1}", l_win_swing: "{0} landed the Swing, took {1}", l_win_chop: "No valid hand, {0} split evenly",
@@ -650,17 +671,17 @@ const I18N = {
     r_mul: "Draw a <b>×</b>: you get a bonus number card, then must discard one operator for good: +, − or the × itself. ÷ can never be discarded.",
     r_deal2: "After the first betting round, everyone still in draws 1 more face-up card (√ and × work as above). In the end everyone holds exactly 4 numbers and 3 operators, plus any √ cards.",
     r_zero: "A player holding three 0s is never dealt the fourth 0, since then every equation would divide by zero.",
-    r_h_bet: "Betting", r_blinds: "Each hand the small blind (SB) posts half a bet and the next player clockwise posts the big blind (BB). The SB moves one seat after every hand.",
-    r_rounds: "Betting round 1 comes after the first 3 cards, starting left of the BB. Round 2 comes after the fourth card, and the SB acts first.",
+    r_h_bet: "Betting", r_blinds: "There are no blinds. At the start of each hand everyone pays an ante into the pot; the ante counts as your bet in betting round 1.",
+    r_rounds: "Each hand has a first player (holding the purple number-1 chip by their seat) who acts first in both betting rounds: round 1 after the first 3 cards, round 2 after the fourth. The first player of hand 1 is picked at random; after that it moves to the next player clockwise.",
     r_nl: "No-limit: check, call, raise (each raise at least the previous one) or fold. You can go all-in any time; chips beyond an all-in player's stack form a side pot.",
-    r_rise: "Everyone starts with 1,000 chips. Blinds start at 10/20 and rise every 5 hands: 20/40, 30/60, 50/100, 75/150, 100/200...",
+    r_rise: "Everyone starts with 50 chips. The ante is 1 chip in hands 1 and 2, 2 chips in hands 3 and 4, rising by 1 every two hands up to 8 in hands 15 and 16. From hand 17 it rises by 5 every two hands: 13, 18, 23...",
     r_h_eq: "Building the equation", r_eq1: "Use every card you hold. Numbers and operators alternate, starting and ending with a number; a √ sits right before its number (no √√).",
     r_eq2: "× and ÷ go before + and −; within a tier, left to right. Dividing by 0 (including √0) makes the equation invalid.",
     r_eq3: "Pick a side: <b>Low</b> (near 1), <b>High</b> (near 20) or <b>Swing</b> (two equations from the same cards, one for 1 and one for 20).",
     r_eq4: "Press Lock in when ready. Online you have 90 seconds; when time runs out, your equation is submitted in its current order.",
     r_h_win: "Winning", r_low: "Low: the result closest to 1 wins. Over or under counts the same, so 0 and 2 are both 1 away.",
     r_high: "High: the result closest to 20 wins.", r_swing: "A Swing must win both sides to scoop the pot. Lose either side and it gets nothing; that side goes to the best non-Swing player.",
-    r_split: "Players only compete with others on the same side. If there is both a Low and a High winner, each takes half the pot; if only one side has players, its winner takes it all. An odd chip goes to the winner closest clockwise to the SB.",
+    r_split: "Players only compete with others on the same side. If there is both a Low and a High winner, each takes half the pot; if only one side has players, its winner takes it all. An odd chip goes to the winner closest clockwise to the first player.",
     r_tie: "Equal distance: on Low, compare each player's smallest number card, lower wins (then lower rank); on High, compare the largest number card, higher wins (then higher rank).",
     r_none: "Invalid equations don't count. If nobody in a pot has a valid equation, that pot is split evenly among the players still in.",
     r_h_end: "End of the game", r_out: "Run out of chips and you're out. The last player with chips wins.",
@@ -673,19 +694,19 @@ const I18N = {
     tut_hidden_h: "Your hidden card", tut_hidden: "The 6 with the crossed-out eye is your hidden card: you can see it, your opponents can't. Every other card is face up.",
     tut_ranks_h: "Numbers and ranks", tut_ranks: "The orange pips in the corner show the card's rank (1 to 4). Ranks only matter when two players tie.",
     tut_ops_h: "Operators", tut_ops: "Everyone holds + − ÷. An equation alternates number, operator, number... Multiply and divide come before add and subtract.",
-    tut_blinds_h: "Blinds", tut_blinds: "Hypatia is the small blind (SB) and posted 10; Euclid is the big blind (BB) and posted 20. To stay in, you must call 20.",
-    tut_call1_h: "First betting round", tut_call1: "Your hand looks promising: 6 times 4 is already 24. Press <b>Call 20</b>.", tut_call1_do: "Press Call 20",
-    tut_bots_h: "Opponents' turn", tut_bots: "Hypatia and Euclid act next. After this round, everyone still in gets one more face-up card.",
+    tut_blinds_h: "Ante", tut_blinds: "There are no blinds: everyone pays an ante into the pot, 2 chips each this hand. Hypatia holds the purple number-1 chip, so Hypatia acts first this hand: antes, dealing and betting all start from the chip holder. Next hand the chip moves to the next player.",
+    tut_call1_h: "First betting round", tut_call1: "Both of them checked, nobody has bet more. Your hand looks promising: 6 times 4 is already 24. Press <b>Check</b>. After this round, everyone still in gets one more face-up card.", tut_call1_do: "Press Check",
+    tut_bots_h: "Opponents act first", tut_bots: "Hypatia goes first, then Euclid, then it's your turn.",
     tut_mul_h: "You drew a ×", tut_mul: "The × gives you a bonus number card (the 2). In exchange you must drop one operator for good. Drop the <b>+</b>: <code>6 × 4 − 8 ÷ 2</code> doesn't need it.", tut_mul_do: "Press Drop under the +",
     tut_sqrt_h: "Hypatia drew a √", tut_sqrt: "A √ also brings a bonus number card. It goes right before a number to take its root: √9 = 3. Tap an opponent's seat any time to see their cards up close.",
-    tut_call2_h: "Second betting round", tut_call2: "Hypatia bets 60 and Euclid folds. Your cards make exactly 20, so press <b>Call 60</b>.", tut_call2_do: "Press Call 60",
+    tut_call2_h: "Second betting round", tut_call2: "Hypatia bets 6 and Euclid folds. Your cards make exactly 20, so press <b>Call 6</b>.", tut_call2_do: "Press Call 6",
     tut_side_h: "Pick a side", tut_side: "Time to build. Your cards suit the High side, so press <b>High</b>.", tut_side_do: "Pick High",
     tut_arr_h: "Arrange it", tut_arr: "Drag the cards (or tap two to swap them) into <code>6 × 4 − 8 ÷ 2</code>. The result updates right below.", tut_arr_do: "Make exactly 20",
     tut_lock_h: "Spot on!", tut_lock: "6 × 4 = 24, 8 ÷ 2 = 4, and 24 − 4 = 20. Press <b>Lock in</b>.", tut_lock_do: "Press Lock in",
-    tut_show_h: "Showdown", tut_show: "Hypatia went Low with <code>√9 − 3 + 2 ÷ 2 = 1</code>. You played different sides, so you don't compete: the 180 pot is split, 90 each.",
+    tut_show_h: "Showdown", tut_show: "Hypatia went Low with <code>√9 − 3 + 2 ÷ 2 = 1</code>. You played different sides, so you don't compete: the 18 pot is split, 9 each.",
     tut_tie_h: "Ties", tut_tie: "If two players on the same side are equally close: on Low the smallest number card wins, on High the largest wins. Still tied? Compare ranks (the pips).",
     tut_swing_h: "Swing", tut_swing: "To scoop the whole pot, pick Swing and build two equations from the same cards: one to 1, one to 20. You must win both sides; lose one and you get nothing.",
-    tut_end_h: "You're ready!", tut_end: "Everyone starts with 1,000 chips, blinds rise every 5 hands, players with no chips are out, and the last one standing wins. Good luck!",
+    tut_end_h: "You're ready!", tut_end: "Everyone starts with 50 chips, the ante grows hand by hand, players with no chips are out, and the last one standing wins. Good luck!",
   },
 };
 let LANG = (() => { try { const s = localStorage.getItem("lang"); if (s === "vi" || s === "en") return s; } catch (e) {} return (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"; })();
@@ -719,7 +740,10 @@ function sfx(name) {
     if (AC.state !== "running") AC.resume().catch(() => {});
     const t = AC.currentTime + .01;
     if (name === "card") noise(t, .09, 3200, .35);
+    else if (name === "deal") { noise(t, .07, 2600 + Math.random() * 900, .3); noise(t + .045, .05, 4200, .12); }
     else if (name === "chip") { tone(2400, t, .05, "triangle", .08); tone(3100, t + .04, .05, "triangle", .06); }
+    else if (name === "pot") [0, .05, .09, .14, .2].forEach((d, i) => tone(2100 + Math.random() * 1300, t + d, .05, "triangle", .09 - i * .01));   // xèng rơi vào pot
+    else if (name === "slide") { noise(t, .2, 900, .22); tone(1900, t + .2, .05, "triangle", .07); }   // chip người đi đầu trượt sang ghế mới
     else if (name === "turn") { tone(660, t, .12, "triangle", .14); tone(880, t + .1, .16, "triangle", .14); }
     else if (name === "lock") tone(520, t, .1, "triangle", .12);
     else if (name === "win") [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * .1, .28, "triangle", .18));
@@ -739,9 +763,9 @@ const isBin = c => c === PLUS || c === MINUS || c === DIV || isMul(c);
 const cVal = c => c >> 2, cRank = c => (c & 3) + 1;
 const opType = c => c === PLUS ? "+" : c === MINUS ? "-" : c === DIV ? "/" : isMul(c) ? "*" : null;
 const LOW_T = 1, HIGH_T = 20, EPS = 1e-9;
-const START_CHIPS = 1000, HANDS_PER_LEVEL = 5, MAX_SEATS = 5;
-const BLINDS = [[10, 20], [20, 40], [30, 60], [50, 100], [75, 150], [100, 200], [150, 300], [200, 400], [300, 600], [500, 1000], [750, 1500], [1000, 2000], [1500, 3000], [2500, 5000]];
-const blindsAt = handNo => BLINDS[Math.min(BLINDS.length - 1, Math.floor((handNo - 1) / HANDS_PER_LEVEL))];
+const START_CHIPS = 50, MAX_SEATS = 5;   // chủ game chốt 50 chip cho cả Poker Phép Tính và Hit, Stay
+// không có blind: đầu ván mọi người nộp ante (giống Hit, Stay): 1,1,2,2...8,8 cho 16 ván đầu, sau đó +5 mỗi 2 ván
+const anteAt = r => r <= 16 ? Math.ceil(r / 2) : 8 + 5 * Math.ceil((r - 16) / 2);
 
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function shuffle(a, rng) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
@@ -888,13 +912,13 @@ function pickSide(dl, dh, swingAt = .985) {
 }
 
 /* ---------- BÀN CHƠI ----------
-   T = { seats: [{name, kind: "human"|"bot", level, chips, out, place}], handNo, sbSeat, H (ván đang chơi), over, log }
+   T = { seats: [{name, kind: "human"|"bot", level, chips, out, place}], handNo, sbSeat (người đi đầu), H (ván đang chơi), over, log }
    Mọi thay đổi đi qua các hàm dưới đây; giao diện và mạng chỉ đọc T (qua viewFor) và gọi act/discard/submitEq/nextHand. */
 function newTable(opt) {
   const T = {
     seats: opt.seats.map(s => ({ name: s.name, kind: s.kind || "bot", level: s.level || "medium", id: s.id || null, chips: s.chips ?? START_CHIPS, out: false, place: 0, away: false })),
     handNo: 0, sbSeat: opt.sbSeat ?? -1, H: null, over: null, rng: opt.rng || Math.random,
-    rig: opt.rig || null, script: opt.script || null, log: [], onEvent: opt.onEvent || null, fixedBlinds: opt.fixedBlinds || null,
+    rig: opt.rig || null, script: opt.script || null, log: [], onEvent: opt.onEvent || null, fixedAnte: opt.fixedAnte || null,
   };
   return T;
 }
@@ -910,21 +934,21 @@ function startHand(T) {
   const live = liveSeats(T);
   if (live.length < 2) return;
   T.handNo++;
-  const [sbAmt, bbAmt] = T.fixedBlinds || blindsAt(T.handNo);
+  const ante = T.fixedAnte || anteAt(T.handNo);
+  // người đi đầu (H.sb): ván 1 bốc ngẫu nhiên (hoặc theo kịch bản), sau đó chuyển sang ghế kế tiếp còn chơi; đi trước cả 2 vòng cược
   if (T.handNo > 1) T.sbSeat = nextLive(T, T.sbSeat, live);
   else if (!live.includes(T.sbSeat)) T.sbSeat = live[Math.floor(T.rng() * live.length)];
-  const sb = T.sbSeat, bb = nextLive(T, sb, live), button = live.length === 2 ? sb : prevLive(T, sb, live);
+  const sb = T.sbSeat, bbAmt = Math.max(1, ante);   // bbAmt: đơn vị cược nhỏ nhất (mức tố tối thiểu, bot dùng làm thước)
   const H = T.H = {
-    live, sb, bb, button, sbAmt, bbAmt, order: orderFrom(T, sb, live),
+    live, sb, ante, bbAmt, order: orderFrom(T, sb, live),
     items: {}, hidden: {}, disc: {}, pend: {}, folded: {}, allin: {}, bet: {}, contrib: {}, acted: {}, mayRaise: {},
     street: 0, curBet: 0, minRaise: bbAmt, toAct: -1, raises: 0, phase: "deal", eq: {}, last: {}, result: null, pod: [], nums: [], startChips: {},
   };
   for (const s of live) { H.items[s] = [PLUS, MINUS, DIV]; H.disc[s] = []; H.pend[s] = 0; H.bet[s] = 0; H.contrib[s] = 0; H.startChips[s] = T.seats[s].chips; }
-  logT(T, "l_hand", T.handNo, sbAmt, bbAmt);
-  put(T, sb, Math.min(sbAmt, T.seats[sb].chips));
-  put(T, bb, Math.min(bbAmt, T.seats[bb].chips));
-  logT(T, "l_blinds", sb, H.bet[sb], bb, H.bet[bb]);
-  H.last[sb] = { a: "sb", v: H.bet[sb] }; H.last[bb] = { a: "bb", v: H.bet[bb] };
+  logT(T, "l_hand", T.handNo, ante);
+  // ante tính là tiền cược của vòng cược 1 (ai không đủ thì nộp hết, thành all-in)
+  for (const s of H.order) put(T, s, ante);
+  logT(T, "l_ante", ante);
   // chia: lá úp chỉ lấy từ 44 lá số, sau đó 8 lá đặc biệt mới vào bộ
   H.nums = shuffle([...Array(44).keys()], T.rng);
   for (const s of H.order) { const c = takeCard(T, s, H.nums, true); H.hidden[s] = c; H.items[s].push(c); }
@@ -997,7 +1021,7 @@ function startStreet(T, street) {
   for (const s of H.live) H.mayRaise[s] = true;
   if (street === 1) { H.curBet = Math.max(...H.live.map(s => H.bet[s])); H.minRaise = H.bbAmt; }
   else { for (const s of H.live) H.bet[s] = 0; H.curBet = 0; H.minRaise = H.bbAmt; H.last = {}; }
-  const first = street === 1 ? H.bb : (H.sb - 1 + T.seats.length) % T.seats.length;   // vòng 2: small blind đi trước
+  const first = (H.sb - 1 + T.seats.length) % T.seats.length;   // người đi đầu đi trước ở cả 2 vòng (nextToAct tìm từ ghế sau `first`)
   H.toAct = nextToAct(T, first);
   emit(T, { t: "phase" });
   if (H.toAct < 0) endStreet(T);
@@ -1272,7 +1296,7 @@ function botAction(T, s, rng = Math.random) {
   let e = Math.max(sim.auto, sim.low, sim.high, sim.swing * .9) + (rng() * 2 - 1) * P.noise;
   e = Math.max(0, Math.min(1, e));
   const pot = L.pot, fair = 1 / nIn, r = e / fair, bb = H.bbAmt;
-  const raiseTo = frac => { if (!L.raise) return null; let to = L.curBet + Math.max(H.minRaise, Math.round((pot + L.toCall) * frac / 5) * 5); if (to > L.raise.max * .7) to = L.raise.max; to = Math.max(L.raise.min, Math.min(L.raise.max, to)); return { type: "raise", to }; };
+  const raiseTo = frac => { if (!L.raise) return null; let to = L.curBet + Math.max(H.minRaise, Math.round((pot + L.toCall) * frac)); if (to > L.raise.max * .7) to = L.raise.max; to = Math.max(L.raise.min, Math.min(L.raise.max, to)); return { type: "raise", to }; };
   const short = p.chips + H.bet[s] <= bb * 10;
   if (L.toCall === 0) {
     if (L.raise && r > 1.3 && rng() < P.aggr * (H.raises ? .5 : 1)) return short && r > 1.5 ? { type: "raise", to: L.raise.max } : raiseTo(e > .7 ? .85 : .55);
@@ -1334,7 +1358,7 @@ const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(P
 savePrefs();   // ghi lại ngay để bước đưa mức về 1 sao (lvv) chỉ chạy một lần
 const BOT_NAMES = ["Euclid", "Hypatia", "Gauss", "Euler", "Noether", "Ramanujan", "Fermat", "Turing", "Lovelace", "Archimedes", "Lương Thế Vinh", "Khwarizmi", "Descartes", "Kovalevskaya"];
 const SEAT_COLORS = ["#ef7a2e", "#4a6fd8", "#2ea65a", "#d6457a", "#8e5bd8"];
-const cleanName = s => String(s || "").replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, 16);
+const cleanName = s => String(s || "").replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, 12);   // tên tối đa 12 ký tự (mọi game có đặt tên)
 const myName = () => cleanName(PREFS.name) || tr("def_name");
 
 let MODE = null;   // {kind: "bot" | "online" | "tutorial", level}
@@ -1363,7 +1387,7 @@ function viewFor(me) {
   return {
     me, handNo: T.handNo, mode: MODE.kind, code: NET.code, level: MODE.level,
     phase: H ? H.phase : "idle", street: H ? H.street : 0, toAct: H ? H.toAct : -1, curBet: H ? H.curBet : 0, pot: H ? potTotal(H) : 0,
-    sb: H ? H.sb : -1, bb: H ? H.bb : -1, button: H ? H.button : -1, blinds: H ? [H.sbAmt, H.bbAmt] : blindsAt(1), fixed: !!T.fixedBlinds,
+    sb: H ? H.sb : -1, ante: H ? H.ante : anteAt(1), nextAnte: anteAt(T.handNo + 1), fixed: !!T.fixedAnte,
     seats, legal: H ? legalActions(T, me) : null, discOpts: H && H.phase === "discard" ? discardOptions(T, me) : [],
     result: done ? H.result : null, log: T.log.slice(-90), over: T.over,
     left: HOST.deadline ? Math.max(0, HOST.deadline - performance.now()) : 0, timerSeats: HOST.timerSeats.slice(), timerKind: HOST.dlKey.charAt(0),
@@ -1382,10 +1406,10 @@ const botDelay = () => MODE.kind === "tutorial" ? 1100 : 650 + Math.random() * 7
 function hostUpdate() {
   if (!T) return;
   setDeadline();
+  V = viewFor(ME);
+  render();          // vẽ trước để lên lịch chia bài (DEAL), máy chờ chia xong mới đi
   scheduleBots();
   if (MODE.kind === "online") broadcast();
-  V = viewFor(ME);
-  render();
 }
 function scheduleBots() {
   const H = T.H;
@@ -1393,7 +1417,7 @@ function scheduleBots() {
   const k = `${T.handNo}:${H.street}:${H.phase}`, cur = H;
   if (H.phase === "bet" && H.toAct >= 0 && botSeat(H.toAct)) {
     const s = H.toAct;
-    job(`${k}:a:${s}:${H.raises}:${potTotal(H)}`, botDelay(), () => {
+    job(`${k}:a:${s}:${H.raises}:${potTotal(H)}`, botDelay() + dealWait(), () => {
       if (!T || T.H !== cur || cur.phase !== "bet" || cur.toAct !== s) return;
       const a = botAction(T, s);
       if (!act(T, s, a)) act(T, s, legalActions(T, s).check ? { type: "check" } : { type: "fold" });
@@ -1401,14 +1425,14 @@ function scheduleBots() {
     });
   }
   if (H.phase === "discard") for (const s of H.live) if (H.pend[s] > 0 && botSeat(s)) {
-    job(`${k}:d:${s}:${H.pend[s]}`, botDelay(), () => {
+    job(`${k}:d:${s}:${H.pend[s]}`, botDelay() + dealWait(), () => {
       if (!T || T.H !== cur || cur.phase !== "discard" || !(cur.pend[s] > 0)) return;
       if (!discard(T, s, botDiscard(T, s))) discard(T, s, discardOptions(T, s)[0]);
       hostUpdate();
     });
   }
   if (H.phase === "equation") for (const s of H.live) if (inHand(H, s) && !H.eq[s].locked && botSeat(s)) {
-    job(`${k}:e:${s}`, MODE.kind === "tutorial" ? 1600 : 1800 + Math.random() * 3500, () => {
+    job(`${k}:e:${s}`, dealWait() + (MODE.kind === "tutorial" ? 1600 : 1800 + Math.random() * 3500), () => {
       if (!T || T.H !== cur || cur.phase !== "equation" || cur.eq[s].locked) return;
       if (!submitEq(T, s, botEquation(T, s))) forceEq(T, s);
       hostUpdate();
@@ -1453,7 +1477,7 @@ function leaveAll() {
   netClose(true);
   T = null; V = null; EQ = null; MODE = null;
   HOST.deadline = 0; HOST.dlKey = ""; HOST.timerSeats = []; HOST.watch = false;
-  overKey = ""; prevSnd = null;
+  overKey = ""; prevSnd = null; resetFx();
   for (const id of ["#mOver", "#mLobby", "#mNet", "#mSeat"]) $(id).hidden = true;
 }
 function startBotGame() {
@@ -1701,6 +1725,7 @@ const POS_L = { 2: [[50, 89, "u"], [50, 11, "d"]], 3: [[50, 89, "u"], [27, 11, "
 const POS_P = { 2: [[50, 92, "u"], [50, 8, "d"]], 3: [[50, 92, "u"], [27, 8, "d"], [73, 8, "d"]], 4: [[50, 92, "u"], [21, 44, "d"], [50, 8, "d"], [79, 44, "d"]], 5: [[50, 92, "u"], [21, 44, "d"], [27, 8, "d"], [73, 8, "d"], [79, 44, "d"]] };
 let PORTRAIT = false;
 const EYE = '<svg class="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/><path d="M4 20 20 4"/></svg>';
+const FIRST_ICON = '<svg viewBox="0 0 10 10"><path d="M2.5 1.5 8.5 5 2.5 8.5z" fill="currentColor"/></svg>';
 const BOT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13v1M15 13v1"/></svg>';
 const OWL = `<svg class="owl" viewBox="0 0 80 92" aria-hidden="true">
   <ellipse cx="40" cy="62" rx="27" ry="28" fill="#8a5a3b"/><ellipse cx="40" cy="68" rx="17" ry="19" fill="#ecd3ad"/>
@@ -1717,13 +1742,108 @@ const OWL = `<svg class="owl" viewBox="0 0 80 92" aria-hidden="true">
 </svg>`;
 const glyph = t => isNum(t) ? String(cVal(t)) : t === PLUS ? "+" : t === MINUS ? "−" : t === DIV ? "÷" : isMul(t) ? "×" : isSqrt(t) ? "√" : "?";
 const opCls = t => t === PLUS ? "plus" : t === MINUS ? "minus" : t === DIV ? "div" : isMul(t) ? "mul" : "sqrt";
+/* ---------- CHIA BÀI ----------
+   Lá mới trên ghế (đầu ván, rút thêm, HIT) bay úp từ giữa bàn tới chỗ của nó, từng lá một, lần lượt theo vòng như người
+   chia thật, mỗi lá một tiếng. DEAL.land[key] = lúc lá tới nơi; trước lúc đó lá trên ghế và trong khung bài của mình còn ẩn
+   (animation dealin có delay, delay âm khi vẽ lại giữa chừng), nên không cần vẽ lại đúng lúc. */
+const DEAL_GAP = 140, DEAL_FLY = 420;   // ms giữa 2 lá, thời gian bay 1 lá
+const dealMs = n => n > 0 ? (n - 1) * DEAL_GAP + DEAL_FLY : 0;
+const DEAL = { hand: -1, land: {}, next: 0, end: 0, queue: [] };
+const dealWait = () => Math.max(0, DEAL.end - performance.now());
+// lên lịch các lá mới; groups: [[key lá 1, key lá 2...] của từng ghế] theo thứ tự chia, chia vòng: lá 1 mọi người, rồi lá 2...
+function dealPlan(groups) {
+  const now = performance.now();
+  let t = Math.max(now, DEAL.next), any = false;
+  for (let k = 0; groups.some(g => g.length > k); k++) for (const g of groups) {
+    const key = g[k];
+    if (!key || DEAL.land[key] != null) continue;
+    DEAL.land[key] = t + DEAL_FLY; DEAL.queue.push({ key, t }); any = true;
+    t += DEAL_GAP;
+  }
+  if (any) { DEAL.next = t; DEAL.end = Math.max(DEAL.end, t - DEAL_GAP + DEAL_FLY); }
+}
+// thuộc tính style cho thẻ đang chờ lá tới: ẩn (lật dọc về 0) rồi lật ra đúng lúc lá tới
+function dealStyle(key) {
+  const t = key && DEAL.land[key];
+  if (t == null) return "";
+  const d = Math.round(t - performance.now());
+  return d > -260 ? ` style="animation:dealin .26s ease-out ${d}ms both"` : "";
+}
+// cho các lá trong hàng đợi bay từ giữa bàn tới chỗ thẻ data-dk tương ứng (gọi sau khi vẽ ghế)
+function dealFly() {
+  if (!DEAL.queue.length) return;
+  const tb = $("#table"), r0 = tb.getBoundingClientRect(), sx = tb.clientWidth / 2, sy = tb.clientHeight / 2, fx = $("#fx"), now = performance.now();
+  for (const q of DEAL.queue) {
+    const el = $(`#seats [data-dk="${q.key}"]`);
+    if (!el) continue;
+    const r = el.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    const ex = r.left + r.width / 2 - r0.left, ey = r.top + r.height / 2 - r0.top, delay = Math.max(0, q.t - now);
+    const c = document.createElement("span");
+    c.className = "cd mini back dfly"; c.style.setProperty("--w", w + "px");
+    fx.appendChild(c);
+    const at = (x, y, rot, s) => `translate(${x - w / 2}px,${y - h / 2}px) rotate(${rot}deg) scale(${s})`;
+    c.animate([
+      { transform: at(sx, sy, -25, .8), opacity: 0 },
+      { transform: at(sx, sy, -20, .85), opacity: 1, offset: .08 },
+      { transform: at(ex, ey, 0, 1), opacity: 1, offset: .94 },
+      { transform: at(ex, ey, 0, 1), opacity: 0 },
+    ], { duration: DEAL_FLY, delay, easing: "cubic-bezier(.3,.6,.35,1)", fill: "both" }).onfinish = () => c.remove();
+    setTimeout(() => sfx("deal"), delay);
+  }
+  DEAL.queue = [];
+}
+function resetFx() {
+  BETFX.hand = -1; BETFX.potShown = 0; BETFX.delay = []; BETFX.lead = 0;
+  FCHIP.hand = -1; FCHIP.seat = -1; FCHIP.pos = null;
+  { const fc = $("#fchip"); if (fc) { fc.hidden = true; fc.getAnimations().forEach(x => x.cancel()); } }
+  DEAL.hand = -1; DEAL.land = {}; DEAL.queue = []; DEAL.next = 0; DEAL.end = 0;
+  const fx = $("#fx"); if (fx) fx.innerHTML = "";
+}
+/* ---------- CHIP NGƯỜI ĐI ĐẦU ----------
+   Chip tím (#fchip, nằm ngoài #seats nên không bị vẽ lại) đặt cạnh ô tên người đi đầu. Vào trận: hiện ở ghế bốc ngẫu nhiên.
+   Sang ván mới: chip trượt sang người đi đầu mới, rồi từng người đặt ante theo chiều kim đồng hồ từ người đó, rồi mới chia bài.
+   Đầu ván: FCHIP_POP (trận mới) hoặc FCHIP_MOVE (chuyển chip) → ante từng người cách nhau ANTE_GAP → xèng bay ANTE_FLY → chia bài. */
+const FCHIP_MOVE = 650, FCHIP_POP = 350, ANTE_GAP = 180, ANTE_FLY = 710;
+const FCHIP = { hand: -1, seat: -1, pos: null };
+// thời gian từ lúc vào ván tới lúc chia lá đầu tiên (chủ bàn dùng để tính giờ online khi chưa vẽ)
+const introMs = (nLive, moved) => (moved ? FCHIP_MOVE : FCHIP_POP) + (nLive - 1) * ANTE_GAP + ANTE_FLY + 60;
+const firstSeat = () => V ? (V.first != null ? V.first : V.sb) : -1;
+// chỗ đặt chip: bên phải ô tên (ghế trên, ghế dưới), dưới ô tên (ghế hai bên khi màn ngang), trên ô tên (ghế hai bên trên điện thoại)
+function fchipPos(i) {
+  const seat = $(`#seats .seat[data-s="${i}"]`), tb = $("#table");
+  if (!seat || !tb) return null;
+  const b = seat.querySelector(".sbox").getBoundingClientRect(), r0 = tb.getBoundingClientRect();
+  const cx = b.left + b.width / 2 - r0.left, cy = b.top + b.height / 2 - r0.top;
+  if (seat.classList.contains("r") || seat.classList.contains("l")) return [cx, b.bottom - r0.top + 26];
+  if (PORTRAIT && cy > tb.clientHeight * .2 && cy < tb.clientHeight * .8) return [cx, b.top - r0.top - 16];
+  return [b.right - r0.left + 19, cy];
+}
+function renderFChip() {
+  const el = $("#fchip"), f = firstSeat();
+  if (!V || f < 0 || !V.seats[f] || V.phase === "idle") { el.hidden = true; return; }
+  const p = fchipPos(f);
+  if (!p) return;
+  el.hidden = false; el.title = tr("t_first");
+  el.style.left = p[0] + "px"; el.style.top = p[1] + "px";
+  if (FCHIP.hand !== V.handNo) {
+    const from = FCHIP.pos, moved = FCHIP.hand >= 0 && FCHIP.seat >= 0 && FCHIP.seat !== f && from;
+    FCHIP.hand = V.handNo; FCHIP.seat = f;
+    if (moved) {
+      el.animate([{ transform: `translate(${from[0] - p[0]}px,${from[1] - p[1]}px)` }, { transform: `translate(${(from[0] - p[0]) * .1}px,${(from[1] - p[1]) * .1 - 10}px) scale(1.15)`, offset: .8 }, { transform: "none" }],
+        { duration: FCHIP_MOVE, easing: "cubic-bezier(.35,.1,.25,1)" });
+      sfx("slide");
+    } else el.animate([{ transform: "scale(0)", opacity: 0 }, { transform: "scale(1.25)", opacity: 1, offset: .7 }, { transform: "none" }], { duration: FCHIP_POP, easing: "ease-out" });
+  }
+  FCHIP.pos = p;
+}
 const SEEN = new Set();
 function cardHTML(t, o = {}) {
   const cls = ["cd"];
   if (o.mini) cls.push("mini");
   if (o.cls) cls.push(o.cls);
-  if (o.seen) { if (!SEEN.has(o.seen)) { SEEN.add(o.seen); cls.push("new"); } }
-  const data = o.k != null ? ` data-k="${o.k}"` : "";
+  const ds = dealStyle(o.dk);
+  if (o.seen) { if (!SEEN.has(o.seen)) { SEEN.add(o.seen); if (!ds) cls.push("new"); } }
+  const data = (o.k != null ? ` data-k="${o.k}"` : "") + (o.dk ? ` data-dk="${o.dk}"` + ds : "");
   if (t === -1) return `<span class="${cls.join(" ")} back"${data}></span>`;
   if (isNum(t)) {
     const v = cVal(t), r = cRank(t), pips = "<u></u>".repeat(r);
@@ -1738,6 +1858,9 @@ function cardHTML(t, o = {}) {
 const avHTML = (i, name, bot, lv) => `<span class="av" style="background:${SEAT_COLORS[i % SEAT_COLORS.length]}">${escH((name || "?").trim().charAt(0).toUpperCase())}${bot ? `<span class="bot${lv ? " lv-" + lv : ""}"${lv ? ` title="${tr("lv_" + lv)}"` : ""}>${BOT_ICON}</span>` : ""}</span>`;
 const seatLv = s => s.kind === "bot" ? s.level : s.away ? "medium" : null;
 const nameOf = s => s === ME ? tr("you") : V && V.seats[s] ? V.seats[s].name : "?";
+// tên ghế ở ô tên, bảng kết quả, xếp hạng, bảng xem ghế: ghế mình đã đặt tên thì "Tên (bạn)" như phòng chờ, chưa đặt thì "Bạn".
+// Câu chữ (diễn biến, thanh trạng thái) vẫn dùng nameOf ("Bạn theo 2").
+const labelOf = s => s === ME && V && V.seats[s] && cleanName(PREFS.name) ? `<span class="nm">${escH(V.seats[s].name)}</span><span class="youtag">${tr("n_you")}</span>` : escH(nameOf(s));
 function setBlock(el, sig, build) { if (el._sig === sig) return false; el._sig = sig; el.innerHTML = build(); return true; }
 
 function render() {
@@ -1754,11 +1877,10 @@ function sounds() {
   const cur = { hand: V.handNo, cards, pot: V.pot, turn: V.phase === "bet" && V.toAct === ME, done: V.phase === "done" };
   const p = prevSnd;
   if (p && p.hand === cur.hand) {
-    if (cur.cards > p.cards) sfx("card");
     if (cur.pot > p.pot) sfx("chip");
     if (cur.turn && !p.turn) sfx("turn");
     if (cur.done && !p.done && V.result) { const w = V.result.won[ME] || 0; if (w > 0) sfx("win"); else if (V.seats[ME].live && !V.seats[ME].fold) sfx("lose"); }
-  } else if (p && cur.cards) sfx("card");
+  }
   prevSnd = cur;
 }
 
@@ -1791,13 +1913,13 @@ function seatTag(i, s) {
 // Xèng bay: nhớ tiền cược từng ghế ở lần vẽ trước, tăng lên (theo, tố, cược thêm, đặt blind) thì cho vài đồng bay ra
 // pos[i]: chỗ phiếu cược đang hiện (px trong bàn) để khi gom vào pot thì xèng bay từ đó
 // wait[i] / potWait: {t: lúc xèng tới nơi, from: số đang hiện trước đó, fired: đã hiện số mới chưa}
-const BETFX = { hand: -1, bets: [], wait: [], pos: [], potWait: null, potShown: 0 };
+const BETFX = { hand: -1, bets: [], wait: [], pos: [], potWait: null, potShown: 0, delay: [], lead: 0 };
 // phiếu cược hiện trong vòng cược; lúc bỏ dấu đầu ván (street 1) vẫn còn blind, còn bỏ dấu sau vòng 1 thì tiền đã gom vào pot
 const showBet = s => s.live && s.bet > 0 && (V.phase === "bet" || (V.phase === "discard" && V.street === 1));
 const redrawAt = ms => setTimeout(() => { if (V) renderTable(); }, ms + 15);
-// số đồng theo cỡ tiền so với big blind: 2 đến 5 đồng
+// số đồng theo cỡ tiền so với ante: 3 đến 6 đồng
 const chipCount = (amt, bb) => Math.max(3, Math.min(6, 3 + Math.round(Math.log2(Math.max(1, amt / Math.max(1, bb))))));
-function flyPx(sx, sy, ex, ey, color, n) {
+function flyPx(sx, sy, ex, ey, color, n, dl = 0) {
   const fx = $("#fx");
   const len = Math.hypot(ex - sx, ey - sy) || 1, px = -(ey - sy) / len, py = (ex - sx) / len;   // hướng vuông góc để bay vòng cung
   for (let k = 0; k < n; k++) {
@@ -1813,19 +1935,31 @@ function flyPx(sx, sy, ex, ey, color, n) {
       { transform: at((sx + ex) / 2 + px * arc, (sy + ey) / 2 + py * arc, 1.25), opacity: 1, offset: .5 },
       { transform: at(ex + jx, ey + jy, 1), opacity: 1, offset: .9 },
       { transform: at(ex + jx, ey + jy, .9), opacity: 0 },
-    ], { duration: 620, delay: k * 75, easing: "cubic-bezier(.4,.2,.3,1)", fill: "both" }).onfinish = () => el.remove();
+    ], { duration: 620, delay: dl + k * 75, easing: "cubic-bezier(.4,.2,.3,1)", fill: "both" }).onfinish = () => el.remove();
   }
-  return 620 * .9 + (n - 1) * 75;
+  return dl + 620 * .9 + (n - 1) * 75;
 }
 // dự phòng khi chưa đo được khung bài
 const betOff = dir => dir === "u" ? [0, -124] : dir === "r" ? [125, 50] : dir === "l" ? [-125, 50] : [0, 120];
 function renderTable() {
   const seatsEl = $("#seats"), betsEl = $("#bets");
-  if (!V) { seatsEl.innerHTML = ""; betsEl.innerHTML = ""; $("#pot").innerHTML = ""; $("#phase").textContent = ""; return; }
+  if (!V) { resetFx(); seatsEl.innerHTML = ""; betsEl.innerHTML = ""; $("#pot").innerHTML = ""; $("#phase").textContent = ""; return; }
   const n = V.seats.length, P = (PORTRAIT ? POS_P : POS_L)[n] || POS_L[5], wins = V.phase === "done" ? winnersOf(V.result) : new Set();
   let html = "", bets = "";
   const betList = [];
-  if (BETFX.hand !== V.handNo) { BETFX.hand = V.handNo; BETFX.bets = []; BETFX.wait = []; BETFX.pos = []; BETFX.potWait = null; }
+  if (BETFX.hand !== V.handNo) {
+    BETFX.hand = V.handNo; BETFX.bets = []; BETFX.wait = []; BETFX.pos = []; BETFX.potWait = null; BETFX.delay = []; BETFX.lead = 0;
+    const f = firstSeat(), moved = FCHIP.hand >= 0 && FCHIP.seat >= 0 && FCHIP.seat !== f, t0 = moved ? FCHIP_MOVE : FCHIP_POP;
+    const ord = V.seats.map((s, i) => i).filter(i => V.seats[i].live && V.seats[i].bet > 0).sort((a, b) => ((a - f + n) % n) - ((b - f + n) % n));
+    ord.forEach((i, j) => { BETFX.delay[i] = t0 + j * ANTE_GAP; });
+    if (ord.length) BETFX.lead = t0 + (ord.length - 1) * ANTE_GAP + ANTE_FLY;
+  }
+  if (DEAL.hand !== V.handNo) { DEAL.hand = V.handNo; DEAL.land = {}; DEAL.queue = []; DEAL.next = performance.now() + BETFX.lead + 60; DEAL.end = 0; }   // ván mới: chip người đi đầu, ante từng người, rồi mới chia bài
+  // chia từ SB theo chiều kim đồng hồ, theo vòng: lá úp của mọi người, rồi lá ngửa thứ nhất, lá thứ hai; lá rút thêm cũng theo thứ tự đó
+  {
+    const sb = V.sb >= 0 ? V.sb : 0, order = V.seats.map((x, i) => i).filter(i => V.seats[i].live).sort((a, b) => ((a - sb + n) % n) - ((b - sb + n) % n));
+    dealPlan(order.map(i => { const s = V.seats[i]; return s.items.filter(c => c < 100).map(c => `${V.handNo}:${i}:${c === -1 || c === s.hidden ? "h" : c}`); }));
+  }
   V.seats.forEach((s, i) => {
     const d = (i - ME + n) % n, [x, y, dir] = P[d], cls = ["seat", dir];
     if (i === ME) cls.push("me");
@@ -1833,11 +1967,11 @@ function renderTable() {
     if (s.fold) cls.push("fold");
     if (V.phase === "bet" && V.toAct === i) cls.push("turn");
     if (wins.has(i)) cls.push("win");
-    const mk = (V.button === i ? `<span class="mk d">D</span>` : "") + (V.sb === i && n > 2 ? `<span class="mk sb">SB</span>` : V.bb === i ? `<span class="mk bb">BB</span>` : V.sb === i ? `<span class="mk sb">SB</span>` : "");
+    const mk = "";   // người đi đầu: chip tím #fchip (renderFChip)
     let minis = "";
     if (s.live) {
       const it = s.items, nums = it.filter(c => c === -1 || isNum(c)), sp = it.filter(c => isSqrt(c) || isMul(c));
-      const mc = `<div class="minis">${nums.concat(sp).map(c => cardHTML(c, { mini: true, hid: c === s.hidden && s.hidden >= 0, seen: c === -1 ? null : `m${V.handNo}:${i}:${c}` })).join("")}</div>`;
+      const mc = `<div class="minis">${nums.concat(sp).map(c => cardHTML(c, { mini: true, hid: c === s.hidden && s.hidden >= 0, seen: c === -1 ? null : `m${V.handNo}:${i}:${c}`, dk: `${V.handNo}:${i}:${c === -1 || c === s.hidden ? "h" : c}` })).join("")}</div>`;
       const oc = `<div class="ops">${it.filter(c => c >= 100).map(c => `<i class="${opCls(c)}">${glyph(c)}</i>`).join("")}</div>`;
       minis = mc + oc;
     }
@@ -1847,11 +1981,14 @@ function renderTable() {
       res = `<span class="sres">${R.bet === "swing" ? f(R.low) + " · " + f(R.high) : f(R[R.bet])}${V.result.won[i] ? " · +" + fmt(V.result.won[i]) : ""}</span>`;
     } else if (V.phase === "done" && V.result && V.result.fold === i) res = `<span class="sres">+${fmt(V.result.won[i])}</span>`;
     const chips = s.out ? tr("t_out") : fmt(s.chips);
-    const box = `<div class="sbox">${avHTML(i, s.name, s.kind === "bot" || s.away, seatLv(s))}<span class="sinfo"><b>${escH(i === ME ? tr("you") : s.name)}</b><span>${chips}</span></span>${mk}${seatTag(i, s)}</div>`;
+    const box = `<div class="sbox">${avHTML(i, s.name, s.kind === "bot" || s.away, seatLv(s))}<span class="sinfo"><b${i === ME ? ' class="me"' : ""}>${i === ME ? labelOf(i) : escH(s.name)}</b><span>${chips}</span></span>${mk}${seatTag(i, s)}</div>`;
     html += `<div class="${cls.join(" ")}" data-s="${i}" style="left:${x}%;top:${y}%">${box}${minis || res ? `<div class="cards">${minis}${res}</div>` : ""}</div>`;
     if (showBet(s)) betList.push({ i, s, x, y, dir });
   });
+  seatsEl.style.setProperty("--tp", -Math.round(performance.now() % 1200) + "ms");   // giữ nhịp chớp của ghế tới lượt qua các lần vẽ lại
   seatsEl.innerHTML = html;
+  dealFly();
+  renderFChip();
   // phiếu cược đặt ngay sau phần bài của ghế, phía giữa bàn: đo khung bài thật (bài có thể xuống 2 hàng trên điện thoại)
   const tb = $("#table"), tr0 = tb.getBoundingClientRect(), TW = tb.clientWidth, TH = tb.clientHeight;
   const betPt = b => {
@@ -1866,7 +2003,9 @@ function renderTable() {
     betAt[i] = [bx, by];
     if (s.bet > prev) {
       // vừa theo / tố / cược thêm / đặt blind: xèng bay ra, số trước mặt giữ số cũ tới khi xèng tới nơi
-      const ms = flyPx(b.x / 100 * TW, b.y / 100 * TH, bx, by, color, chipCount(s.bet - prev, V.blinds ? V.blinds[1] : 20));
+      const dl = BETFX.delay[i] || 0; BETFX.delay[i] = 0;
+      const ms = flyPx(b.x / 100 * TW, b.y / 100 * TH, bx, by, color, chipCount(s.bet - prev, V.ante || 1), dl);
+      if (dl) setTimeout(() => sfx("chip"), dl);
       BETFX.wait[i] = { t: now + ms, from: prev, fired: false };
       redrawAt(ms);
     }
@@ -1886,8 +2025,8 @@ function renderTable() {
     const pr = (BETFX.potShown ? potEl : $("#center")).getBoundingClientRect();
     const tx = pr.left + pr.width / 2 - tr0.left, ty = pr.top + pr.height / 2 - tr0.top;
     let land = 0;
-    BETFX.pos.forEach((p, i) => { if (p && p.amt > 0 && !nowBets[i]) land = Math.max(land, flyPx(p.x, p.y, tx, ty, p.color, chipCount(p.amt, V.blinds ? V.blinds[1] : 20))); });
-    if (land) { BETFX.potWait = { t: now + land, from: BETFX.potShown, fired: false }; redrawAt(land); }
+    BETFX.pos.forEach((p, i) => { if (p && p.amt > 0 && !nowBets[i]) land = Math.max(land, flyPx(p.x, p.y, tx, ty, p.color, chipCount(p.amt, V.ante || 1))); });
+    if (land) { BETFX.potWait = { t: now + land, from: BETFX.potShown, fired: false }; redrawAt(land); setTimeout(() => sfx("pot"), Math.max(0, land - 180)); }
   }
   const pw = BETFX.potWait;
   let pv = potNow, bump = false;
@@ -1907,7 +2046,7 @@ function myItems() { const s = V && V.seats[ME]; return s && s.items ? s.items.s
 function handHTML(s, i, discOpts = []) {
   const it = s.items, hid = s.hidden;
   const ops = it.filter(c => c >= 100).concat(it.filter(isMul)), nums = it.filter(c => c === -1 || isNum(c)), roots = it.filter(isSqrt);
-  const slot = t => `<span class="slot" data-t="${t}">${cardHTML(t, { hid: t === hid && hid >= 0, seen: t === -1 ? null : `h${V.handNo}:${i}:${t}` })}${discOpts.includes(t) ? `<button class="dbtn" data-disc="${t}">${tr("c_disc")}</button>` : ""}</span>`;
+  const slot = t => `<span class="slot" data-t="${t}"${t < 100 ? dealStyle(`${V.handNo}:${i}:${t === hid ? "h" : t}`) : ""}>${cardHTML(t, { hid: t === hid && hid >= 0, seen: t === -1 ? null : `h${V.handNo}:${i}:${t}` })}${discOpts.includes(t) ? `<button class="dbtn" data-disc="${t}">${tr("c_disc")}</button>` : ""}</span>`;
   return `<div class="hand"><div class="grp ops">${ops.map(slot).join("")}${(s.disc || []).map(t => `<span class="slot disc">${cardHTML(t)}</span>`).join("")}</div>`
     + `<div class="grp nums">${nums.map(slot).join("")}</div>${roots.length ? `<div class="grp roots">${roots.map(slot).join("")}</div>` : ""}</div>`;
 }
@@ -2006,7 +2145,7 @@ function showdownHTML() {
     if (R.low) eqs += `<div>${R.bet === "swing" ? `<small class="note">${tr("low")}</small>` : ""}${eqLineHTML(R.low.eq, R.low.val, R.low.ok, 1, R.low.err)}</div>`;
     if (R.high) eqs += `<div>${R.bet === "swing" ? `<small class="note">${tr("high")}</small>` : ""}${eqLineHTML(R.high.eq, R.high.val, R.high.ok, 20, R.high.err)}</div>`;
     const failed = R.bet === "swing" && !pots.some(p => p.swing === s);
-    h += `<div class="srow${won > 0 ? " win" : ""}"><div class="who">${avHTML(s, V.seats[s].name, V.seats[s].kind === "bot", seatLv(V.seats[s]))}<span style="min-width:0"><b>${escH(nameOf(s))}</b>
+    h += `<div class="srow${won > 0 ? " win" : ""}"><div class="who">${avHTML(s, V.seats[s].name, V.seats[s].kind === "bot", seatLv(V.seats[s]))}<span style="min-width:0"><b>${labelOf(s)}</b>
       <small style="color:var(--${R.bet})">${tr(R.bet)}${failed ? " · " + tr("sd_fail") : ""}${tags(R.bet === "high" ? "high" : "low")}</small></span></div>
       <div class="eqs">${eqs}</div><div class="won${won ? "" : " zero"}">${won ? "+" + fmt(won) : "0"}</div></div>`;
   }
@@ -2192,20 +2331,18 @@ function renderStatus() {
 function renderInfo() {
   const el = $("#info");
   if (!V) { el.innerHTML = `<h3 class="h3">${tr("title")}</h3><p class="note" style="margin:0">${tr("tagline")}</p>`; return; }
-  const [sb, bb] = V.blinds, left = V.seats.filter(s => !s.out).length;
-  const lvl = Math.floor((Math.max(1, V.handNo) - 1) / HANDS_PER_LEVEL), nxt = BLINDS[lvl + 1];
-  const inLv = HANDS_PER_LEVEL - ((Math.max(1, V.handNo) - 1) % HANDS_PER_LEVEL);
+  const left = V.seats.filter(s => !s.out).length;
   const mode = V.mode === "online" ? tr("i_mode_online", V.code || NET.code) : V.mode === "tutorial" ? tr("i_mode_tut") : V.level === "mix" ? tr("i_mode_mix") : tr("i_mode_bot", tr("lv_" + (V.level || "medium")));
   const bots = V.mode === "tutorial" ? [] : V.seats.map(s => s.kind === "bot" ? `${escH(s.name)} (${tr("lv_" + s.level)})` : null).filter(Boolean);
-  el.innerHTML = `<h3 class="h3">${tr("title")}<span>${mode}</span></h3><p>${tr("i_blinds", fmt(sb), fmt(bb))}</p>`
-    + (V.fixed ? "" : `<p class="note">${nxt ? tr("i_next", fmt(nxt[0]), fmt(nxt[1]), inLv) : tr("i_max")}</p>`)
+  el.innerHTML = `<h3 class="h3">${tr("title")}<span>${mode}</span></h3><p>${tr("i_blinds", fmt(V.ante))}</p>`
+    + (V.fixed ? "" : `<p class="note">${tr("i_next", fmt(V.nextAnte))}</p>`)
     + `<p class="note">${tr("i_players", left, V.seats.length)}</p>` + (bots.length ? `<p class="note">${tr("i_bots", bots.join(", "))}</p>` : "") + (V.mode === "online" ? `<p class="note">${tr("i_timer")}</p>` : "");
 }
 function logLine(e) {
   const a = e.a, nm = s => escH(nameOf(s));
   switch (e.k) {
-    case "l_hand": return tr(e.k, a[0], fmt(a[1]), fmt(a[2]));
-    case "l_blinds": return tr(e.k, nm(a[0]), fmt(a[1]), nm(a[2]), fmt(a[3]));
+    case "l_hand": return tr(e.k, a[0], fmt(a[1]));
+    case "l_ante": return tr(e.k, fmt(a[0]));
     case "l_mul": case "l_sqrt": return tr(e.k, nm(a[0]), a[1] >= 0 ? cVal(a[1]) : "?");
     case "l_disc": return tr(e.k, nm(a[0]), glyph(a[1]));
     case "l_win_chop": return tr(e.k, fmt(a[0]));
@@ -2237,7 +2374,7 @@ function renderOver() {
   const n = V.seats.length, list = V.seats.map((s, i) => ({ i, s })).filter(x => x.s.place).sort((a, b) => a.s.place - b.s.place);
   $("#overTitle").textContent = V.over ? (V.over.winner === ME ? tr("o_win") : tr("o_lose", nameOf(V.over.winner))) : tr("o_out");
   $("#overSub").textContent = V.over ? tr("o_sub") : tr("o_out_sub", me.place, n);
-  $("#overList").innerHTML = list.map(({ i, s }) => `<li class="${i === ME ? "me" : ""}"><span class="pl">${s.place}</span>${avHTML(i, s.name, s.kind === "bot", seatLv(s))}<span>${escH(nameOf(i))}</span></li>`).join("");
+  $("#overList").innerHTML = list.map(({ i, s }) => `<li class="${i === ME ? "me" : ""}"><span class="pl">${s.place}</span>${avHTML(i, s.name, s.kind === "bot", seatLv(s))}<span>${labelOf(i)}</span></li>`).join("");
   $("#overWatch").hidden = !!V.over;
   const guest = MODE && MODE.kind === "online" && !isHost();
   $("#overNew").hidden = guest;
@@ -2250,7 +2387,7 @@ function renderOver() {
 function openSeat(i) {
   if (!V || !V.seats[i] || TUT.on && TUT_STEPS[TUT.i] && !TUT_STEPS[TUT.i].next) return;
   const s = V.seats[i];
-  $("#seatTitle").innerHTML = `${escH(nameOf(i))}${s.kind === "bot" ? ` <small class="note">(${tr("n_bot", tr("lv_" + s.level))})</small>` : ""} · <span style="color:#13824a">${s.out ? tr("t_out") : fmt(s.chips)}</span>`;
+  $("#seatTitle").innerHTML = `${labelOf(i)}${s.kind === "bot" ? ` <small class="note">(${tr("n_bot", tr("lv_" + s.level))})</small>` : ""} · <span style="color:#13824a">${s.out ? tr("t_out") : fmt(s.chips)}</span>`;
   $("#seatCards").innerHTML = s.live ? handHTML(s, i) + (s.fold ? `<p class="note">${tr("t_fold")}</p>` : "") : `<p class="note">${tr(s.out ? "t_out" : "me_none")}</p>`;
   $("#mSeat").hidden = false;
 }
@@ -2269,9 +2406,9 @@ const TUT_STEPS = [
   { k: "hidden", target: () => $("#mHand .cd.hid"), next: true, hold: true },
   { k: "ranks", target: () => $("#mHand .grp.nums"), next: true, hold: true },
   { k: "ops", target: () => $("#mHand .grp.ops"), next: true, hold: true },
-  { k: "blinds", target: () => [seatEl(1), seatEl(2)], next: true, hold: true },
-  { k: "call1", target: () => $("#bCall"), act: true, done: () => T.H.street > 1 || !!T.H.acted[0] },
-  { k: "bots", wait: true, done: () => T.H.phase === "discard" },
+  { k: "blinds", target: () => $$("#bets .bet"), next: true, hold: true },
+  { k: "bots", wait: true, done: () => T.H.phase !== "bet" || T.H.toAct === 0 },
+  { k: "call1", target: () => $("#bCall"), act: true, done: () => T.H.street > 1 || !!T.H.acted[0] || T.H.phase !== "bet" },
   { k: "mul", when: () => T.H.phase === "discard", target: () => $('#mHand .slot[data-t="100"]'), act: true, hold: true, done: () => !(T.H.pend[0] > 0) },
   { k: "sqrt", target: () => [seatEl(1), $('.seat[data-s="1"] .cards')], next: true, hold: true },
   { k: "call2", when: () => T.H.phase === "bet" && T.H.toAct === 0, target: () => $("#bCall"), act: true, done: () => T.H.phase !== "bet" || T.H.toAct !== 0 },
@@ -2289,10 +2426,10 @@ function startTutorial() {
   // bạn: 6 úp, 4, 8, rồi × (bỏ +) kèm lá 2 → 6 × 4 − 8 ÷ 2 = 20.  Hypatia: 9 úp, 3, 2, rồi √ kèm lá 2 → √9 − 3 + 2 ÷ 2 = 1.  Euclid: 7, 10, 5, 1 (bỏ bài).
   T = newTable({
     seats: [{ name: myName(), kind: "human" }, { name: "Hypatia", kind: "bot", level: "medium" }, { name: "Euclid", kind: "bot", level: "medium" }],
-    sbSeat: 1, fixedBlinds: [10, 20],
+    sbSeat: 1, fixedAnte: 2,
     rig: { 0: [N_(6, 2), N_(4, 3), N_(8, 1), 48, N_(2, 4)], 1: [N_(9, 2), N_(3, 1), N_(2, 3), 44, N_(2, 1)], 2: [N_(7, 1), N_(10, 1), N_(5, 4), N_(1, 2)] },
     script: {
-      1: [{ type: "call" }, { type: "raise", to: 60 }, { eq: { bet: "low", low: [44, N_(9, 2), MINUS, N_(3, 1), PLUS, N_(2, 3), DIV, N_(2, 1)], high: null } }],
+      1: [{ type: "check" }, { type: "raise", to: 6 }, { eq: { bet: "low", low: [44, N_(9, 2), MINUS, N_(3, 1), PLUS, N_(2, 3), DIV, N_(2, 1)], high: null } }],
       2: [{ type: "check" }, { type: "fold" }],
     },
   });
@@ -2393,7 +2530,7 @@ function syncModeUI() {
   $("#joinCode").hidden = PREFS.net !== "join";
   $("#levelNote").textContent = tr("lvn_" + PREFS.level);
 }
-function openMode() { $("#myName").value = PREFS.name; syncModeUI(); $("#mMode").hidden = false; }
+function openMode() { $("#myName").value = cleanName(PREFS.name); syncModeUI(); $("#mMode").hidden = false; }
 function modeStart() {
   PREFS.name = cleanName($("#myName").value); savePrefs();
   if (PREFS.vs === "bot") { $("#mMode").hidden = true; startBotGame(); return; }

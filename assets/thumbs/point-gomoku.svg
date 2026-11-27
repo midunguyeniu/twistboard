@@ -24,9 +24,4 @@
     <g transform="translate(199 301)"><circle r="17" fill="url(#coin)" stroke="#b7770a" stroke-width="3"/><text y="6" font-size="16" fill="#7a4a00">1</text></g>
   </g>
 </g>
-<g transform="translate(322 72) rotate(-8)" filter="url(#sh)" font-family="Arial Black,Arial,sans-serif" font-weight="900" text-anchor="middle">
-  <ellipse cy="26" rx="44" ry="14" fill="#b7770a"/><rect x="-44" y="10" width="88" height="16" fill="#e8920c"/><ellipse cy="10" rx="44" ry="14" fill="url(#coin)" stroke="#b7770a" stroke-width="3"/>
-  <ellipse cy="0" rx="44" ry="14" fill="#b7770a"/><rect x="-44" y="-16" width="88" height="16" fill="#e8920c"/><ellipse cy="-16" rx="44" ry="14" fill="url(#coin)" stroke="#b7770a" stroke-width="3"/>
-  <circle cy="-46" r="30" fill="url(#coin)" stroke="#b7770a" stroke-width="4"/><text y="-36" font-size="28" fill="#7a4a00">$</text>
-</g>
 </svg>

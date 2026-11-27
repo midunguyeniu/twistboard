@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poker Trí Nhớ · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<script src="../../assets/platform.js"></script>
+<style>
+:root{
+  --cw:84px; --ch:118px; --gap:8px; --pad:14px;
+  --bg:var(--tb-bg); --panel:var(--tb-surface); --line:var(--tb-border); --text:var(--tb-text); --muted:var(--tb-muted);
+  --btn:#fff; --btn-hover:var(--tb-hover); --btn-line:var(--tb-border-strong); --field:var(--tb-surface-2); --gold:#ffc928; --gold-ink:var(--tb-gold-ink);
+  --me:#1fae4b; --opp:#e5322b; --red:#d8263b; --black:#1f2430;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--tb-font);min-height:100vh;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;transition:transform .12s ease-out,background-color .15s,filter .15s,opacity .15s}
+button:active:not(:disabled){transform:scale(.92)}
+#app{width:fit-content;margin:0 auto;padding:14px 12px 12px}
+body.portrait #app{width:100%;padding:8px 8px 24px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.brand h1{margin:0;font-family:var(--tb-font-brand);font-size:26px;line-height:1.1}
+.actions{display:flex;gap:8px}
+.btn{background:var(--btn);color:var(--text);border:1.5px solid var(--btn-line);border-radius:10px;padding:8px 15px;font-size:14px;font-weight:800;cursor:pointer}
+.btn:hover{background:var(--btn-hover)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.primary{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:transparent}
+.btn.primary:hover{background:var(--tb-primary-hover)}
+
+#status{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);margin-bottom:12px;font-size:14px;min-height:42px}
+#status .dot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--muted)}
+#status .dot.memo{background:var(--gold);animation:blink 1s infinite}
+#status .dot.pick{background:#2f7de1;animation:blink 1s infinite}
+#status .dot.win{background:var(--me)} #status .dot.lose{background:var(--opp)}
+@keyframes blink{50%{opacity:.25}}
+
+#stage{display:flex;gap:20px;align-items:flex-start;justify-content:center}
+#tableWrap{position:relative;flex:none}
+#table{position:relative;padding:var(--pad);border-radius:22px;display:flex;flex-direction:column;gap:var(--gap);
+  background:radial-gradient(ellipse at 50% 30%,#33a56a 0%,#18804b 55%,#0e5a35 100%);box-shadow:0 14px 34px rgba(10,50,30,.3);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.row4{display:grid;grid-template-columns:repeat(4,var(--cw));gap:var(--gap)}
+#comm{padding-bottom:calc(var(--gap) * 1.2);margin-bottom:calc(var(--gap) * .2);border-bottom:2px dashed rgba(255,255,255,.22)}
+.clab{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#fff;font-weight:900;font-size:calc(var(--cw) * .17);line-height:1.15;letter-spacing:.02em;opacity:.92}
+.clab small{display:block;font-weight:700;font-size:calc(var(--cw) * .14);opacity:.75;margin-top:3px}
+
+/* lá bài: mặt trước + mặt sau, lật bằng xoay 3D */
+.pc{position:relative;width:var(--cw);height:var(--ch);border-radius:calc(var(--cw) * .1);perspective:700px;transition:transform .15s,opacity .3s,box-shadow .2s}
+.pc .in{position:absolute;inset:0;transition:transform .45s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d}
+.pc.down .in{transform:rotateY(180deg)}
+.fr,.bk{position:absolute;inset:0;border-radius:calc(var(--cw) * .1);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.fr{background:#fff;border:1px solid #d5d9e2;box-shadow:0 3px 8px rgba(0,0,0,.22);color:var(--black)}
+.fr.s1,.fr.s2{color:var(--red)}
+.fr .rk{position:absolute;left:calc(var(--cw) * .09);top:calc(var(--cw) * .05);font-family:var(--tb-font-brand);font-weight:800;font-size:calc(var(--cw) * .32);line-height:1;letter-spacing:-.04em}
+.fr .sm{position:absolute;left:calc(var(--cw) * .1);top:calc(var(--cw) * .4);width:calc(var(--cw) * .2);height:calc(var(--cw) * .2)}
+.fr .bg{position:absolute;right:calc(var(--cw) * .1);bottom:calc(var(--cw) * .1);width:calc(var(--cw) * .55);height:calc(var(--cw) * .55)}
+.fr svg{fill:currentColor}
+.bk{transform:rotateY(180deg);box-shadow:0 3px 8px rgba(0,0,0,.25);
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cdefs%3E%3Cpattern id='p' width='7' height='7' patternUnits='userSpaceOnUse'%3E%3Crect width='7' height='7' fill='%236a3fb5'/%3E%3Cpath d='M3.5 0 7 3.5 3.5 7 0 3.5Z' fill='none' stroke='%23fff' stroke-width='.7'/%3E%3Ccircle cx='3.5' cy='3.5' r='1' fill='%23fff'/%3E%3Ccircle cx='0' cy='0' r='.8' fill='%23fff'/%3E%3Ccircle cx='7' cy='0' r='.8' fill='%23fff'/%3E%3Ccircle cx='0' cy='7' r='.8' fill='%23fff'/%3E%3Ccircle cx='7' cy='7' r='.8' fill='%23fff'/%3E%3C/pattern%3E%3C/defs%3E%3Crect x='8' y='8' width='84' height='124' rx='2.5' fill='%236a3fb5'/%3E%3Crect x='11' y='11' width='78' height='118' fill='url(%23p)'/%3E%3Crect x='11' y='11' width='78' height='118' fill='none' stroke='%23fff' stroke-width='1'/%3E%3Cpath d='M50 40 80 70 50 100 20 70Z' fill='%236a3fb5' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M50 46 74 70 50 94 26 70Z' fill='none' stroke='%23fff' stroke-width='.8'/%3E%3Cpath d='M50 49v-3M50 91v3M29 70h-3M71 70h3' stroke='%23fff' stroke-width='1.2'/%3E%3Cpath d='M50 70L50.00 57.50M50 70L52.87 63.07M50 70L58.84 61.16M50 70L56.93 67.13M50 70L62.50 70.00M50 70L56.93 72.87M50 70L58.84 78.84M50 70L52.87 76.93M50 70L50.00 82.50M50 70L47.13 76.93M50 70L41.16 78.84M50 70L43.07 72.87M50 70L37.50 70.00M50 70L43.07 67.13M50 70L41.16 61.16M50 70L47.13 63.07' stroke='%23fff' stroke-width='1.3' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='70' r='3.2' fill='%236a3fb5' stroke='%23fff' stroke-width='1.2'/%3E%3C/svg%3E") center/100% 100% no-repeat;border:1px solid #c9cde0}
+.pc.deal{animation:dealin .38s cubic-bezier(.2,.9,.3,1.2) backwards}
+@keyframes dealin{from{transform:translateY(-26px) scale(.7);opacity:0}to{transform:none;opacity:1}}
+.pc.can{cursor:pointer}
+.pc.can:hover{transform:translateY(-5px)}
+.pc.can:hover .bk{box-shadow:0 0 0 3px var(--gold),0 8px 14px rgba(0,0,0,.3)}
+.pc.mine{box-shadow:0 0 0 3px var(--me),0 0 14px rgba(31,174,75,.6)}
+.pc.theirs{outline:3px solid var(--opp);outline-offset:3px}
+.pc.best::before{content:"";position:absolute;inset:-7px;border:2.5px dashed #ffd54a;border-radius:calc(var(--cw) * .14);pointer-events:none}
+.pc.dim{opacity:.5}
+.tg{position:absolute;bottom:calc(var(--cw) * .05);font-style:normal;font-weight:900;font-size:max(10px,calc(var(--cw) * .13));line-height:1;padding:3px 6px;border-radius:99px;color:#fff;z-index:3;white-space:nowrap;pointer-events:none;display:none}
+.tg.t0{left:calc(var(--cw) * .05);background:var(--me)}
+.tg.t1{right:calc(var(--cw) * .05);background:var(--opp)}
+.pc.mine .tg.t0,.pc.theirs .tg.t1{display:block}
+
+#tbar{display:flex;align-items:center;gap:10px;min-height:40px;margin-top:calc(var(--gap) * .4)}
+#bar{flex:1;position:relative;height:30px;border-radius:99px;background:rgba(0,0,0,.25);overflow:hidden}
+#bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--gold);transition:width .1s linear}
+#bar.pick i{background:#5aa2ff} #bar.low i{background:#ff5a4f}
+#bar span{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-weight:900;font-size:14px;text-shadow:0 1px 2px rgba(0,0,0,.5);white-space:nowrap}
+#tbtn{flex:none;white-space:nowrap}
+
+.side{width:290px;flex:none;display:flex;flex-direction:column;gap:10px}
+.panel{padding:10px 12px;border-radius:12px;background:var(--panel);border:2px solid var(--line);box-shadow:var(--tb-shadow);transition:border-color .2s,box-shadow .2s}
+.panel.win{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,201,40,.35)}
+.ph{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:10px}
+.av{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:900;font-size:13px;color:#fff}
+#pn0 .av{background:var(--me)} #pn1 .av{background:var(--opp)}
+.pinfo{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.pinfo b{font-size:15px}
+.pinfo span{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pips{display:flex;gap:5px}
+.pips i{width:16px;height:16px;border-radius:50%;border:2px solid var(--btn-line);background:var(--field)}
+.pips i.on{background:var(--gold);border-color:#d9a400}
+.hand{display:flex;align-items:center;gap:10px;margin-top:9px;min-height:46px}
+.mcs{display:flex;gap:4px;flex:none}
+.mc{position:relative;width:32px;height:44px;border-radius:5px;background:#fff;border:1px solid #d5d9e2;color:var(--black);display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.mc b{font-family:var(--tb-font-brand);font-size:16px;font-weight:800;letter-spacing:-.04em}
+.mc svg{width:13px;height:13px;fill:currentColor;margin-top:1px}
+.mc.s1,.mc.s2{color:var(--red)}
+.mc.back{background:#6a3fb5;border-color:#6a3fb5;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.25) 0 2px,transparent 2px 6px)}
+.mc.empty{background:var(--field);border:1.5px dashed var(--btn-line);box-shadow:none}
+.mc.cm{opacity:.75}
+.hn{font-size:13px;font-weight:800;line-height:1.3;min-width:0}
+.hn small{display:block;color:var(--muted);font-weight:700;font-size:11.5px}
+#info{padding:12px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);font-size:13.5px}
+#info dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
+#info dt{color:var(--muted)} #info dd{margin:0;font-weight:800;text-align:right}
+#tip{margin:10px 0 0;color:var(--gold-ink);font-weight:700;line-height:1.4}
+
+#gameover{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,30,20,.4);z-index:20;animation:fade .3s;border-radius:22px}
+.go-card{background:var(--panel);border:2px solid var(--gold);border-radius:16px;padding:22px 26px;text-align:center;max-width:90%;box-shadow:var(--tb-shadow-lg);position:relative}
+.go-card h2{margin:0 0 6px;font-family:var(--tb-font-brand);font-size:30px}
+.go-card p{margin:0 0 16px;color:var(--muted)}
+.go-card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#goNet{margin:-8px 0 14px}
+#goNet:empty{display:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.modal{position:fixed;inset:0;background:rgba(20,25,40,.5);display:grid;place-items:center;z-index:50;padding:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:20px 24px;box-shadow:var(--tb-shadow-lg);position:relative}
+.card h2{margin:0 0 10px;font-family:var(--tb-font-brand);font-size:26px;line-height:1.15}
+.card h3{margin:16px 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink)}
+.card p,.card li{font-size:14.5px;line-height:1.55}
+.card ul,.card ol{margin:6px 0;padding-left:20px}
+.card .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;align-items:center}
+.card .foot .tb-credit{margin-right:auto}
+.note{color:var(--muted);font-size:12.5px}
+.ranks{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;margin:6px 0}
+.ranks .rn{font-size:13.5px;font-weight:800;line-height:1.25}
+.ranks .rn small{display:block;color:var(--muted);font-weight:600;font-size:12px}
+.ranks .mcs{gap:3px}
+.ranks .mc{width:26px;height:36px}
+.ranks .mc b{font-size:13px}
+.ranks .mc svg{width:10px;height:10px}
+.ranks .mc.x{opacity:.35}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:110px;background:var(--btn);color:var(--text);border:2px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-weight:800;cursor:pointer}
+.seg button:hover{background:var(--btn-hover)}
+.seg button.on{background:var(--gold);color:var(--tb-primary-ink);border-color:var(--gold)}
+.seg button:disabled{cursor:not-allowed;pointer-events:none}
+#segLevel button{min-width:0;font-size:17px;letter-spacing:.08em}
+#segLevel button[data-v="easy"]{border-color:#ffd24a;background:rgba(255,210,74,.2)}
+#segLevel button[data-v="medium"]{border-color:#3d8bff;background:rgba(61,139,255,.16)}
+#segLevel button[data-v="hard"]{border-color:#e5453b;background:rgba(229,69,59,.16)}
+#segLevel button.on[data-v="easy"]{background:#ffd24a;border-color:#ffd24a;color:#3a2a00}
+#segLevel button.on[data-v="medium"]{background:#3d8bff;border-color:#3d8bff;color:#fff}
+#segLevel button.on[data-v="hard"]{background:#e5453b;border-color:#e5453b;color:#fff}
+.off{opacity:.28;filter:grayscale(1)}
+.off .seg button.on{background:var(--btn);color:var(--text);border-color:var(--line);box-shadow:none}
+#levelNote,#vsNote{min-height:2.8em;line-height:1.4;margin:6px 0 0}
+.netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.netrow .seg{flex:2 1 240px}
+#joinCode{flex:1 1 140px;min-width:0;background:#fff;color:var(--text);border:2px solid var(--btn-line);border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;font-size:18px;letter-spacing:.2em;text-transform:uppercase;text-align:center}
+#joinCode::placeholder{letter-spacing:normal;font-weight:600;font-size:14px;color:var(--muted);text-transform:none}
+#joinCode:disabled{opacity:.35}
+#mNet .card{max-width:460px;text-align:center}
+#mNet .foot{justify-content:center}
+.netcode{font-family:var(--tb-font-brand);font-size:46px;font-weight:800;letter-spacing:.22em;padding-left:.22em;color:var(--gold-ink);margin:4px 0 12px;user-select:all}
+.netlink{display:flex;gap:8px}
+.netlink input{flex:1;min-width:0;background:var(--field);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px}
+#netMsg{color:var(--muted);margin:14px 0 0}
+
+body.portrait .brand{display:none}
+body.portrait .actions{width:100%} body.portrait #btnNew{margin-left:auto}
+body.portrait #status{font-size:13px;margin-bottom:8px;min-height:52px}
+body.portrait #stage{flex-direction:column;align-items:center;gap:8px}
+body.portrait .side{display:contents}
+body.portrait #panels{order:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+body.portrait #panels.solo{grid-template-columns:1fr}
+body.portrait #tableWrap{order:2}
+body.portrait #info{order:3;width:100%}
+body.portrait .panel{padding:7px 9px}
+body.portrait .av{width:26px;height:26px;font-size:11px;border-radius:8px}
+body.portrait .pinfo b{font-size:13.5px}
+body.portrait .pinfo span{font-size:10px;letter-spacing:.04em}
+body.portrait .pips i{width:12px;height:12px}
+body.portrait .hand{margin-top:6px;gap:7px;min-height:38px}
+body.portrait .mc{width:26px;height:37px}
+body.portrait .mc b{font-size:13.5px}
+body.portrait .mc svg{width:10px;height:10px}
+body.portrait .hn{font-size:12px}
+#panels{display:flex;flex-direction:column;gap:10px}
+@media (max-width:600px){.seg button{min-width:0}#segVs button{flex:1 1 calc((100% - 16px) / 3);padding:10px 4px}}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "memory-poker" });</script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="su0" viewBox="0 0 100 100"><path d="M50 3C42 18 8 36 8 60c0 13 10 21 21 21 7 0 13-3 17-9-1 11-6 19-15 24h38c-9-5-14-13-15-24 4 6 10 9 17 9 11 0 21-8 21-21C92 36 58 18 50 3Z"/></symbol>
+  <symbol id="su1" viewBox="0 0 100 100"><path d="M50 92C22 70 5 53 5 32 5 17 16 7 29 7c9 0 17 5 21 13 4-8 12-13 21-13 13 0 24 10 24 25 0 21-17 38-45 60Z"/></symbol>
+  <symbol id="su2" viewBox="0 0 100 100"><path d="M50 3 86 50 50 97 14 50Z"/></symbol>
+  <symbol id="su3" viewBox="0 0 100 100"><circle cx="50" cy="27" r="20"/><circle cx="26" cy="57" r="20"/><circle cx="74" cy="57" r="20"/><path d="M42 40h16v18H42z"/><path d="M46 55c-1 17-6 29-15 38h38c-9-9-14-21-15-38Z"/></symbol>
+</svg>
+<div id="app">
+  <header class="top">
+    <div class="brand"><h1 data-i18n="brand">Poker Trí Nhớ</h1></div>
+    <div class="actions">
+      <button class="btn" id="btnRules" data-i18n="b_rules">Luật chơi</button>
+      <button class="btn primary" id="btnNew" data-i18n="b_new">Ván mới</button>
+    </div>
+  </header>
+  <div id="status"><span class="dot" id="stDot"></span><span id="statusText"></span></div>
+  <main id="stage">
+    <div id="tableWrap">
+      <div id="table">
+        <div class="row4" id="comm"></div>
+        <div class="row4" id="grid"></div>
+        <div id="tbar"><div id="bar"><i></i><span></span></div><button class="btn" id="tbtn"></button></div>
+      </div>
+      <div id="gameover" hidden>
+        <div class="go-card">
+          <h2 id="goTitle"></h2>
+          <p id="goSub"></p>
+          <p class="note" id="goNet"></p>
+          <div class="row">
+            <button class="btn primary" id="goNew" data-i18n="b_new">Ván mới</button>
+            <button class="btn" id="goView" data-i18n="b_view">Xem bàn</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="side">
+      <div id="panels">
+        <section class="panel" id="pn1"><div class="ph"><span class="av"></span><div class="pinfo"><b></b><span></span></div><div class="pips"></div></div><div class="hand"><div class="mcs"></div><div class="hn"></div></div></section>
+        <section class="panel" id="pn0"><div class="ph"><span class="av"></span><div class="pinfo"><b></b><span></span></div><div class="pips"></div></div><div class="hand"><div class="mcs"></div><div class="hn"></div></div></section>
+      </div>
+      <section id="info"><dl id="infoList"></dl><p id="tip"></p></section>
+    </aside>
+  </main>
+</div>
+
+<div class="modal" id="mRules" hidden>
+  <div class="card">
+    <h2 data-i18n="brand">Poker Trí Nhớ</h2>
+    <p data-i18n="r_intro"></p>
+    <h3 data-i18n="r_h_rules"></h3>
+    <ol><li data-i18n="r_1"></li><li data-i18n="r_2"></li><li data-i18n="r_3"></li><li data-i18n="r_4"></li></ol>
+    <ul><li data-i18n="r_tie"></li><li data-i18n="r_same"></li><li data-i18n="r_match"></li></ul>
+    <h3 data-i18n="r_h_hands"></h3>
+    <div class="ranks" id="rankList"></div>
+    <p class="note" data-i18n="r_hands_note"></p>
+    <h3 data-i18n="r_h_time"></h3>
+    <ul><li data-i18n="r_time1"></li></ul>
+    <h3 data-i18n="r_h_modes"></h3>
+    <ul><li data-i18n="r_ai"></li><li data-i18n="r_practice"></li><li data-i18n="r_online"></li></ul>
+    <p class="note" data-i18n="r_inspired"></p>
+    <div class="foot"><span class="note credit tb-credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok"></button></div>
+  </div>
+</div>
+
+<div class="modal" id="mMode" hidden>
+  <div class="card">
+    <h2 data-i18n="m_title"></h2>
+    <h3 data-i18n="m_vs"></h3>
+    <div class="seg" id="segVs"><button data-v="bot" data-i18n="m_bot"></button><button data-v="practice" data-i18n="m_practice"></button><button data-v="online" data-i18n="m_online"></button></div>
+    <p class="note" id="vsNote"></p>
+    <div id="netOpts">
+      <h3 data-i18n="m_net"></h3>
+      <div class="netrow">
+        <div class="seg" id="segNet"><button data-v="create" data-i18n="m_create"></button><button data-v="join" data-i18n="m_join"></button></div>
+        <input id="joinCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+      <p class="note" id="netNote"></p>
+    </div>
+    <div id="levelOpts">
+      <h3 data-i18n="m_level"></h3>
+      <div class="seg" id="segLevel"><button data-v="easy" data-i18n="lv_easy"></button><button data-v="medium" data-i18n="lv_medium"></button><button data-v="hard" data-i18n="lv_hard"></button></div>
+      <p class="note" id="levelNote"></p>
+    </div>
+    <div class="foot">
+      <button class="btn" id="modeCancel" data-i18n="cancel"></button>
+      <button class="btn primary" id="modeStart" data-i18n="m_start"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mNet" hidden>
+  <div class="card">
+    <h2 id="netTitle"></h2>
+    <div id="netCodeBox" hidden>
+      <div class="netcode" id="netCode"></div>
+      <div class="netlink"><input id="netLink" readonly><button class="btn" id="netCopy" data-i18n="n_copy"></button></div>
+    </div>
+    <p id="netMsg"></p>
+    <div class="foot"><button class="btn" id="netCancel" data-i18n="cancel"></button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   POKER TRÍ NHỚ / MEMORY POKER (luật theo quoridorgame.com/en/memory-poker/rules, đọc 11/2026)
+   16 lá ngẫu nhiên của bộ 52 lá bày ngửa 4x4, nhớ 30 giây (bản gốc 20, chủ game đổi), rồi úp hết và lộ 3 lá chung.
+   Mỗi người lật 2 lá úp (30 giây) ghép với 3 lá chung thành tay 5 lá; tay cao hơn thắng ván. Hoà tuyệt đối thì chia lại.
+   Trận chạm 2 (chủ game chọn; bản gốc chạm 3). Chế độ: đấu AI (3 mức trí nhớ), luyện tập 10 ván, online 1v1.
+   ============================================================ */
+const $ = (s, root = document) => root.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* RULES-AI-START */
+/* Luật + AI, không đụng DOM (cắt ra chạy bằng Node: tools/test-memory-poker.js).
+   Lá c = 0..51: hạng rankOf(c) = (c >> 2) + 2 (2..14, 14 = A), chất suitOf(c) = c & 3 (0 bích, 1 cơ, 2 rô, 3 chuồn).
+   Ván d của trận có seed s: dealCards(s, d) xáo bộ bài bằng rng có seed; 16 lá đầu là lưới (ô 0..15), 3 lá kế là lá chung. */
+const rankOf = c => (c >> 2) + 2, suitOf = c => c & 3;
+const cardOf = (rank, suit) => (rank - 2) * 4 + suit;
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function mix(seed, k) { let h = (seed ^ Math.imul(k + 1, 0x9E3779B1)) >>> 0; h = Math.imul(h ^ h >>> 16, 0x85EBCA6B) >>> 0; h = Math.imul(h ^ h >>> 13, 0xC2B2AE35) >>> 0; return (h ^ h >>> 16) >>> 0; }
+function dealCards(seed, d) {
+  const r = mulberry32(mix(seed >>> 0, d)), a = Array.from({ length: 52 }, (_, i) => i);
+  for (let i = 51; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
+  return { grid: a.slice(0, 16), comm: a.slice(16, 19) };
+}
+/* Chấm tay 5 lá. cat: 0 mậu thầu, 1 đôi, 2 hai đôi, 3 sám cô, 4 sảnh, 5 thùng, 6 cù lũ, 7 tứ quý, 8 thùng phá sảnh, 9 thùng phá sảnh lớn (chỉ để gọi tên).
+   score: so sánh được trực tiếp (lớn hơn là mạnh hơn), gồm loại tay rồi các hạng quyết định theo thứ tự; chất không bao giờ tính.
+   tb: các hạng quyết định (đôi/bộ trước, rồi lá lẻ từ cao xuống; sảnh chỉ tính lá cao nhất, A-2-3-4-5 là sảnh tới 5). */
+function evalHand(cs) {
+  const rs = cs.map(rankOf).sort((a, b) => b - a);
+  const s0 = suitOf(cs[0]), flush = cs.every(c => suitOf(c) === s0);
+  const cnt = {}; for (const r of rs) cnt[r] = (cnt[r] || 0) + 1;
+  const g = Object.keys(cnt).map(Number).sort((a, b) => cnt[b] - cnt[a] || b - a);
+  let sh = 0;
+  if (g.length === 5) { if (rs[0] - rs[4] === 4) sh = rs[0]; else if (rs[0] === 14 && rs[1] === 5) sh = 5; }
+  let cat, tb;
+  if (sh && flush) { cat = 8; tb = [sh]; }
+  else if (cnt[g[0]] === 4) { cat = 7; tb = g; }
+  else if (cnt[g[0]] === 3 && cnt[g[1]] === 2) { cat = 6; tb = g; }
+  else if (flush) { cat = 5; tb = rs; }
+  else if (sh) { cat = 4; tb = [sh]; }
+  else if (cnt[g[0]] === 3) { cat = 3; tb = g; }
+  else if (cnt[g[0]] === 2 && cnt[g[1]] === 2) { cat = 2; tb = g; }
+  else if (cnt[g[0]] === 2) { cat = 1; tb = g; }
+  else { cat = 0; tb = rs; }
+  let score = cat; for (let k = 0; k < 5; k++) score = score * 15 + (tb[k] || 0);
+  return { score, cat: cat === 8 && sh === 14 ? 9 : cat, tb };
+}
+const handOf = (grid, comm, pick) => evalHand([grid[pick[0]], grid[pick[1]], ...comm]);
+/* Tay tốt nhất có thể trên lưới: điểm cao nhất và mọi cặp ô đạt được */
+function bestPairs(grid, comm) {
+  let best = -1, pairs = [];
+  for (let i = 0; i < 16; i++) for (let j = i + 1; j < 16; j++) {
+    const s = evalHand([grid[i], grid[j], ...comm]).score;
+    if (s > best) { best = s; pairs = [[i, j]]; } else if (s === best) pairs.push([i, j]);
+  }
+  return { score: best, pairs };
+}
+/* Kết quả ván: winner 0 / 1, hoặc -1 nếu hai tay bằng điểm (chia lại) */
+function judge(grid, comm, p0, p1) {
+  const a = handOf(grid, comm, p0), b = handOf(grid, comm, p1);
+  return { h: [a, b], winner: a.score > b.score ? 0 : b.score > a.score ? 1 : -1 };
+}
+
+/* ---------- AI ----------
+   AI "nhớ" lưới trong lúc ghi nhớ: mỗi ô nhớ đúng với xác suất mem; nhớ sai thì hoặc lẫn sang lá của ô khác (nhầm chỗ),
+   hoặc nhớ thành lá gần giống (cùng hạng khác chất, hoặc cùng chất lệch 1 hạng). AI không biết mình nhớ sai ô nào.
+   Khi chọn: lấy cặp ô có tay mạnh nhất theo trí nhớ, lật lá thứ nhất (lúc này thấy lá thật), rồi chọn lá thứ hai hợp nhất với lá thật đó. */
+const AI_LEVELS = {
+  easy:   { mem: .5 },    // nhớ đúng khoảng nửa lưới
+  medium: { mem: .75 },
+  hard:   { mem: .93 },   // gần như nhớ hết
+};
+function aiMemory(grid, comm, level, rnd = Math.random) {
+  const mem = (AI_LEVELS[level] || AI_LEVELS.medium).mem, taken = new Set(comm);
+  return grid.map((c, i) => {
+    if (rnd() < mem) return c;
+    if (rnd() < .5) { let j; do j = Math.floor(rnd() * 16); while (j === i); return grid[j]; }
+    const r = rankOf(c), s = suitOf(c), opts = [];
+    for (let s2 = 0; s2 < 4; s2++) if (s2 !== s) opts.push(cardOf(r, s2));
+    for (const r2 of [r - 1, r + 1]) if (r2 >= 2 && r2 <= 14) opts.push(cardOf(r2, s));
+    const ok = opts.filter(x => !taken.has(x));
+    return ok.length ? ok[Math.floor(rnd() * ok.length)] : c;
+  });
+}
+function aiFirst(belief, comm, rnd = Math.random) {
+  let best = -1, cands = [];
+  for (let i = 0; i < 16; i++) for (let j = i + 1; j < 16; j++) {
+    if (belief[i] === belief[j]) continue;
+    const s = evalHand([belief[i], belief[j], ...comm]).score;
+    if (s > best) { best = s; cands = [[i, j]]; } else if (s === best) cands.push([i, j]);
+  }
+  const p = cands[Math.floor(rnd() * cands.length)];
+  return p[rnd() < .5 ? 0 : 1];
+}
+function aiSecond(belief, comm, first, firstCard, rnd = Math.random) {
+  let best = -1, cands = [];
+  for (let j = 0; j < 16; j++) {
+    if (j === first || belief[j] === firstCard) continue;
+    const s = evalHand([firstCard, belief[j], ...comm]).score;
+    if (s > best) { best = s; cands = [j]; } else if (s === best) cands.push(j);
+  }
+  return cands[Math.floor(rnd() * cands.length)];
+}
+/* Chọn trọn 2 lá (dùng cho test Node) */
+function aiPick(grid, comm, level, rnd = Math.random) {
+  const bel = aiMemory(grid, comm, level, rnd), a = aiFirst(bel, comm, rnd);
+  return [a, aiSecond(bel, comm, a, grid[a], rnd)];
+}
+/* RULES-AI-END */
+
+/* ---------- ĐA NGÔN NGỮ (vi / en) ---------- */
+const I18N = {
+vi: {
+  title: "Poker Trí Nhớ", brand: "Poker Trí Nhớ",
+  b_rules: "Luật chơi", b_new: "Ván mới", b_view: "Xem bàn", cancel: "Huỷ",
+  r_intro: "Nhớ vị trí <b>16 lá bài trong 30 giây</b>, rồi lật đúng <b>2 lá úp</b> để ghép với 3 lá chung thành tay poker mạnh nhất.",
+  r_h_rules: "Luật chơi",
+  r_1: "16 lá ngẫu nhiên trong bộ 52 lá được bày ngửa thành lưới 4×4. Bạn có <b>30 giây</b> để nhớ lá nào nằm ở đâu.",
+  r_2: "Hết giờ, cả 16 lá úp xuống rồi mới lộ ra <b>3 lá chung</b>. Lúc này bạn mới biết mình cần lá nào.",
+  r_3: "Bấm <b>2 lá úp</b> (lá bấm sẽ lật lên cho bạn xem và không đổi được). 3 lá chung cộng 2 lá đó là tay 5 lá của bạn. Nhớ nhầm chỗ là lật nhầm lá.",
+  r_4: "Khi cả hai đã chọn xong, bài được lật ra, <b>tay mạnh hơn thắng ván</b>.",
+  r_tie: "Cùng loại tay thì so hạng của bộ, rồi tới các lá còn lại. <b>Không bao giờ so chất.</b> Bằng nhau hoàn toàn thì ván đó bỏ, chia bài mới.",
+  r_same: "Hai người được chọn trùng lá.",
+  r_match: "Thắng <b>2 ván</b> trước là thắng trận (tối đa 3 ván, không tính các ván chia lại).",
+  r_h_hands: "Thứ tự tay bài (cao xuống thấp)",
+  r_hands_note: "A là lá cao nhất, nhưng A-2-3-4-5 cũng là sảnh (sảnh thấp nhất).",
+  r_h_time: "Thời gian",
+  r_time1: "Ghi nhớ <b>30 giây</b>, chọn lá <b>30 giây</b>. Hết giờ chọn mà chưa đủ 2 lá thì máy chọn ngẫu nhiên phần còn thiếu.",
+  r_h_modes: "Chế độ chơi",
+  r_ai: "<b>Đấu AI</b>: 3 mức sao là trí nhớ của AI. ★ hay nhớ nhầm, ★★★ gần như nhớ hết.",
+  r_practice: "<b>Luyện tập</b>: chơi một mình 10 ván. Mỗi ván bạn chọn được tay tốt nhất có thể thì được 1 điểm.",
+  r_online: "<b>Chơi online</b>: một người tạo phòng rồi gửi mã 5 ký tự hoặc link mời cho bạn bè.",
+  r_inspired: "Lấy cảm hứng từ Memory Poker trong The Devil's Plan mùa 3.",
+  r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
+  m_title: "Ván mới", m_vs: "Chế độ", m_bot: "Đấu AI", m_practice: "Luyện tập", m_online: "Chơi online",
+  vn_bot: "Đấu với AI, ai thắng 2 ván trước là thắng trận.", vn_practice: "Chơi một mình 10 ván, tính số ván chọn được tay tốt nhất.", vn_online: "Đấu 1 với 1 cùng bạn bè, ai thắng 2 ván trước là thắng trận.",
+  m_net: "Phòng online", m_create: "Tạo phòng", m_join: "Vào phòng", m_code_ph: "Mã phòng",
+  m_net_create: "Tạo phòng rồi gửi mã hoặc link mời cho bạn bè.",
+  m_net_join: "Nhập mã phòng bạn bè gửi, hoặc mở thẳng link mời của họ.",
+  m_level: "Trí nhớ của AI", m_start: "Bắt đầu", m_forfeit: "Bỏ trận này, chơi trận mới",
+  lv_easy: "★", lv_medium: "★★", lv_hard: "★★★",
+  lvn_easy: "Hay quên: nhớ đúng khoảng một nửa số lá.",
+  lvn_medium: "Nhớ đúng khoảng 3/4 số lá.",
+  lvn_hard: "Gần như nhớ hết, hiếm khi lật nhầm.",
+  you: "Bạn", ai: "AI", opp: "Đối thủ", av_you: "BẠN", av_ai: "AI", av_opp: "ĐT",
+  role_you: "BẠN", role_bot: "AI · TRÍ NHỚ {0}", role_opp: "ĐỐI THỦ", role_practice: "LUYỆN TẬP",
+  tag_you: "Bạn", tag_ai: "AI", tag_opp: "Đối thủ",
+  comm: "Lá chung", comm_wait: "lộ sau khi úp",
+  h0: "Mậu thầu", h1: "Một đôi", h2: "Hai đôi", h3: "Sám cô", h4: "Sảnh", h5: "Thùng", h6: "Cù lũ", h7: "Tứ quý", h8: "Thùng phá sảnh", h9: "Thùng phá sảnh lớn",
+  hx0: "lá cao", hx3: "bộ ba",
+  d0: "Mậu thầu {0}", d1: "Đôi {0}", d2: "Hai đôi {0} và {1}", d3: "Sám cô {0}", d4: "Sảnh tới {0}", d5: "Thùng, cao nhất {0}", d6: "Cù lũ {0} và {1}", d7: "Tứ quý {0}", d8: "Thùng phá sảnh tới {0}", d9: "Thùng phá sảnh lớn",
+  kick: "lá phụ", picking: "Đang chọn…", picked_n: "Đã chọn {0}/2", waiting: "Chờ lật bài",
+  st_notstarted: "<b>Chưa bắt đầu</b> · Bấm <b>Ván mới</b> để chọn chế độ",
+  st_intro: "<b>Đang chia bài…</b>",
+  st_memo: "<b>Ghi nhớ!</b> Nhớ vị trí 16 lá trước khi chúng úp xuống",
+  st_memo_guest: "<b>Hết giờ ghi nhớ</b> · chờ chủ phòng…",
+  st_pick: "<b>Chọn {0} lá úp</b> để ghép với 3 lá chung",
+  st_pick1: "<b>Chọn thêm 1 lá</b> · lá đầu tiên là {0}",
+  st_wait_ai: "<b>AI đang chọn…</b>", st_wait_opp: "<b>Đang chờ đối thủ chọn…</b>",
+  st_auto: "Hết giờ, máy đã chọn ngẫu nhiên giúp bạn.",
+  st_r_you: "<b>Bạn thắng ván này!</b> {0} hơn {1}", st_r_ai: "<b>AI thắng ván này</b> · {0} hơn {1}", st_r_opp: "<b>Đối thủ thắng ván này</b> · {0} hơn {1}",
+  st_r_tie: "<b>Hai tay bằng nhau</b> ({0}) · ván này bỏ, chia bài mới",
+  st_p_ok: "<b>Tay tốt nhất!</b> {0} · được 1 điểm", st_p_no: "<b>Chưa tối ưu</b> · bạn có {0}, tay tốt nhất là {1} (viền vàng nét đứt)",
+  st_over_you: "<b>Bạn thắng trận!</b>", st_over_ai: "<b>AI thắng trận.</b>", st_over_opp: "<b>Đối thủ thắng trận.</b>",
+  st_over_p: "<b>Xong 10 ván luyện tập</b> · {0}/10 ván tay tốt nhất",
+  st_left: "<b>Bạn thắng</b> · đối thủ đã rời phòng.", st_aborted: "<b>Trận online đã dừng</b> · mất kết nối hoặc lệch trạng thái.",
+  t_prac: "Ván {0}/{1} · {2} tay tốt nhất", t_memo: "Ghi nhớ · {0} giây",t_pick: "Chọn 2 lá · {0} giây", t_deal: "Đang chia…", t_next: "Ván tiếp sau {0} giây", t_idle: "Chưa bắt đầu", t_done: "Đã chọn xong",
+  b_next: "Ván tiếp theo", b_redeal: "Chia lại", b_result: "Xem kết quả",
+  go_you: "BẠN THẮNG TRẬN!", go_ai: "AI THẮNG TRẬN", go_opp: "ĐỐI THỦ THẮNG", go_aborted: "TRẬN ĐÃ DỪNG", go_practice: "XONG LUYỆN TẬP",
+  gs_score: "Tỉ số {0} – {1}.", gs_left: "Đối thủ đã rời phòng.", gs_aborted: "Trận online bị dừng giữa chừng.",
+  gs_practice: "{0}/10 ván bạn chọn được tay tốt nhất.", gs_record: " Kỷ lục mới!", gs_best: " Kỷ lục: {0}/10.",
+  go_rematch: "Chơi lại", go_rm_wait: "Đã mời chơi lại, đang chờ đối thủ đồng ý…", go_rm_them: "Đối thủ muốn chơi lại! Bấm Chơi lại để bắt đầu.",
+  i_mode: "Chế độ", i_mode_bot: "Đấu AI · {0}", i_mode_online: "Online", i_mode_practice: "Luyện tập",
+  i_score: "Tỉ số", i_round: "Ván", i_round_v: "{0} (chạm 2)", i_deal: "Lượt chia", i_prac: "Đã chơi", i_opt: "Tay tốt nhất", i_best: "Kỷ lục",
+  tip: "Đừng cố nhớ hết 16 lá: ưu tiên lá cao (A, K, Q), các đôi, và các lá cùng chất.",
+  n_title_host: "Phòng của bạn", n_title_join: "Vào phòng", n_title_err: "Không kết nối được",
+  n_connecting: "Đang kết nối…", n_wait: "Gửi mã hoặc link này cho bạn bè. Đang chờ đối thủ vào phòng…",
+  n_joining: "Đang vào phòng {0}…", n_copy: "Chép link", n_copied: "Đã chép!", n_close: "Đóng",
+  n_err_code: "Mã phòng gồm 5 ký tự, bạn kiểm tra lại nhé.",
+  n_err_nopeer: "Không tìm thấy phòng {0}. Mã có thể sai, hoặc chủ phòng đã đóng phòng.",
+  n_err_full: "Phòng này đã đủ 2 người.",
+  n_err_version: "Hai máy đang chạy hai phiên bản game khác nhau. Tải lại trang (Ctrl+F5) ở cả hai máy rồi thử lại.",
+  n_err_timeout: "Chờ quá lâu mà không nối được tới chủ phòng. Mạng của một trong hai bên có thể đang chặn kết nối.",
+  n_err_desync: "Hai máy bị lệch trạng thái nên trận online đã dừng.",
+  n_err_net: "Lỗi kết nối ({0}). Thử lại sau ít phút.",
+  n_err_lib: "Không tải được thư viện kết nối PeerJS. Kiểm tra mạng rồi thử lại.",
+},
+en: {
+  title: "Memory Poker", brand: "Memory Poker",
+  b_rules: "Rules", b_new: "New game", b_view: "View table", cancel: "Cancel",
+  r_intro: "Memorize where <b>16 cards</b> sit in <b>30 seconds</b>, then turn over the right <b>2 face-down cards</b> to make the best poker hand with the 3 community cards.",
+  r_h_rules: "Rules",
+  r_1: "Sixteen random cards from a 52-card deck are laid out face up, 4×4. You get <b>30 seconds</b> to remember which card sits where.",
+  r_2: "When time is up all 16 turn face down, and only then are the <b>3 community cards</b> shown. Now you know which cards you need.",
+  r_3: "Tap <b>2 face-down cards</b> (each card you tap flips over for you and cannot be changed). The 3 community cards plus those 2 make your five-card hand. Misremember a spot and you turn over the wrong card.",
+  r_4: "Once both sides have picked, the cards are revealed and <b>the better hand wins the round</b>.",
+  r_tie: "Same kind of hand? Compare the ranks that make it, then the leftover cards. <b>Suits never count.</b> An exact tie is void and a new board is dealt.",
+  r_same: "Both players may pick the same card.",
+  r_match: "First to win <b>2 rounds</b> wins the match (3 rounds at most, not counting void rounds).",
+  r_h_hands: "Hand rankings (highest first)",
+  r_hands_note: "Aces are high, but A-2-3-4-5 is also a straight (the lowest one).",
+  r_h_time: "Time",
+  r_time1: "<b>30 seconds</b> to memorize, <b>30 seconds</b> to pick. If time runs out before you pick 2 cards, the rest are picked at random for you.",
+  r_h_modes: "Modes",
+  r_ai: "<b>Vs AI</b>: the 3 star levels are the AI's memory. ★ often misremembers, ★★★ remembers almost everything.",
+  r_practice: "<b>Practice</b>: play 10 deals alone. You score a point each time you pick the best possible hand.",
+  r_online: "<b>Online</b>: one player creates a room and sends the 5-letter code or invite link to a friend.",
+  r_inspired: "Inspired by Memory Poker from The Devil's Plan season 3.",
+  r_ok: "Got it", m_back: "Back to Rules",
+  m_title: "New Game", m_vs: "Mode", m_bot: "Vs AI", m_practice: "Practice", m_online: "Play online",
+  vn_bot: "Play the AI. First to win 2 rounds wins the match.", vn_practice: "Play 10 deals alone and count how often you find the best hand.", vn_online: "1 v 1 with a friend. First to win 2 rounds wins the match.",
+  m_net: "Online room", m_create: "Create room", m_join: "Join room", m_code_ph: "Room code",
+  m_net_create: "Create a room, then send the code or invite link to a friend.",
+  m_net_join: "Enter the room code your friend sent you, or just open their invite link.",
+  m_level: "AI memory", m_start: "Start", m_forfeit: "Abandon this match, start new",
+  lv_easy: "★", lv_medium: "★★", lv_hard: "★★★",
+  lvn_easy: "Forgetful: remembers about half of the cards correctly.",
+  lvn_medium: "Remembers about 3 in 4 cards correctly.",
+  lvn_hard: "Remembers almost everything and rarely turns the wrong card.",
+  you: "You", ai: "AI", opp: "Opponent", av_you: "YOU", av_ai: "AI", av_opp: "OPP",
+  role_you: "YOU", role_bot: "AI · MEMORY {0}", role_opp: "OPPONENT", role_practice: "PRACTICE",
+  tag_you: "You", tag_ai: "AI", tag_opp: "Opp",
+  comm: "Community", comm_wait: "shown after the flip",
+  h0: "High card", h1: "Pair", h2: "Two pair", h3: "Three of a kind", h4: "Straight", h5: "Flush", h6: "Full house", h7: "Four of a kind", h8: "Straight flush", h9: "Royal flush",
+  hx0: "", hx3: "",
+  d0: "{0} high", d1: "Pair of {0}s", d2: "Two pair, {0}s and {1}s", d3: "Three {0}s", d4: "Straight to {0}", d5: "Flush, {0} high", d6: "Full house, {0}s over {1}s", d7: "Four {0}s", d8: "Straight flush to {0}", d9: "Royal flush",
+  kick: "kickers", picking: "Picking…", picked_n: "Picked {0}/2", waiting: "Waiting for reveal",
+  st_notstarted: "<b>Not started</b> · Press <b>New game</b> to choose a mode",
+  st_intro: "<b>Dealing…</b>",
+  st_memo: "<b>Memorize!</b> Remember where the 16 cards are before they turn face down",
+  st_memo_guest: "<b>Time's up</b> · waiting for the host…",
+  st_pick: "<b>Pick {0} face-down cards</b> to go with the 3 community cards",
+  st_pick1: "<b>Pick 1 more card</b> · your first card is {0}",
+  st_wait_ai: "<b>The AI is picking…</b>", st_wait_opp: "<b>Waiting for your opponent to pick…</b>",
+  st_auto: "Time's up, the rest was picked at random for you.",
+  st_r_you: "<b>You win this round!</b> {0} beats {1}", st_r_ai: "<b>The AI wins this round</b> · {0} beats {1}", st_r_opp: "<b>Your opponent wins this round</b> · {0} beats {1}",
+  st_r_tie: "<b>Exact tie</b> ({0}) · this round is void, new deal",
+  st_p_ok: "<b>Best hand!</b> {0} · 1 point", st_p_no: "<b>Not the best</b> · you made {0}, the best was {1} (dashed gold outline)",
+  st_over_you: "<b>You win the match!</b>", st_over_ai: "<b>The AI wins the match.</b>", st_over_opp: "<b>Your opponent wins the match.</b>",
+  st_over_p: "<b>Practice finished</b> · best hand in {0}/10 deals",
+  st_left: "<b>You win</b> · your opponent left the room.", st_aborted: "<b>Online match stopped</b> · connection lost or out of sync.",
+  t_prac: "Deal {0}/{1} · {2} best hands", t_memo: "Memorize · {0}s",t_pick: "Pick 2 cards · {0}s", t_deal: "Dealing…", t_next: "Next round in {0}s", t_idle: "Not started", t_done: "Picks locked in",
+  b_next: "Next round", b_redeal: "Deal again", b_result: "See result",
+  go_you: "YOU WIN!", go_ai: "AI WINS", go_opp: "OPPONENT WINS", go_aborted: "MATCH STOPPED", go_practice: "PRACTICE DONE",
+  gs_score: "Score {0} – {1}.", gs_left: "Your opponent left the room.", gs_aborted: "The online match was stopped midway.",
+  gs_practice: "You found the best hand in {0}/10 deals.", gs_record: " New record!", gs_best: " Record: {0}/10.",
+  go_rematch: "Rematch", go_rm_wait: "Rematch requested, waiting for your opponent…", go_rm_them: "Your opponent wants a rematch! Press Rematch to start.",
+  i_mode: "Mode", i_mode_bot: "Vs AI · {0}", i_mode_online: "Online", i_mode_practice: "Practice",
+  i_score: "Score", i_round: "Round", i_round_v: "{0} (first to 2)", i_deal: "Deal", i_prac: "Played", i_opt: "Best hands", i_best: "Record",
+  tip: "Don't try to remember all 16: focus on high cards (A, K, Q), pairs, and cards of the same suit.",
+  n_title_host: "Your room", n_title_join: "Joining room", n_title_err: "Could not connect",
+  n_connecting: "Connecting…", n_wait: "Send this code or link to a friend. Waiting for an opponent to join…",
+  n_joining: "Joining room {0}…", n_copy: "Copy link", n_copied: "Copied!", n_close: "Close",
+  n_err_code: "Room codes have 5 characters, please check it again.",
+  n_err_nopeer: "Room {0} was not found. The code may be wrong, or the host has closed the room.",
+  n_err_full: "This room already has 2 players.",
+  n_err_version: "The two devices are running different versions of the game. Reload the page (Ctrl+F5) on both and try again.",
+  n_err_timeout: "Timed out connecting to the host. One of the networks may be blocking the connection.",
+  n_err_desync: "The two devices got out of sync, so the online match was stopped.",
+  n_err_net: "Connection error ({0}). Try again in a few minutes.",
+  n_err_lib: "Could not load the PeerJS connection library. Check your network and try again.",
+}
+};
+let LANG = "vi";
+try { const s = localStorage.getItem("lang"); LANG = (s === "vi" || s === "en") ? s : ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"); } catch (e) { LANG = (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"; }
+const tr = (key, ...a) => String((I18N[LANG][key] ?? I18N.vi[key] ?? key)).replace(/\{(\d)\}/g, (m, i) => a[i]);
+const RN = r => r <= 10 ? String(r) : "JQKA"[r - 11];
+const suitSvg = s => `<svg><use href="#su${s}"/></svg>`;
+const cardName = c => `<b style="white-space:nowrap">${RN(rankOf(c))}${"♠♥♦♣"[suitOf(c)]}︎</b>`;
+const handName = h => tr("h" + h.cat);
+function handDesc(h) { const t = h.tb.map(RN); return tr("d" + h.cat, t[0], t[1]); }
+/* mô tả đủ lá phụ, dùng khi hai tay cùng mô tả ngắn (vd hai mậu thầu cùng lá J) */
+function handDescFull(h) {
+  const t = h.tb.map(RN);
+  if (h.cat === 0 || h.cat === 5) return handName(h) + " " + t.join("-");
+  const used = { 1: 1, 2: 2, 3: 1, 7: 1 }[h.cat];
+  return used ? handDesc(h) + ", " + tr("kick") + " " + t.slice(used).join("-") : handDesc(h);
+}
+function applyI18n() {
+  document.documentElement.lang = LANG; document.title = tr("title") + " · Twistboard";
+  document.querySelectorAll("[data-i18n]").forEach(e => { e.innerHTML = tr(e.dataset.i18n); });
+  buildRankList();
+}
+/* bảng thứ tự tay bài trong hộp Luật chơi (lá mờ là lá không thuộc bộ) */
+const RANK_EX = [
+  [9, "A0 K0 Q0 J0 T0"], [8, "91 81 71 61 51"], [7, "83 82 81 80 K2-"], [6, "Q0 Q1 Q2 43 40"], [5, "A2 J2 82 62 22"],
+  [4, "T3 92 80 71 63"], [3, "70 71 72 K3- 30-"], [2, "J1 J3 52 50 A3-"], [1, "T0 T2 K1- 63- 32-"], [0, "A3 Q2- 90- 61- 33-"],
+];
+function miniCard(c, cls = "") { return c < 0 ? `<span class="mc ${cls}"></span>` : `<span class="mc s${suitOf(c)} ${cls}"><b>${RN(rankOf(c))}</b>${suitSvg(suitOf(c))}</span>`; }
+function buildRankList() {
+  const rk = ch => ch === "A" ? 14 : ch === "K" ? 13 : ch === "Q" ? 12 : ch === "J" ? 11 : ch === "T" ? 10 : +ch;
+  $("#rankList").innerHTML = RANK_EX.map(([cat, s]) => {
+    const cards = s.split(" ").map(t => miniCard(cardOf(rk(t[0]), +t[1]), t[2] === "-" ? "x" : "")).join("");
+    const x = I18N[LANG]["hx" + cat] || "";
+    return `<div class="rn">${tr("h" + cat)}${x ? `<small>${x}</small>` : ""}</div><div class="mcs">${cards}</div>`;
+  }).join("");
+}
+
+/* ---------- ÂM THANH (tổng hợp bằng Web Audio) ---------- */
+let AC = null;
+try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+function tone(freq, start, dur, type = "sine", vol = .18) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
+  g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + .01); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.start(start); o.stop(start + dur + .02);
+}
+function sfx(name) {
+  if (!AC) return;
+  try {
+    if (AC.state !== "running") AC.resume().catch(() => {});
+    const t = AC.currentTime + .01;
+    if (name === "deal") for (let i = 0; i < 6; i++) tone(900 + i * 40, t + i * .06, .04, "triangle", .06);
+    else if (name === "flip") { tone(420, t, .07, "triangle", .14); tone(640, t + .04, .07, "sine", .08); }
+    else if (name === "pick") { tone(560, t, .08, "triangle", .2); tone(840, t + .05, .1, "sine", .1); }
+    else if (name === "reveal") [392, 523, 659].forEach((f, i) => tone(f, t + i * .07, .14, "triangle", .12));
+    else if (name === "round") [660, 880].forEach((f, i) => tone(f, t + i * .09, .18, "triangle", .16));
+    else if (name === "roundlose") [440, 330].forEach((f, i) => tone(f, t + i * .12, .22, "triangle", .14));
+    else if (name === "win") [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * .11, .3, "triangle", .2));
+    else if (name === "lose") [392, 330, 262, 196].forEach((f, i) => tone(f, t + i * .15, .35, "triangle", .18));
+    else if (name === "draw") [440, 440].forEach((f, i) => tone(f, t + i * .18, .25, "triangle", .16));
+    else if (name === "tick") tone(1100, t, .05, "square", .05);
+  } catch (e) {}
+}
+
+/* ---------- CHẾ ĐỘ, CÀI ĐẶT ---------- */
+const MEMO_MS = 30000;   // bản gốc 20 giây, chủ game đổi thành 30
+const PICK_MS = 30000;
+const INTRO_MS = 1100;   // chia bài (úp) trước khi lật ngửa cho nhớ
+const NEXT_MS = 8000;    // online: chủ phòng tự sang ván sau chừng này
+const TARGET = 2;        // chạm 2 (chủ game chọn)
+const PRACTICE_DEALS = 10;
+const LEVELS = ["easy", "medium", "hard"];
+const PREFS_KEY = "memorypoker.prefs", BEST_KEY = "memorypoker.practiceBest";
+let PREFS = { vs: "bot", level: "easy", net: "create", code: "" };
+try { const s = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); if (s && typeof s === "object") for (const k of ["vs", "level"]) if (s[k] !== undefined) PREFS[k] = s[k]; } catch (e) {}
+if (!LEVELS.includes(PREFS.level)) PREFS.level = "easy";
+if (!["bot", "practice", "online"].includes(PREFS.vs)) PREFS.vs = "bot";
+function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify({ vs: PREFS.vs, level: PREFS.level })); } catch (e) {} }
+function practiceBest() { try { return +localStorage.getItem(BEST_KEY) || 0; } catch (e) { return 0; } }
+
+let MODE = clone(PREFS);
+const ME = () => (MODE.vs === "online" && NET.role === "guest" ? 1 : 0);
+const OPP = () => 1 - ME();
+const solo = () => MODE.vs === "practice";
+const oppName = () => tr(MODE.vs === "bot" ? "ai" : "opp");
+
+/* ---------- TRẠNG THÁI ----------
+   G = { seed, d (lượt chia), wins[2], phase: "intro" | "memo" | "pick" | "reveal", left (ms còn lại của pha), grid, comm,
+         picks[2] (ô đã lật của mỗi ghế), res, auto, ai { bel, at[2] }, pickT, prac { n, opt }, over } — ghế 0 = chủ phòng/mình, 1 = AI/khách */
+let G = null, overDismissed = false, overShowAt = 0;
+
+function newMatch(seed) {
+  G = { seed: seed >>> 0, d: -1, wins: [0, 0], phase: "intro", left: 0, grid: [], comm: [], picks: [[], []], res: null, auto: false, ai: null, pickT: 0, prac: { n: 0, opt: 0 }, over: null, rec: false };
+  overDismissed = false;
+  startDeal(0);
+}
+function startDeal(d) {
+  const dc = dealCards(G.seed, d);
+  Object.assign(G, { d, grid: dc.grid, comm: dc.comm, phase: "intro", left: INTRO_MS, picks: [[], []], res: null, auto: false, pickT: 0, best: null });
+  G.ai = MODE.vs === "bot" ? { bel: aiMemory(G.grid, G.comm, MODE.level), at: [2200 + Math.random() * 5500, 0] } : null;
+  if (G.ai) G.ai.at[1] = G.ai.at[0] + 1200 + Math.random() * 2600;
+  buildTable(); sfx("deal"); render();
+}
+function enterPick() {
+  if (!G || (G.phase !== "memo" && G.phase !== "intro")) return;
+  G.phase = "pick"; G.left = PICK_MS; G.pickT = 0;
+  if (MODE.vs === "online" && NET.role === "host") netSend({ t: "pick", d: G.d });
+  sfx("flip"); render();
+}
+function pickCell(seat, i, fromNet) {
+  if (!G || G.phase !== "pick" || G.over) return false;
+  const P = G.picks[seat];
+  if (!Number.isInteger(i) || i < 0 || i > 15 || P.length >= 2 || P.includes(i)) return false;
+  P.push(i);
+  if (seat === ME()) { sfx("pick"); if (MODE.vs === "online" && !fromNet) netSend({ t: "pk", d: G.d, i }); }
+  render();
+  if (solo() ? G.picks[0].length === 2 : G.picks[0].length === 2 && G.picks[1].length === 2) setTimeout(resolveDeal, 450);
+  return true;
+}
+function autoPick(seat) {   // hết giờ chọn: chọn ngẫu nhiên phần còn thiếu
+  const P = G.picks[seat];
+  while (P.length < 2) {
+    const free = []; for (let i = 0; i < 16; i++) if (!P.includes(i)) free.push(i);
+    const i = free[Math.floor(Math.random() * free.length)];
+    if (!pickCell(seat, i)) break;
+  }
+}
+function resolveDeal() {
+  if (!G || G.phase !== "pick" || G.res) return;
+  const bp = bestPairs(G.grid, G.comm);
+  const me = ME();
+  if (solo()) {
+    const h = handOf(G.grid, G.comm, G.picks[0]), ok = h.score === bp.score;
+    G.res = { h: [h, null], winner: ok ? 0 : 1, prac: true, ok };
+    G.prac.n++; if (ok) G.prac.opt++;
+    G.best = ok ? G.picks[0].slice() : bp.pairs[0];
+    if (G.prac.n >= PRACTICE_DEALS) {
+      G.over = { practice: true };
+      if (G.prac.opt > practiceBest()) { G.rec = true; try { localStorage.setItem(BEST_KEY, String(G.prac.opt)); } catch (e) {} }
+    }
+    sfx(ok ? "round" : "roundlose");
+  } else {
+    G.res = judge(G.grid, G.comm, G.picks[0], G.picks[1]);
+    const w = G.res.winner;
+    if (w >= 0) G.wins[w]++;
+    const s = [G.res.h[0].score, G.res.h[1].score];
+    G.best = s[0] < bp.score && s[1] < bp.score ? bp.pairs[0] : null;   // không ai đạt tay tốt nhất: chỉ cho xem
+    if (w >= 0 && G.wins[w] >= TARGET) G.over = { winner: w };
+    sfx(w < 0 ? "draw" : w === me ? "round" : "roundlose");
+  }
+  G.phase = "reveal"; G.left = NEXT_MS;
+  if (G.over) { overDismissed = false; overShowAt = performance.now() + 2200; setTimeout(render, 2250); }
+  sfx("reveal"); render();
+}
+function nextDeal() {
+  if (!G || G.phase !== "reveal" || G.over) return;
+  if (MODE.vs === "online") { if (NET.role !== "host") return; netSend({ t: "nx", d: G.d + 1 }); }
+  startDeal(G.d + 1);
+}
+function aiStep() {   // AI lật lá kế tiếp theo trí nhớ
+  const P = G.picks[1], a = G.ai;
+  const i = P.length === 0 ? aiFirst(a.bel, G.comm) : aiSecond(a.bel, G.comm, P[0], G.grid[P[0]]);
+  pickCell(1, i);
+}
+const anyModal = () => [...document.querySelectorAll(".modal")].some(m => !m.hidden);
+
+/* ---------- ĐỒNG HỒ (mỗi 100 ms; đấu AI/luyện tập thì dừng khi đang mở bảng) ---------- */
+let lastT = performance.now(), lastBeep = -1;
+setInterval(() => {
+  const now = performance.now(), dt = Math.min(500, now - lastT); lastT = now;
+  if (!G || G.over && G.phase === "reveal") { if (G && G.over && !overDismissed && now >= overShowAt && $("#gameover").hidden) renderOver(); return; }
+  if (MODE.vs !== "online" && anyModal()) return;
+  G.left -= dt;
+  if (G.phase === "intro") {
+    if (G.left <= 0) { G.phase = "memo"; G.left = MEMO_MS; sfx("flip"); render(); }
+  } else if (G.phase === "memo") {
+    beep();
+    if (G.left <= 0) { G.left = 0; if (!(MODE.vs === "online" && NET.role === "guest")) enterPick(); else renderStatus(); }
+  } else if (G.phase === "pick") {
+    G.pickT += dt;
+    beep();
+    if (G.ai && G.picks[1].length < 2 && G.pickT >= G.ai.at[G.picks[1].length]) aiStep();
+    if (G.phase === "pick" && G.left <= 0 && G.picks[ME()].length < 2) { G.left = 0; G.auto = true; autoPick(ME()); }
+  } else if (G.phase === "reveal") {
+    if (MODE.vs === "online" && NET.role === "host" && G.left <= 0) nextDeal();
+  }
+  renderTimer();
+}, 100);
+function beep() {
+  const mine = G.phase === "memo" || G.picks[ME()].length < 2;
+  const s = Math.ceil(G.left / 1000);
+  if (mine && s <= 5 && s > 0 && s !== lastBeep) { lastBeep = s; sfx("tick"); }
+}
+
+/* ============================================================
+   CHƠI ONLINE (PeerJS). Kiểu lockstep: chủ phòng gửi seed, hai máy tự chia cùng bộ bài cho từng lượt chia d.
+   Tin: hello {v}, start {v, seed}, pick {d} (chủ phòng: sang lượt chọn), pk {d, i} (lật ô i),
+   nx {d} (chủ phòng: chia lượt d), rematch, ping, bye, err. Chủ phòng quyết định lúc hết 30 giây nhớ và lúc sang ván sau;
+   mỗi máy tự lo giờ chọn của mình (hết giờ thì chọn ngẫu nhiên rồi gửi pk). Lá của đối thủ chỉ hiện khi lật bài.
+   ============================================================ */
+const NET_PROTO = 1;   // tăng số này mỗi khi đổi luật/giao thức
+const PEER_SRC = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+const PEER_SRI = "sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR";
+const PEER_PREFIX = "memorypoker-";
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", CODE_LEN = 5;
+const NET = { peer: null, conn: null, role: null, code: "", playing: false, rm: { me: false, them: false }, gen: 0, seen: 0 };
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
+const newCode = () => Array.from({ length: CODE_LEN }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+const netOpen = () => !!(NET.conn && NET.conn.open);
+const netSend = d => { if (netOpen()) NET.conn.send(d); };
+const inviteLink = code => location.href.split("#")[0] + "#room=" + code;
+
+let peerLoading = null;
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  return peerLoading || (peerLoading = new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = PEER_SRC; s.integrity = PEER_SRI; s.crossOrigin = "anonymous";
+    s.onload = () => (window.Peer ? ok() : fail());
+    s.onerror = () => { peerLoading = null; s.remove(); fail(); };
+    document.head.appendChild(s);
+  }));
+}
+function showNet(title, msg, opt = {}) {
+  $("#netTitle").textContent = title; $("#netMsg").textContent = msg;
+  $("#netCodeBox").hidden = !opt.code;
+  if (opt.code) { $("#netCode").textContent = opt.code; $("#netLink").value = inviteLink(opt.code); }
+  $("#netCancel").textContent = tr(opt.done ? "n_close" : "cancel");
+  $("#mNet").hidden = false;
+}
+function startOnline() {
+  netClose(true);
+  MODE = clone(modeDraft); $("#mMode").hidden = true; $("#mRules").hidden = true;
+  G = null; buildTable(); render();
+  if (MODE.net === "join") netJoin(MODE.code); else netHost();
+}
+async function netHost(tries = 0) {
+  const gen = ++NET.gen;
+  NET.role = "host";
+  showNet(tr("n_title_host"), tr("n_connecting"));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const code = newCode(), peer = new Peer(PEER_PREFIX + code);
+  NET.peer = peer; NET.code = code;
+  peer.on("open", () => { if (gen === NET.gen) showNet(tr("n_title_host"), tr("n_wait"), { code }); });
+  peer.on("connection", conn => {
+    if (gen !== NET.gen || NET.conn) { conn.on("open", () => { conn.send({ t: "err", code: "full" }); setTimeout(() => conn.close(), 500); }); return; }
+    NET.conn = conn; bindConn(conn, gen);
+  });
+  peer.on("disconnected", () => {
+    if (gen === NET.gen && !NET.playing && !peer.destroyed) setTimeout(() => { if (gen === NET.gen && !peer.destroyed) peer.reconnect(); }, 1500);
+  });
+  peer.on("error", e => {
+    if (gen !== NET.gen) return;
+    if (e.type === "unavailable-id" && tries < 3) { peer.destroy(); NET.peer = null; netHost(tries + 1); return; }
+    netError(e);
+  });
+}
+async function netJoin(code) {
+  const gen = ++NET.gen;
+  NET.role = "guest"; NET.code = code;
+  showNet(tr("n_title_join"), tr("n_joining", code));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const peer = new Peer(); NET.peer = peer;
+  peer.on("open", () => {
+    if (gen !== NET.gen) return;
+    const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+    NET.conn = conn; bindConn(conn, gen);
+    setTimeout(() => { if (gen === NET.gen && !NET.playing) netFail("n_err_timeout"); }, 25000);
+  });
+  peer.on("error", e => { if (gen === NET.gen) netError(e); });
+}
+function bindConn(conn, gen) {
+  conn.on("open", () => { if (gen === NET.gen && NET.role === "guest") conn.send({ t: "hello", v: NET_PROTO }); });
+  conn.on("data", d => { if (gen === NET.gen) { NET.seen = performance.now(); onNetData(d); } });
+  conn.on("close", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+  conn.on("error", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+}
+/* WebRTC nhiều khi không báo đóng khi tab bên kia tắt: hai bên ping mỗi 3 giây, 12 giây không nghe gì thì coi là rớt */
+setInterval(() => {
+  if (!NET.playing || !netOpen()) return;
+  netSend({ t: "ping" });
+  if (performance.now() - NET.seen > 12000) onNetLost();
+}, 3000);
+function beginOnlineMatch(seed) {
+  NET.playing = true; NET.rm = { me: false, them: false }; NET.seen = performance.now();
+  for (const id of ["#mNet", "#mMode", "#mRules"]) $(id).hidden = true;
+  newMatch(seed);
+}
+function hostStartMatch() {
+  const seed = Math.floor(Math.random() * 4294967296);
+  netSend({ t: "start", v: NET_PROTO, seed });
+  beginOnlineMatch(seed);
+}
+function onNetData(d) {
+  if (!d || typeof d !== "object") return;
+  switch (d.t) {
+    case "hello":
+      if (NET.role !== "host" || NET.playing) return;
+      if (d.v !== NET_PROTO) { netSend({ t: "err", code: "version" }); const c = NET.conn; NET.conn = null; setTimeout(() => c.close(), 500); return; }
+      return hostStartMatch();
+    case "start":
+      if (NET.role !== "guest") return;
+      if (d.v !== NET_PROTO) return netFail("n_err_version");
+      return beginOnlineMatch(+d.seed);
+    case "pick":
+      if (NET.role !== "guest" || !G || d.d !== G.d) return;
+      return enterPick();
+    case "pk":
+      if (!G || d.d !== G.d) return netDesync();
+      if (G.phase === "reveal" && G.picks[OPP()].includes(d.i)) return;
+      if (!pickCell(OPP(), d.i, true)) netDesync();
+      return;
+    case "nx":
+      if (NET.role === "guest" && G && G.phase === "pick" && G.picks[0].length === 2 && G.picks[1].length === 2) resolveDeal();   // chủ phòng lật bài sớm hơn mình một chút
+      if (NET.role !== "guest" || !G || d.d !== G.d + 1 || G.phase !== "reveal" || G.over) return netDesync();
+      return startDeal(d.d);
+    case "rematch":
+      if (!G || !G.over || NET.rm.them) return;
+      NET.rm.them = true;
+      if (NET.role === "host" && NET.rm.me) return hostStartMatch();
+      overDismissed = false; render();
+      return;
+    case "ping": return;
+    case "bye": return onNetLost();
+    case "err": return netFail(d.code === "full" ? "n_err_full" : d.code === "version" ? "n_err_version" : "n_err_desync");
+  }
+}
+function requestRematch() {
+  if (NET.rm.me) return;
+  NET.rm.me = true; netSend({ t: "rematch" });
+  if (NET.role === "host" && NET.rm.them) return hostStartMatch();
+  renderOver();
+}
+function netDesync() { netSend({ t: "err", code: "desync" }); netFail("n_err_desync"); }
+function netError(e) {
+  const type = (e && e.type) || "";
+  if (netOpen()) { console.warn("PeerJS:", type, e); return; }
+  if (type === "peer-unavailable") return netFail("n_err_nopeer", NET.code);
+  netFail("n_err_net", type || String(e));
+}
+function stopMatch(over) {
+  if (!G || G.over) return;
+  G.over = over; G.phase = "reveal"; overDismissed = false; overShowAt = 0;
+}
+function netFail(key, arg) {
+  const mid = NET.playing && G && !G.over;
+  netClose(false);
+  if (mid) stopMatch({ aborted: true });
+  render();
+  showNet(tr("n_title_err"), tr(key, arg), { done: true });
+}
+function onNetLost() {
+  if (NET.role === "host" && !NET.playing) { NET.conn = null; return; }
+  const mid = NET.playing && G && !G.over;
+  netClose(false);
+  if (mid) stopMatch({ winner: ME(), left: true });
+  render();
+}
+function netClose(bye) {
+  NET.gen++;
+  if (bye) try { netSend({ t: "bye" }); } catch (e) {}
+  const peer = NET.peer, conn = NET.conn;
+  NET.peer = NET.conn = null; NET.playing = false; NET.rm = { me: false, them: false };
+  if (peer || conn) setTimeout(() => { try { if (conn) conn.close(); } catch (e) {} try { if (peer) peer.destroy(); } catch (e) {} }, bye ? 400 : 0);
+}
+
+/* ---------- RENDER ---------- */
+let gridEls = [], commEls = [];
+function cardHTML(c, k, i) {
+  const s = c >= 0 ? suitOf(c) : 0;
+  const fr = c >= 0 ? `<div class="fr s${s}"><b class="rk">${RN(rankOf(c))}</b><svg class="sm"><use href="#su${s}"/></svg><svg class="bg"><use href="#su${s}"/></svg></div>` : `<div class="fr"></div>`;
+  return `<div class="pc down deal" data-k="${k}" data-i="${i}" style="animation-delay:${(k === "g" ? 3 + i : i) * 28}ms"><div class="in">${fr}<div class="bk"></div></div><i class="tg t0"></i><i class="tg t1"></i></div>`;
+}
+function buildTable() {
+  const grid = G ? G.grid : Array(16).fill(-1), comm = G ? G.comm : [-1, -1, -1];
+  $("#comm").innerHTML = `<div class="clab"></div>` + comm.map((c, i) => cardHTML(c, "c", i)).join("");
+  $("#grid").innerHTML = grid.map((c, i) => cardHTML(c, "g", i)).join("");
+  gridEls = [...$("#grid").children]; commEls = [...$("#comm").querySelectorAll(".pc")];
+}
+const myTurn = () => G && G.phase === "pick" && !G.over && G.picks[ME()].length < 2;
+function renderTable() {
+  const ph = G ? G.phase : "idle", me = ME(), op = OPP();
+  const shown = ph === "reveal";
+  const mine = G ? G.picks[me] : [], theirs = G && shown && !solo() ? G.picks[op] : [];
+  const best = G && shown && G.best ? G.best : [];
+  const can = myTurn();
+  gridEls.forEach((e, i) => {
+    const m = mine.includes(i), t = theirs.includes(i), b = best.includes(i);
+    const up = ph === "memo" || shown || (ph === "pick" && m);
+    e.classList.toggle("down", !up);
+    e.classList.toggle("mine", m && ph !== "intro");
+    e.classList.toggle("theirs", t);
+    e.classList.toggle("best", b && !(m && G.res && G.res.ok));
+    e.classList.toggle("dim", shown && !m && !t && !b);
+    e.classList.toggle("can", can && !m);
+    e.querySelector(".t0").textContent = tr("tag_you");
+    e.querySelector(".t1").textContent = tr(MODE.vs === "bot" ? "tag_ai" : "tag_opp");
+  });
+  const commUp = ph === "pick" || shown;
+  commEls.forEach(e => e.classList.toggle("down", !commUp));
+  $("#comm .clab").innerHTML = tr("comm") + (commUp ? "" : `<small>${tr("comm_wait")}</small>`);
+}
+function renderTimer() {
+  const bar = $("#bar"), fill = bar.querySelector("i"), lab = bar.querySelector("span"), btn = $("#tbtn");
+  const ph = G ? G.phase : "idle";
+  let pct = 0, text = tr("t_idle"), cls = "";
+  btn.hidden = true; btn.disabled = false; btn.className = "btn";
+  if (ph === "intro") text = tr("t_deal");
+  else if (ph === "memo") {
+    pct = G.left / MEMO_MS; text = tr("t_memo", Math.max(0, Math.ceil(G.left / 1000)));
+  } else if (ph === "pick") {
+    cls = "pick"; pct = G.left / PICK_MS;
+    text = G.picks[ME()].length >= 2 ? tr("t_done") : tr("t_pick", Math.max(0, Math.ceil(G.left / 1000)));
+  } else if (ph === "reveal") {
+    if (G.over) { text = ""; if (overDismissed || G.over.left || G.over.aborted) { btn.hidden = false; btn.textContent = tr(MODE.vs === "online" && netOpen() ? "go_rematch" : "b_new"); btn.className = "btn primary"; } else { btn.hidden = false; btn.textContent = tr("b_result"); } }
+    else if (MODE.vs === "online") {
+      pct = G.left / NEXT_MS; text = tr("t_next", Math.max(0, Math.ceil(G.left / 1000)));
+      if (NET.role === "host") { btn.hidden = false; btn.textContent = tr(G.res.winner < 0 ? "b_redeal" : "b_next"); btn.className = "btn primary"; }
+    } else { btn.hidden = false; btn.textContent = tr(!solo() && G.res.winner < 0 ? "b_redeal" : "b_next"); btn.className = "btn primary"; }
+    if (!G.over && MODE.vs !== "online") text = solo() ? tr("t_prac", G.prac.n, PRACTICE_DEALS, G.prac.opt) : `${tr("you")} ${G.wins[ME()]} – ${G.wins[OPP()]} ${oppName()}`;
+  }
+  if (ph !== "reveal" || !G.over) { bar.hidden = false; }
+  bar.className = cls + ((ph === "memo" || ph === "pick") && G.left < 5500 ? " low" : "");
+  fill.style.width = Math.max(0, Math.min(1, pct)) * 100 + "%";
+  lab.textContent = text;
+  bar.style.visibility = text ? "" : "hidden";
+  if (ph === "memo" || ph === "pick") renderStatus();
+}
+function renderPanels() {
+  const me = ME(), op = OPP(), ph = G ? G.phase : "idle", shown = ph === "reveal";
+  $("#panels").classList.toggle("solo", solo());
+  $("#pn1").hidden = solo();
+  for (const [el, seat, isMe] of [[$("#pn0"), me, true], [$("#pn1"), op, false]]) {
+    el.querySelector(".av").textContent = tr(isMe ? "av_you" : MODE.vs === "bot" ? "av_ai" : "av_opp");
+    el.querySelector(".pinfo b").textContent = isMe ? tr("you") : oppName();
+    el.querySelector(".pinfo span").textContent = isMe ? (solo() ? tr("role_practice") : tr("role_you")) : MODE.vs === "bot" ? tr("role_bot", tr("lv_" + MODE.level)) : tr("role_opp");
+    el.querySelector(".pips").innerHTML = solo() ? "" : Array.from({ length: TARGET }, (_, k) => `<i class="${G && G.wins[seat] > k ? "on" : ""}"></i>`).join("");
+    const P = G ? G.picks[seat] : [];
+    let cards = "", hn = "";
+    for (let k = 0; k < 2; k++) {
+      if (k >= P.length) cards += `<span class="mc empty"></span>`;
+      else cards += (isMe || shown) ? miniCard(G.grid[P[k]]) : `<span class="mc back"></span>`;
+    }
+    if (G && shown && G.res && G.res.h[seat]) { const h = G.res.h[seat]; hn = `${handName(h)}<small>${handDesc(h)}</small>`; }
+    else if (G && ph === "pick") hn = P.length >= 2 ? (isMe ? "" : `<small>${tr("waiting")}</small>`) : `<small>${isMe ? tr("picked_n", P.length) : P.length ? tr("picked_n", P.length) : tr("picking")}</small>`;
+    if (isMe && G && ph === "pick" && P.length === 2 && !shown) { const h = handOf(G.grid, G.comm, P); hn = `${handName(h)}<small>${handDesc(h)}</small>`; }
+    el.querySelector(".mcs").innerHTML = cards;
+    el.querySelector(".hn").innerHTML = hn;
+    el.classList.toggle("win", !!(G && shown && G.res && !solo() && G.res.winner === seat));
+  }
+}
+function renderStatus() {
+  const dot = $("#stDot"); let h = "", dc = "";
+  const me = ME();
+  if (!G) h = tr("st_notstarted");
+  else if (G.over && (G.over.left || G.over.aborted)) h = tr(G.over.left ? "st_left" : "st_aborted");
+  else if (G.phase === "intro") h = tr("st_intro");
+  else if (G.phase === "memo") { dc = "memo"; h = G.left <= 0 ? tr("st_memo_guest") : tr("st_memo"); }
+  else if (G.phase === "pick") {
+    dc = "pick"; const P = G.picks[me];
+    h = P.length === 0 ? tr("st_pick", 2) : P.length === 1 ? tr("st_pick1", cardName(G.grid[P[0]])) : solo() ? "" : tr(MODE.vs === "bot" ? "st_wait_ai" : "st_wait_opp");
+    if (G.auto) h += " · " + tr("st_auto");
+  } else if (G.phase === "reveal" && G.res) {
+    const r = G.res;
+    if (r.prac) { h = r.ok ? tr("st_p_ok", handName(r.h[0])) : tr("st_p_no", handName(r.h[0]), handName(handOf(G.grid, G.comm, G.best))); dc = r.ok ? "win" : "lose"; }
+    else if (r.winner < 0) h = tr("st_r_tie", handName(r.h[0]));
+    else {
+      const w = r.h[r.winner], l = r.h[1 - r.winner];
+      const sameCat = w.cat === l.cat, sameDesc = sameCat && handDesc(w) === handDesc(l);
+      const a = sameDesc ? handDescFull(w) : sameCat ? handDesc(w) : handName(w), b = sameDesc ? handDescFull(l) : sameCat ? handDesc(l) : handName(l);
+      h = tr(r.winner === me ? "st_r_you" : MODE.vs === "bot" ? "st_r_ai" : "st_r_opp", a, b); dc = r.winner === me ? "win" : "lose";
+    }
+    if (G.over) {
+      const o = G.over;
+      h += " · " + (o.practice ? tr("st_over_p", G.prac.opt) : tr(o.winner === me ? "st_over_you" : MODE.vs === "bot" ? "st_over_ai" : "st_over_opp"));
+    }
+  }
+  dot.className = "dot " + dc;
+  $("#statusText").innerHTML = h;
+}
+function renderInfo() {
+  let rows = `<dt>${tr("i_mode")}</dt><dd>${MODE.vs === "bot" ? tr("i_mode_bot", tr("lv_" + MODE.level)) : MODE.vs === "online" ? tr("i_mode_online") : tr("i_mode_practice")}</dd>`;
+  if (solo()) {
+    rows += `<dt>${tr("i_prac")}</dt><dd>${G ? G.prac.n : 0}/${PRACTICE_DEALS}</dd><dt>${tr("i_opt")}</dt><dd>${G ? G.prac.opt : 0}</dd><dt>${tr("i_best")}</dt><dd>${practiceBest()}/${PRACTICE_DEALS}</dd>`;
+  } else if (G) {
+    const me = ME(), round = Math.min(G.wins[0] + G.wins[1] + (G.phase === "reveal" && G.res && G.res.winner >= 0 ? 0 : 1), 3);
+    rows += `<dt>${tr("i_score")}</dt><dd>${tr("you")} ${G.wins[me]} – ${G.wins[1 - me]} ${oppName()}</dd><dt>${tr("i_round")}</dt><dd>${tr("i_round_v", round)}</dd><dt>${tr("i_deal")}</dt><dd>${G.d + 1}</dd>`;
+  }
+  $("#infoList").innerHTML = rows;
+  $("#tip").textContent = tr("tip");
+}
+function renderOver() {
+  const go = $("#gameover");
+  if (!G || !G.over || overDismissed || performance.now() < overShowAt) { go.hidden = true; return; }
+  const o = G.over, me = ME();
+  if (go.hidden) sfx(o.aborted ? "draw" : o.practice ? (G.prac.opt >= 5 ? "win" : "draw") : o.winner === me ? "win" : "lose");
+  go.hidden = false;
+  $("#goTitle").textContent = o.aborted ? tr("go_aborted") : o.practice ? tr("go_practice") : o.winner === me ? tr("go_you") : MODE.vs === "bot" ? tr("go_ai") : tr("go_opp");
+  $("#goSub").textContent = o.aborted ? tr("gs_aborted") : o.left ? tr("gs_left") : o.practice ? tr("gs_practice", G.prac.opt) + (G.rec ? tr("gs_record") : tr("gs_best", practiceBest()))
+    : tr("gs_score", G.wins[o.winner], G.wins[1 - o.winner]);
+  const rematch = MODE.vs === "online" && netOpen();
+  $("#goNew").textContent = tr(rematch ? "go_rematch" : "b_new");
+  $("#goNew").disabled = rematch && NET.rm.me;
+  $("#goNet").textContent = !rematch ? "" : NET.rm.me ? tr("go_rm_wait") : NET.rm.them ? tr("go_rm_them") : "";
+}
+function render() { renderTable(); renderTimer(); renderPanels(); renderStatus(); renderInfo(); renderOver(); }
+
+/* ---------- KÍCH THƯỚC ---------- */
+function fit() {
+  const vw = document.documentElement.clientWidth, vh = window.innerHeight - ((document.getElementById("tb-header") || {}).offsetHeight || 0);
+  const portrait = vw < 860;
+  document.body.classList.toggle("portrait", portrait);
+  // bàn cao ≈ 7,94 × cw + 46 (5 hàng lá cao 1,4cw + khe + thanh giờ), rộng ≈ 4,62 × cw.
+  // Đặt thử một cỡ, đo bàn thật (vị trí mép trên + chiều cao) rồi chỉnh 2 lần cho vừa chiều cao màn hình.
+  const maxW = portrait ? (vw - 16) / 4.62 : (vw - 24 - 290 - 20) / 4.62, minW = portrait ? 56 : 62;
+  const root = document.documentElement.style;
+  const apply = cw => {
+    root.setProperty("--cw", cw + "px");
+    root.setProperty("--ch", Math.round(cw * 1.4) + "px");
+    root.setProperty("--gap", Math.round(Math.max(5, cw * .1)) + "px");
+    root.setProperty("--pad", Math.round(Math.max(8, cw * .16)) + "px");
+  };
+  let cw = Math.floor(Math.max(minW, Math.min(maxW, 124, (vh - 160 - 46) / 7.94)));
+  apply(cw);
+  for (let k = 0; k < 2; k++) {
+    const t = $("#table"), r = t.getBoundingClientRect(), top = r.top + window.scrollY;
+    const room = window.innerHeight - top - (portrait ? 10 : 16);
+    const next = Math.floor(Math.max(minW, Math.min(maxW, 124, cw + (room - r.height) / 7.94)));
+    if (next === cw) break;
+    cw = next; apply(cw);
+  }
+}
+
+/* ---------- ĐIỀU KHIỂN ---------- */
+$("#grid").addEventListener("click", e => {
+  const c = e.target.closest(".pc"); if (!c || !myTurn()) return;
+  pickCell(ME(), +c.dataset.i);
+});
+$("#tbtn").addEventListener("click", () => {
+  if (!G) return;
+  if (G.phase === "reveal") {
+    if (G.over) { if (!overDismissed && performance.now() < overShowAt) { overShowAt = 0; return renderOver(); } if (MODE.vs === "online" && netOpen()) return requestRematch(); return openMode(); }
+    return nextDeal();
+  }
+});
+
+/* ---------- BẢNG CHỌN CHẾ ĐỘ ---------- */
+let modeDraft = null;
+const MODE_SEGS = [["#segVs", "vs"], ["#segNet", "net"], ["#segLevel", "level"]];
+const matchLive = () => G && !G.over;
+function syncMode() {
+  for (const [id, key] of MODE_SEGS) document.querySelectorAll(id + " button").forEach(b => b.classList.toggle("on", b.dataset.v === modeDraft[key]));
+  const online = modeDraft.vs === "online", join = online && modeDraft.net === "join";
+  $("#vsNote").textContent = tr("vn_" + modeDraft.vs);
+  $("#netOpts").classList.toggle("off", !online);
+  $("#segNet").querySelectorAll("button").forEach(b => { b.disabled = !online; });
+  $("#joinCode").disabled = !join; $("#joinCode").placeholder = tr("m_code_ph");
+  if (!$("#joinCode").value && modeDraft.code) $("#joinCode").value = modeDraft.code;
+  $("#netNote").textContent = tr(join ? "m_net_join" : "m_net_create");
+  const lvOff = modeDraft.vs !== "bot";
+  $("#levelOpts").classList.toggle("off", lvOff);
+  $("#segLevel").querySelectorAll("button").forEach(b => { b.disabled = lvOff; });
+  $("#levelNote").textContent = tr("lvn_" + modeDraft.level);
+  $("#modeStart").textContent = online ? tr(join ? "m_join" : "m_create") : matchLive() ? tr("m_forfeit") : tr("m_start");
+}
+let everStarted = false;
+function openMode() {
+  modeDraft = clone(PREFS); modeDraft.net = MODE.net || "create"; modeDraft.code = "";
+  syncMode();
+  $("#modeCancel").textContent = everStarted ? tr("cancel") : tr("m_back");
+  $("#mMode").hidden = false;
+}
+let returnToMode = true;
+function openRules() { $("#mRules").hidden = false; }
+
+/* ---------- NGÔN NGỮ ---------- */
+function setLang(l) {
+  LANG = l; try { localStorage.setItem("lang", l); } catch (e) {}
+  if (window.TB) TB.setLang(l);
+  applyI18n(); if (modeDraft && !$("#mMode").hidden) syncMode();
+  render();
+}
+if (window.TB) TB.onLang(l => { if (l !== LANG) setLang(l); });
+
+/* ---------- SỰ KIỆN ---------- */
+for (const [id, key] of MODE_SEGS)
+  document.querySelectorAll(id + " button").forEach(b => b.addEventListener("click", () => {
+    modeDraft[key] = b.dataset.v; syncMode();
+    if (modeDraft.vs === "online" && modeDraft.net === "join" && (key === "net" || key === "vs")) $("#joinCode").focus();
+  }));
+$("#joinCode").addEventListener("input", e => { const v = normCode(e.target.value); if (e.target.value !== v) e.target.value = v; });
+$("#joinCode").addEventListener("keydown", e => { if (e.key === "Enter") $("#modeStart").click(); });
+$("#netCancel").addEventListener("click", () => { netClose(true); $("#mNet").hidden = true; if (!G) openMode(); });
+$("#netCopy").addEventListener("click", () => {
+  const inp = $("#netLink"), btn = $("#netCopy");
+  const done = () => { btn.textContent = tr("n_copied"); setTimeout(() => { btn.textContent = tr("n_copy"); }, 1500); };
+  const legacy = () => { inp.select(); try { document.execCommand("copy"); done(); } catch (e) {} };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done, legacy); else legacy();
+});
+window.addEventListener("pagehide", () => { if (netOpen()) try { NET.conn.send({ t: "bye" }); } catch (e) {} });
+$("#modeCancel").addEventListener("click", () => {
+  $("#mMode").hidden = true;
+  if (!everStarted) { returnToMode = true; openRules(); }
+});
+$("#modeStart").addEventListener("click", () => {
+  for (const k of ["vs", "level"]) PREFS[k] = modeDraft[k];
+  savePrefs();
+  everStarted = true;
+  if (modeDraft.vs === "online") {
+    if (modeDraft.net === "join") {
+      modeDraft.code = normCode($("#joinCode").value);
+      if (modeDraft.code.length !== CODE_LEN) { $("#netNote").textContent = tr("n_err_code"); $("#joinCode").focus(); return; }
+    }
+    return startOnline();
+  }
+  netClose(true);
+  MODE = clone(modeDraft); $("#mMode").hidden = true;
+  newMatch(Math.floor(Math.random() * 4294967296));
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("#mNet").hidden) $("#netCancel").click();
+  else if (!$("#mRules").hidden) $("#rulesOk").click();
+  else if (!$("#mMode").hidden) { if (everStarted) $("#mMode").hidden = true; }
+});
+$("#btnNew").addEventListener("click", () => {
+  if (MODE.vs === "online" && netOpen() && G && G.over) { overDismissed = false; overShowAt = 0; return renderOver(); }
+  openMode();
+});
+$("#goNew").addEventListener("click", () => { if (MODE.vs === "online" && netOpen()) return requestRematch(); openMode(); });
+$("#goView").addEventListener("click", () => { overDismissed = true; render(); });
+$("#btnRules").addEventListener("click", () => { returnToMode = false; openRules(); });
+$("#rulesOk").addEventListener("click", () => { $("#mRules").hidden = true; if (returnToMode) { returnToMode = false; openMode(); } });
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("mousedown", e => {
+  if (e.target !== m || m.id === "mNet" || (m.id === "mMode" && !everStarted)) return;
+  if (m.id === "mRules") return $("#rulesOk").click();
+  m.hidden = true;
+}));
+window.addEventListener("resize", fit);
+
+/* ---------- KHỞI ĐỘNG ---------- */
+(function init() {
+  applyI18n(); buildTable(); render(); fit();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  const room = normCode((location.hash.match(/room=([A-Za-z0-9]+)/) || [])[1]);
+  if (room.length === CODE_LEN) {   // mở từ link mời: vào phòng luôn
+    try { history.replaceState(null, "", location.href.split("#")[0]); } catch (e) {}
+    everStarted = true;
+    modeDraft = { ...clone(PREFS), vs: "online", net: "join", code: room };
+    startOnline();
+  } else openRules();
+  if (window.TB && TB.closeX) TB.closeX({ "#mRules": "#rulesOk", "#mMode": "#modeCancel", "#mNet": "#netCancel" });   // thẻ hết trận không có × (chủ game bỏ, 11/2026)
+  window.game = {   // tiện debug ở console
+    get G() { return G; }, get mode() { return MODE; }, get net() { return NET; },
+    pickCell, nextDeal, enterPick, evalHand, bestPairs, aiPick, dealCards,
+  };
+})();
+</script>
+</body>
+</html>

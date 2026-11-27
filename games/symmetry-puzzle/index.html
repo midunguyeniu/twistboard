@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xếp hình đối xứng · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<link rel="stylesheet" href="../../assets/puzzle-kit.css">
+<script src="../../assets/platform.js"></script>
+<script src="../../assets/puzzle-kit.js"></script>
+<script src="bank.js"></script>
+<style>
+.sy{width:100%;display:grid;place-items:center;gap:12px;--sy-bg:#fdf6dc}
+.sy-boards{width:100%}
+.sy-board{width:100%;display:grid;place-items:center}
+.sy-board[hidden]{display:none}
+.sy-tabs{display:flex;gap:8px;justify-content:center}
+.sy-tab{position:relative;width:46px;height:50px;border:0;padding:0 0 8px;cursor:pointer;font:inherit;font-weight:900;font-size:18px;color:#3a4150;background:#f6ebc6;
+  clip-path:polygon(0 0,100% 0,100% 100%,50% 80%,0 100%);transition:background-color .15s,transform .12s}
+.sy-tab:hover{background:#f1e0aa}
+.sy-tab.on{background:var(--tc);color:#fff}
+.sy-tab.ok:not(.on){color:var(--tk)}
+.sy-svg{display:block;max-width:100%;border-radius:10px;background:var(--sy-bg);box-shadow:0 0 0 5px #fff,0 0 0 6px var(--tb-border),0 12px 28px rgba(20,30,60,.2);
+  user-select:none;-webkit-user-select:none;touch-action:none}
+.sy-pc{cursor:grab;transition:transform .14s ease-out}
+.sy-pc.drag{transition:none;cursor:grabbing}
+.sy-pc.slow{transition:transform .7s cubic-bezier(.3,.7,.3,1)}
+.sy-in{transform-box:fill-box;transform-origin:center}
+.sy-in.spin{animation:syspin .2s ease-out}
+.sy-in.spinb{animation:syspinb .2s ease-out}
+.sy-in.flip{animation:syflip .22s ease-out}
+@keyframes syspin{from{transform:rotate(-90deg)}to{transform:none}}
+@keyframes syspinb{from{transform:rotate(90deg)}to{transform:none}}
+@keyframes syflip{from{transform:scaleX(-1)}to{transform:none}}
+.sy-pc path{fill:var(--pc);stroke:var(--pk);stroke-width:.06;stroke-linejoin:round;fill-rule:evenodd}
+/* đang cầm mảnh (giữ hoặc kéo): bóng đổ cứng lệch xuống phải */
+.sy-pc.sel path{stroke:#1d2330;stroke-width:.1}
+.sy-pc.ov path{stroke:#d6453d;stroke-width:.1;stroke-dasharray:.18 .12}
+.sy-pc path.sy-sh{fill:rgba(70,55,15,.32);stroke:none;display:none}   /* bóng: hình mảnh lệch xuống phải, chỉ hiện khi đang cầm */
+.sy-pc.held path.sy-sh{display:inline}
+.sy-svg.off .sy-pc{cursor:default}
+.sy-axis{stroke:var(--tb-green);stroke-width:.08;stroke-dasharray:.25 .16;stroke-linecap:round;opacity:0;transition:opacity .3s}
+.sy-axis.on{opacity:1}
+.sy-svg.won{box-shadow:0 0 0 5px #fff,0 0 0 8px var(--tb-green),0 12px 28px rgba(20,30,60,.2)}
+.sy-st{display:block;margin-top:6px;font-size:14px}
+.sy-st.bad{color:var(--tb-red)} .sy-st.ok{color:var(--tb-green)}
+/* hình nhỏ trong thẻ Luật chơi */
+.syr{display:flex;gap:10px;align-items:center;justify-content:center}
+.syr svg{display:block}
+.syr .sy-pc{cursor:default;transition:none}
+.syr .sy-pc path{stroke-width:.07}
+.syr-arrow{font-size:22px;font-weight:900;color:#5b6170}
+.syr-tag{display:block;text-align:center;font-weight:900;font-size:13px;margin-top:2px}
+.syr-tag.ok{color:var(--tb-green)} .syr-tag.no{color:#d6453d}
+@media (max-width:780px){.sy-svg{box-shadow:0 0 0 3px #fff,0 0 0 4px var(--tb-border),0 8px 18px rgba(20,30,60,.18)}}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "symmetry-puzzle" });</script>
+<script>
+"use strict";
+/* RULES-START: luật + đọc đề, không đụng DOM (cắt ra chạy bằng Node được).
+   Mỗi ô lưới chia 4 tam giác theo 2 đường chéo ("phần tư"): k = 0 trên, 1 phải, 2 dưới, 3 trái.
+   Mảnh ghép là danh sách phần tư [hàng, cột, k]; thực tế mỗi ô của mảnh là ô đủ (4 phần tư) hoặc nửa ô cắt chéo (2 phần tư kề nhau),
+   nên cạnh mảnh nằm ngang, dọc hoặc chéo 45°. Mặt nạ một ô: bit k bật nếu có phần tư k (1 trên, 2 phải, 4 dưới, 8 trái): f = đủ ô, 3/6/c/9 = nửa ô. */
+const SY_LEVELS = ["easy", "normal", "hard"];
+const SY_NP = { easy: 3, normal: 4, hard: 5 };            // số mảnh mỗi bộ
+const SY_FLIP = { easy: false, normal: false, hard: true };  // được lật mảnh
+const SY_SETS = 3;                                          // một lượt chơi = 3 bộ
+const SY_DIR = [[0, -1], [1, 0], [0, 1], [-1, 0]];          // hướng [dx, dy] từ tâm ô ra cạnh của phần tư k
+
+function syNorm(q) {   // dời về góc (0,0) và sắp xếp
+  let r0 = Infinity, c0 = Infinity;
+  for (const x of q) { if (x[0] < r0) r0 = x[0]; if (x[1] < c0) c0 = x[1]; }
+  return q.map(([r, c, k]) => [r - r0, c - c0, k]).sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+}
+const syRot0 = q => q.map(([r, c, k]) => [c, -r - 1, (k + 1) & 3]);      // xoay 90° theo chiều kim đồng hồ (chưa dời)
+const syFlip0 = q => q.map(([r, c, k]) => [r, -c - 1, k & 1 ? k ^ 2 : k]); // lật trái-phải (chưa dời)
+/* Hướng o (0-7): lật trước nếu o & 4, rồi xoay (o & 3) lần 90° theo chiều kim đồng hồ. */
+function syOrient(q, o) {
+  let p = o & 4 ? syFlip0(q) : q;
+  for (let i = 0; i < (o & 3); i++) p = syRot0(p);
+  return syNorm(p);
+}
+const syKey = q => q.map(x => x.join(",")).join(";");   // q đã qua syNorm
+function sySize(q) { let h = 0, w = 0; for (const [r, c] of q) { if (r + 1 > h) h = r + 1; if (c + 1 > w) w = c + 1; } return { h, w }; }
+/* Hai mảnh giống nhau (tính cả xoay, và lật nếu flip) */
+function sySame(a, b, flip) {
+  const kb = syKey(syNorm(b));
+  for (let o = 0; o < (flip ? 8 : 4); o++) if (syKey(syOrient(a, o)) === kb) return true;
+  return false;
+}
+
+/* Mã hoá một mảnh trong kho đề: "hàng,cột:dòng/dòng" với mỗi ký tự là mặt nạ hex của một ô, hàng,cột là chỗ của mảnh trong lời giải. */
+function syDecodePiece(s) {
+  const i = s.indexOf(":"), [r0, c0] = s.slice(0, i).split(",").map(Number), q = [];
+  s.slice(i + 1).split("/").forEach((row, r) => [...row].forEach((ch, c) => {
+    const m = parseInt(ch, 16); for (let k = 0; k < 4; k++) if ((m >> k) & 1) q.push([r0 + r, c0 + c, k]);
+  }));
+  return q;
+}
+function syEncodePiece(q) {
+  let r0 = Infinity, c0 = Infinity, r1 = -Infinity, c1 = -Infinity;
+  for (const [r, c] of q) { r0 = Math.min(r0, r); c0 = Math.min(c0, c); r1 = Math.max(r1, r); c1 = Math.max(c1, c); }
+  const g = []; for (let r = r0; r <= r1; r++) g.push(new Array(c1 - c0 + 1).fill(0));
+  for (const [r, c, k] of q) g[r - r0][c - c0] |= 1 << k;
+  return r0 + "," + c0 + ":" + g.map(row => row.map(m => m.toString(16)).join("")).join("/");
+}
+
+/* Kiểm tra hình đang ghép. qs = mọi phần tư [hàng, cột, k] của mọi mảnh (vị trí thật trên bàn).
+   Trả về { over: Set khoá các phần tư bị chồng, joined: các phần tư liền một khối (chạm nhau theo cạnh), axis: trục đối xứng hoặc null }. */
+const syQK = (r, c, k) => r + "," + c + "," + k;
+function syNeighbors(r, c, k) {
+  const across = k === 0 ? [r - 1, c, 2] : k === 1 ? [r, c + 1, 3] : k === 2 ? [r + 1, c, 0] : [r, c - 1, 1];
+  return [[r, c, (k + 1) & 3], [r, c, (k + 3) & 3], across];
+}
+function syJoined(qs) {
+  if (!qs.length) return false;
+  const all = new Set(qs.map(q => syQK(...q))), seen = new Set([syQK(...qs[0])]), st = [qs[0]];
+  while (st.length) {
+    const q = st.pop();
+    for (const n of syNeighbors(...q)) { const key = syQK(...n); if (all.has(key) && !seen.has(key)) { seen.add(key); st.push(n); } }
+  }
+  return seen.size === all.size;
+}
+/* Trục đối xứng gương của tập phần tư (không trùng). Toạ độ nhân đôi: tâm ô (2c+1, 2r+1).
+   Kết quả { t, s }: t = "v" trục dọc x = s/4 (đơn vị ô), "h" trục ngang y = s/4, "d" đường chéo y = x - s/2, "a" đường chéo y = -x + s/2. */
+function syAxis(qs) {
+  if (!qs.length) return null;
+  const pts = qs.map(([r, c, k]) => [2 * c + 1, 2 * r + 1, SY_DIR[k][0], SY_DIR[k][1]]);
+  const key = (x, y, dx, dy) => x + "," + y + "," + dx + "," + dy;
+  const base = new Set(pts.map(p => key(...p)));
+  let mnx = Infinity, mny = Infinity; for (const p of pts) { mnx = Math.min(mnx, p[0]); mny = Math.min(mny, p[1]); }
+  const M = [["v", (x, y) => [-x, y]], ["h", (x, y) => [x, -y]], ["d", (x, y) => [y, x]], ["a", (x, y) => [-y, -x]]];
+  for (const [t, f] of M) {
+    const m = pts.map(([x, y, dx, dy]) => [...f(x, y), ...f(dx, dy)]);
+    let ax = Infinity, ay = Infinity; for (const p of m) { ax = Math.min(ax, p[0]); ay = Math.min(ay, p[1]); }
+    const sx = mnx - ax, sy = mny - ay;
+    if (m.every(([x, y, dx, dy]) => base.has(key(x + sx, y + sy, dx, dy)))) return { t, s: t === "h" ? sy : sx };
+  }
+  return null;
+}
+function syCheck(qs) {
+  const seen = new Set(), over = new Set(), uniq = [];
+  for (const q of qs) { const key = syQK(...q); if (seen.has(key)) over.add(key); else { seen.add(key); uniq.push(q); } }
+  const joined = syJoined(uniq);
+  return { over, joined, axis: !over.size && joined ? syAxis(uniq) : null };
+}
+
+/* Đường viền của một tập phần tư (dùng để vẽ): giữ các cạnh tam giác không dùng chung, nối thành các vòng, gộp đoạn thẳng hàng.
+   Trả về chuỗi path SVG theo đơn vị ô (góc ô là số nguyên). Vẽ với fill-rule evenodd nên lỗ thủng (nếu có) vẫn đúng. */
+function syOutline(q) {
+  const cnt = new Map(), P = (x, y) => x + "," + y;
+  const add = (a, b) => { const k = a < b ? a + "|" + b : b + "|" + a; cnt.set(k, (cnt.get(k) || 0) + 1); };
+  for (const [r, c, k] of q) {
+    const TL = P(2 * c, 2 * r), TR = P(2 * c + 2, 2 * r), BR = P(2 * c + 2, 2 * r + 2), BL = P(2 * c, 2 * r + 2), C = P(2 * c + 1, 2 * r + 1);
+    const [a, b] = k === 0 ? [TL, TR] : k === 1 ? [TR, BR] : k === 2 ? [BR, BL] : [BL, TL];
+    add(a, b); add(b, C); add(C, a);
+  }
+  const adj = new Map();
+  for (const [k, n] of cnt) if (n === 1) { const [a, b] = k.split("|"); for (const [x, y] of [[a, b], [b, a]]) { if (!adj.has(x)) adj.set(x, []); adj.get(x).push(y); } }
+  const used = new Set(), ek = (a, b) => a < b ? a + "|" + b : b + "|" + a, xy = s => s.split(",").map(Number);
+  let d = "";
+  for (const [start, list] of adj) for (const first of list) {
+    if (used.has(ek(start, first))) continue;
+    const pts = [start]; let prev = start, cur = first; used.add(ek(start, first));
+    while (cur !== start) {
+      pts.push(cur);
+      const nx = adj.get(cur).find(n => !used.has(ek(cur, n)));
+      if (nx === undefined) break;
+      used.add(ek(cur, nx)); prev = cur; cur = nx;
+    }
+    const v = pts.map(xy), out = [];
+    for (let i = 0; i < v.length; i++) {   // bỏ điểm nằm giữa hai đoạn thẳng hàng
+      const a = v[(i - 1 + v.length) % v.length], b = v[i], cc = v[(i + 1) % v.length];
+      if ((b[0] - a[0]) * (cc[1] - b[1]) - (b[1] - a[1]) * (cc[0] - b[0]) !== 0) out.push(b);
+    }
+    d += "M" + out.map(([x, y]) => x / 2 + " " + y / 2).join("L") + "Z";
+  }
+  return d;
+}
+
+/* Dựng đề từ kho: bank = chuỗi các mảnh cách nhau dấu cách. tf (0-7) xoay/lật cả lời giải để thêm biến thể
+   (lật cả hình thì các mảnh cũng lật theo, nên đề không cần lật mảnh vẫn giải được). oris = hướng ban đầu của từng mảnh. */
+function syPuzzle(level, idx, tf, oris) {
+  const parts = SY_BANK[level][idx].split(" ").map(syDecodePiece).map(p => {
+    let q = tf & 4 ? syFlip0(p) : p;
+    for (let i = 0; i < (tf & 3); i++) q = syRot0(q);
+    return q;
+  });
+  let r0 = Infinity, c0 = Infinity;
+  for (const p of parts) for (const [r, c] of p) { r0 = Math.min(r0, r); c0 = Math.min(c0, c); }
+  const pieces = parts.map((p, i) => {
+    let pr = Infinity, pc = Infinity; for (const [r, c] of p) { pr = Math.min(pr, r); pc = Math.min(pc, c); }
+    return { q: syNorm(p), at: [pr - r0, pc - c0], o: oris[i] || 0 };
+  });
+  return { level, idx, tf, flip: SY_FLIP[level], pieces };
+}
+function syGen(level, rng) {
+  const lv = SY_LEVELS.includes(level) ? level : "normal", bank = SY_BANK[lv];
+  const idx = Math.floor(rng() * bank.length), tf = Math.floor(rng() * 8), n = bank[idx].split(" ").length, oris = [];
+  for (let i = 0; i < n; i++) oris.push(Math.floor(rng() * 4) + (SY_FLIP[lv] && rng() < .5 ? 4 : 0));
+  return syPuzzle(lv, idx, tf, oris);
+}
+/* Một lượt chơi: SY_SETS bộ khác nhau cùng mức (như bản gốc: chuyển qua lại giữa các bộ, xong cả 3 mới tính). */
+function syRound(level, rng) {
+  const sets = [], used = new Set();
+  for (let guard = 0; sets.length < SY_SETS && guard < 50; guard++) {
+    const pz = syGen(level, rng);
+    if (used.has(pz.idx)) continue;
+    used.add(pz.idx); sets.push(pz);
+  }
+  return { level: sets[0].level, flip: sets[0].flip, sets };
+}
+/* RULES-END */
+
+/* ---------- VẼ + ĐIỀU KHIỂN ---------- */
+/* Mỗi bộ một màu (chủ game chọn): mọi mảnh trong bộ cùng màu, viền đậm hơn một chút cùng tông để vẫn nhìn ra từng mảnh. [màu, màu đậm, màu viền] */
+const SY_PALETTE = [["#58b77a", "#2d7d4c", "#3f9a60"], ["#4d9de0", "#256aa8", "#3584c8"], ["#ec6fa0", "#b03d6c", "#d24f86"], ["#a77bd6", "#6f48a0", "#8d60c2"], ["#e5534b", "#a8302a", "#c93c35"], ["#f08a5d", "#b8512a", "#d86f41"]];
+const svgNS = "http://www.w3.org/2000/svg";
+const HOLD_MS = 280;   // giữ lâu hơn mức này rồi thả (không kéo) thì không tính là chạm để xoay
+let SV = null;   // bàn đang hiện (khung nhắc đọc tình trạng)
+/* Đoạn trục đối xứng (đơn vị ô) cắt qua khung bao của hình, dư mỗi đầu 0,6 ô */
+function syAxisLine(axis, qs) {
+  let r0 = Infinity, c0 = Infinity, r1 = -Infinity, c1 = -Infinity;
+  for (const [r, c] of qs) { r0 = Math.min(r0, r); c0 = Math.min(c0, c); r1 = Math.max(r1, r + 1); c1 = Math.max(c1, c + 1); }
+  const m = .6, s = axis.s;
+  if (axis.t === "v") return [s / 4, r0 - m, s / 4, r1 + m];
+  if (axis.t === "h") return [c0 - m, s / 4, c1 + m, s / 4];
+  // đường chéo: lấy hai điểm ở hai cạnh khung bao rồi kéo dài thêm
+  const f = axis.t === "d" ? x => x - s / 2 : x => -x + s / 2, inv = axis.t === "d" ? y => y + s / 2 : y => s / 2 - y;
+  const xs = [c0, c1, inv(r0), inv(r1)].sort((a, b) => a - b), xa = xs[1], xb = xs[2], k = m / Math.SQRT2;
+  const dir = axis.t === "d" ? 1 : -1;
+  return [xa - k, f(xa) - k * dir, xb + k, f(xb) + k * dir];
+}
+/* Một mảnh trong bàn nhỏ (thẻ luật, ảnh minh hoạ): q = phần tư, at = [hàng, cột], màu thứ i */
+function syPieceSvg(q, at, i, extra = "") {
+  const [f, k] = SY_PALETTE[i % SY_PALETTE.length];
+  return `<g class="sy-pc" style="--pc:${f};--pk:${k}" transform="translate(${at[1]} ${at[0]})"${extra}><g class="sy-in"><path d="${syOutline(q)}"/></g></g>`;
+}
+
+/* Một bàn (một bộ mảnh) trong khung host. hooks.won() khi bộ này vừa đối xứng, hooks.change() sau mỗi thao tác. Bộ đã xong thì khoá. */
+function syBoard(host, pz, ctx, W, H, narrow, hooks, color) {
+  const M = .35;
+  const P = pz.pieces.map((p, i) => ({ i, q: p.q, o: p.o, cur: null, h: 0, w: 0, pos: [0, 0], el: null, inEl: null }));
+  const setGeom = (p, o) => { p.o = o; p.cur = syOrient(p.q, o); const z = sySize(p.cur); p.h = z.h; p.w = z.w; };
+  P.forEach(p => setGeom(p, p.o));
+  let sel = -1, won = false, status = { over: 0, joined: 0, cluster: 1, axis: null }, start = null;
+  const can = () => ctx.canPlay() && !won;
+
+  /* Xếp ban đầu (chủ game chọn, như bản gốc): các mảnh xếp hàng ngang sát đáy bàn, canh đáy, cách đều nhau, phần trên để trống cho việc ghép.
+     Một hàng không đủ chỗ (mỗi mảnh cách nhau ít nhất 1 ô) thì xếp thêm hàng phía trên. Không xếp được thì dùng cách rải cũ (layoutSpread). */
+  function layout() {
+    const rows = [[]];
+    let used = 0;
+    for (const p of P) {
+      const row = rows[rows.length - 1];
+      if (row.length && used + 1 + p.w > W) { rows.push([p]); used = p.w; }   // giữa hai mảnh ít nhất 1 ô
+      else { row.push(p); used += (row.length > 1 ? 1 : 0) + p.w; }
+    }
+    let base = H;   // đáy của hàng đang xếp
+    for (const row of rows) {
+      const rh = Math.max(...row.map(p => p.h)), tot = row.reduce((a, p) => a + p.w, 0), n = row.length;
+      const gap = Math.max(1, (W - tot) / (n + 1));   // cách đều cả hai mép; chật thì giữa hai mảnh vẫn tối thiểu 1 ô
+      if (base - rh < 0) return layoutSpread();
+      let x = (W - tot - gap * (n - 1)) / 2;
+      for (const p of row) { p.pos = [base - p.h, Math.round(x)]; x += p.w + gap; }
+      base -= rh + 1;
+    }
+  }
+  /* Cách rải dự phòng: mảnh lớn trước, mỗi mảnh chọn chỗ trống cách các mảnh khác ít nhất 1 ô và càng xa các mảnh đã đặt càng tốt. */
+  function layoutSpread() {
+    const occ = new Uint8Array(W * H), centers = [];
+    const cellsOf = p => [...new Set(p.cur.map(([r, c]) => r * 1000 + c))].map(v => [Math.floor(v / 1000), v % 1000]);
+    const order = [...P].sort((a, b) => b.q.length - a.q.length);
+    for (const p of order) {
+      const cells = cellsOf(p);
+      let best = null, bv = -Infinity;
+      for (const gap of [1, 0]) {
+        for (let r = 0; r + p.h <= H; r++) for (let c = 0; c + p.w <= W; c++) {
+          let ok = true;
+          for (const [cr, cc] of cells) {
+            for (let dr = -gap; dr <= gap && ok; dr++) for (let dc = -gap; dc <= gap && ok; dc++) {
+              const rr = r + cr + dr, c2 = c + cc + dc;
+              if (rr >= 0 && c2 >= 0 && rr < H && c2 < W && occ[rr * W + c2]) ok = false;
+            }
+            if (!ok) break;
+          }
+          if (!ok) continue;
+          const cy = r + p.h / 2, cx = c + p.w / 2;
+          let v = centers.length ? Math.min(...centers.map(([y, x]) => Math.hypot(y - cy, x - cx))) : 0;
+          v += Math.random() * 1.5;
+          if (v > bv) { bv = v; best = [r, c]; }
+        }
+        if (best) break;
+      }
+      if (!best) best = [Math.floor(Math.random() * (H - p.h + 1)), Math.floor(Math.random() * (W - p.w + 1))];
+      p.pos = best; centers.push([best[0] + p.h / 2, best[1] + p.w / 2]);
+      for (const [cr, cc] of cells) occ[(best[0] + cr) * W + best[1] + cc] = 1;
+    }
+  }
+  layout();
+  start = P.map(p => ({ o: p.o, pos: p.pos.slice() }));
+
+  host.innerHTML = `<svg class="sy-svg off" viewBox="${-M} ${-M} ${W + 2 * M} ${H + 2 * M}"
+    style="aspect-ratio:${W + 2 * M}/${H + 2 * M};width:min(100%, calc((100vh - ${narrow ? 300 : 285}px) * ${(W + 2 * M) / (H + 2 * M)}))">
+    <g class="sy-pcs"></g><line class="sy-axis" x1="0" y1="0" x2="0" y2="0"/></svg>`;
+  const svg = host.querySelector("svg"), layer = svg.querySelector(".sy-pcs"), axisEl = svg.querySelector(".sy-axis");
+  for (const p of P) {
+    const g = document.createElementNS(svgNS, "g"); g.setAttribute("class", "sy-pc"); g.style.setProperty("--pc", color[0]); g.style.setProperty("--pk", color[2]); g.dataset.i = p.i;   // viền đậm hơn cùng tông: nhìn ra từng mảnh (chủ game chọn)
+    const inner = document.createElementNS(svgNS, "g"); inner.setAttribute("class", "sy-in");
+    const sh = document.createElementNS(svgNS, "path"); sh.setAttribute("class", "sy-sh"); sh.setAttribute("transform", "translate(.17 .17)");
+    inner.appendChild(sh); inner.appendChild(document.createElementNS(svgNS, "path"));
+    inner.addEventListener("animationend", () => inner.classList.remove("spin", "spinb", "flip"));   // gỡ ngay, không thì đưa mảnh lên trên cùng sẽ chạy lại hiệu ứng
+    g.appendChild(inner); layer.appendChild(g); p.el = g; p.inEl = inner;
+  }
+  const place = p => { p.el.style.transform = `translate(${p.pos[1]}px, ${p.pos[0]}px)`; };
+  const drawPiece = p => { const d = syOutline(p.cur); for (const el of p.inEl.children) el.setAttribute("d", d); place(p); };
+  const anim = (p, cls) => { p.inEl.classList.remove("spin", "spinb", "flip"); p.inEl.getBoundingClientRect(); p.inEl.classList.add(cls); };
+  P.forEach(drawPiece);
+
+  const allQ = () => [].concat(...P.map(p => p.cur.map(([r, c, k]) => [r + p.pos[0], c + p.pos[1], k])));
+  /* Số mảnh lớn nhất đang liền nhau (để báo tiến độ) */
+  function biggestCluster() {
+    const own = new Map();
+    P.forEach(p => { for (const [r, c, k] of p.cur) own.set(syQK(r + p.pos[0], c + p.pos[1], k), p.i); });
+    const adj = P.map(() => new Set());
+    P.forEach(p => { for (const [r, c, k] of p.cur) for (const n of syNeighbors(r + p.pos[0], c + p.pos[1], k)) { const j = own.get(syQK(...n)); if (j !== undefined && j !== p.i) adj[p.i].add(j); } });
+    let best = 0; const seen = new Set();
+    for (const p of P) if (!seen.has(p.i)) {
+      let n = 0; const st = [p.i]; seen.add(p.i);
+      while (st.length) { const i = st.pop(); n++; for (const j of adj[i]) if (!seen.has(j)) { seen.add(j); st.push(j); } }
+      best = Math.max(best, n);
+    }
+    return best;
+  }
+  function evaluate() {
+    const qs = allQ(), chk = syCheck(qs), overP = new Set();
+    if (chk.over.size) P.forEach(p => { for (const [r, c, k] of p.cur) if (chk.over.has(syQK(r + p.pos[0], c + p.pos[1], k))) { overP.add(p.i); break; } });
+    P.forEach(p => p.el.classList.toggle("ov", overP.has(p.i)));
+    status = { over: overP.size, joined: chk.joined, cluster: biggestCluster(), axis: chk.axis };
+    if (chk.axis && can()) {
+      won = true; sel = -1; showAxis(chk.axis, qs); paintSel(); svg.classList.add("won", "off");
+      hooks.won();
+    }
+    hooks.change();
+  }
+  function showAxis(axis, qs) {
+    const [x1, y1, x2, y2] = syAxisLine(axis, qs);
+    axisEl.setAttribute("x1", x1); axisEl.setAttribute("y1", y1); axisEl.setAttribute("x2", x2); axisEl.setAttribute("y2", y2);
+    axisEl.classList.add("on");
+  }
+  const paintSel = () => P.forEach(p => p.el.classList.toggle("sel", pz.flip && p.i === sel));
+  const clampPos = (p, r, c) => [Math.max(0, Math.min(H - p.h, r)), Math.max(0, Math.min(W - p.w, c))];
+  const toFront = p => layer.appendChild(p.el);
+
+  /* xoay / lật quanh tâm mảnh */
+  function turn(p, how) {
+    const cy = p.pos[0] + p.h / 2, cx = p.pos[1] + p.w / 2, n = p.o & 3, f = p.o & 4;
+    const o = how === "cw" ? f | ((n + 1) & 3) : how === "ccw" ? f | ((n + 3) & 3) : (f ^ 4) | ((4 - n) & 3);
+    setGeom(p, o);
+    p.pos = clampPos(p, Math.round(cy - p.h / 2), Math.round(cx - p.w / 2));
+    p.el.classList.add("drag"); drawPiece(p); void p.el.getBoundingClientRect(); p.el.classList.remove("drag");
+    anim(p, how === "cw" ? "spin" : how === "ccw" ? "spinb" : "flip");
+    ctx.sfx("step"); evaluate();
+  }
+  function flipSel() {
+    if (!can() || !pz.flip) return;
+    if (sel < 0) { ctx.note(ctx.tr("f_pick"), "bad"); return; }
+    ctx.note(""); turn(P[sel], "flip");
+  }
+  function reset() {
+    if (!can()) return;
+    P.forEach((p, i) => { setGeom(p, start[i].o); p.pos = start[i].pos.slice(); drawPiece(p); });
+    sel = -1; paintSel(); evaluate();
+  }
+
+  /* kéo thả + chạm */
+  function toBoard(ev) {
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    const m = svg.getScreenCTM(); if (!m) return { x: 0, y: 0 };
+    const q = pt.matrixTransform(m.inverse()); return { x: q.x, y: q.y };
+  }
+  let drag = null;
+  svg.addEventListener("contextmenu", e => e.preventDefault());
+  svg.addEventListener("pointerdown", e => {
+    if (!can() || drag || (e.button !== 0 && e.button !== 2)) return;
+    const g = e.target.closest(".sy-pc"); if (!g) return;
+    e.preventDefault();
+    const p = P[+g.dataset.i], b = toBoard(e);
+    drag = { p, id: e.pointerId, x0: b.x, y0: b.y, r0: p.pos[0], c0: p.pos[1], moved: false, right: e.button === 2, t0: performance.now() };
+    drag.hold = setTimeout(() => { if (drag && drag.p === p) p.el.classList.add("held"); }, HOLD_MS);   // giữ yên: nhấc mảnh lên, thả ra không xoay
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    toFront(p); sel = p.i; paintSel();
+  });
+  svg.addEventListener("pointermove", e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const b = toBoard(e), dx = b.x - drag.x0, dy = b.y - drag.y0;
+    if (!drag.moved && Math.hypot(dx, dy) < .22) return;
+    drag.moved = true; drag.p.el.classList.add("drag", "held");
+    drag.p.el.style.transform = `translate(${drag.c0 + dx}px, ${drag.r0 + dy}px)`;
+    drag.dx = dx; drag.dy = dy;
+  });
+  function endDrag(cancel) {
+    if (!drag) return;
+    const d = drag, p = d.p; drag = null;
+    clearTimeout(d.hold); p.el.classList.remove("held");
+    p.el.classList.remove("drag");
+    if (!can()) { place(p); return; }
+    if (d.moved) {
+      if (!cancel) p.pos = clampPos(p, Math.round(d.r0 + d.dy), Math.round(d.c0 + d.dx));
+      place(p); ctx.sfx("step"); evaluate();
+    } else if (!cancel && performance.now() - d.t0 < HOLD_MS) turn(p, d.right ? "ccw" : "cw");   // chỉ chạm nhanh mới xoay
+  }
+  svg.addEventListener("pointerup", e => { if (drag && e.pointerId === drag.id) endDrag(false); });
+  svg.addEventListener("pointercancel", e => { if (drag && e.pointerId === drag.id) endDrag(true); });
+
+  evaluate();
+
+  return {
+    pz, P, W, H, flipSel, reset, get status() { return status; }, get won() { return won; },
+    start() { if (!won) svg.classList.remove("off"); },
+    reveal() {   // hết đề mà chưa ghép xong: các mảnh tự trượt về một cách ghép đúng
+      drag = null; sel = -1; paintSel(); svg.classList.add("off"); ctx.note("");
+      if (won) return;
+      let sh = 0, sw = 0; for (const p of pz.pieces) { const z = sySize(p.q); sh = Math.max(sh, p.at[0] + z.h); sw = Math.max(sw, p.at[1] + z.w); }
+      const or = Math.max(0, Math.floor((H - sh) / 2)), oc = Math.max(0, Math.floor((W - sw) / 2));
+      P.forEach((p, i) => {
+        p.el.classList.add("slow"); p.el.classList.remove("ov");
+        setGeom(p, 0); p.pos = [pz.pieces[i].at[0] + or, pz.pieces[i].at[1] + oc]; drawPiece(p);
+      });
+      const qs = allQ(), ax = syAxis(qs);
+      if (ax) setTimeout(() => showAxis(ax, qs), 650);
+      status = { over: 0, joined: true, cluster: P.length, axis: ax, shown: true };
+    },
+    key(e) {
+      if (!can()) return;
+      const k = e.key.toLowerCase();
+      if (k === "f" && pz.flip) { e.preventDefault(); flipSel(); }
+      else if ((k === "r" || k === " ") && sel >= 0) { e.preventDefault(); turn(P[sel], e.shiftKey ? "ccw" : "cw"); }
+    },
+  };
+}
+
+/* Một lượt = 3 bộ (như bản gốc): thanh 1-2-3 phía trên bàn để chuyển bộ bất cứ lúc nào, bộ xong có dấu ✓ và bị khoá.
+   Xong cả 3 bộ mới tính là giải xong. */
+function mountSY(el, R, ctx) {
+  const narrow = window.innerWidth < 600, W = narrow ? 9 : 14, H = narrow ? 12 : 9, n = R.sets.length;
+  const colors = SY_PALETTE.slice(); for (let i = colors.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [colors[i], colors[j]] = [colors[j], colors[i]]; }   // 3 bộ, 3 màu khác nhau
+  el.innerHTML = `<div class="sy"><div class="sy-tabs">${R.sets.map((_, i) => `<button type="button" class="sy-tab" data-i="${i}" style="--tc:${colors[i][0]};--tk:${colors[i][1]}"><b>${i + 1}</b></button>`).join("")}</div><div class="sy-boards"></div></div>`;
+  const tabs = [...el.querySelectorAll(".sy-tab")], wrap = el.querySelector(".sy-boards");
+  let cur = 0, ready = false;
+  const boxes = R.sets.map(() => { const d = document.createElement("div"); d.className = "sy-board"; wrap.appendChild(d); return d; });
+  const solvedN = () => B.filter(b => b.won).length;
+  function paintTabs() {
+    tabs.forEach((t, i) => {
+      const ok = !!(B[i] && B[i].won);
+      t.classList.toggle("on", i === cur); t.classList.toggle("ok", ok); t.firstChild.textContent = ok ? "✓" : i + 1;
+      t.setAttribute("aria-label", ctx.tr("tab_set", i + 1) + (B[i] && B[i].won ? " ✓" : ""));
+    });
+  }
+  function show(i) {
+    cur = i; boxes.forEach((b, j) => { b.hidden = j !== i; });
+    paintTabs(); ctx.note(""); ctx.prompt();
+  }
+  function onWon(i) {
+    if (!ready) return;
+    paintTabs();
+    if (solvedN() === n) return ctx.solved();
+    ctx.sfx("ok");
+    setTimeout(() => {   // tự chuyển sang bộ chưa xong kế tiếp
+      if (cur !== i || !ctx.canPlay()) return;
+      for (let k = 1; k <= n; k++) { const j = (i + k) % n; if (!B[j].won) return show(j); }
+    }, 900);
+  }
+  const B = R.sets.map((pz, i) => syBoard(boxes[i], pz, ctx, W, H, narrow, { won: () => onWon(i), change: () => { if (ready) { ctx.progress(solvedN()); if (i === cur) ctx.prompt(); paintTabs(); } } }, colors[i]));
+  ready = true;
+  tabs.forEach((t, i) => t.addEventListener("click", () => { if (i !== cur) { ctx.sfx("step"); show(i); } }));
+  const tools = [];
+  if (R.flip) tools.push({ id: "flip", label: "t_flip", on: () => B[cur].flipSel() });
+  tools.push({ id: "reset", label: "t_reset", on: () => B[cur].reset() });
+  tools.push({ id: "giveup", label: "t_giveup", confirm: "t_giveup_sure", cls: "danger wide", on: () => ctx.giveUp() });
+  ctx.tools(tools);
+  SV = { R, B, n, W, H, show, get cur() { return cur; }, get solved() { return solvedN(); },
+    get pz() { return B[cur].pz; }, get P() { return B[cur].P; }, get status() { return B[cur].status; }, get won() { return B[cur].won; } };
+  show(0);
+  return {
+    start() { B.forEach(b => b.start()); },
+    reveal() { B.forEach(b => b.reveal()); ctx.note(""); paintTabs(); ctx.prompt(); },
+    destroy() { SV = null; },
+    key(e) {
+      if (/^[1-9]$/.test(e.key) && +e.key <= n) { e.preventDefault(); show(+e.key - 1); return; }
+      B[cur].key(e);
+    },
+  };
+}
+
+/* ---------- THẺ LUẬT CHƠI ---------- */
+// Hình mẫu: ngôi nhà mái nhọn, đối xứng qua trục dọc giữa 2 cột.
+const SYR_A = [[0, 0, 1], [0, 0, 2], [1, 0, 0], [1, 0, 1], [1, 0, 2], [1, 0, 3]];
+const SYR_B = [[0, 1, 2], [0, 1, 3], [1, 1, 0], [1, 1, 1], [1, 1, 2], [1, 1, 3], [2, 1, 0], [2, 1, 1], [2, 1, 2], [2, 1, 3]];
+const SYR_C = [[2, 0, 0], [2, 0, 1], [2, 0, 2], [2, 0, 3]];
+function syrBoard(w, h, list, opt = {}) {
+  const s = opt.size || 30, m = .3;
+  let g = list.map(([q, at]) => syPieceSvg(syNorm(q), at, 2)).join("");
+  if (opt.axis) g += `<line class="sy-axis on" x1="${opt.axis[0]}" y1="${opt.axis[1]}" x2="${opt.axis[2]}" y2="${opt.axis[3]}"/>`;
+  return `<svg viewBox="${-m} ${-m} ${w + 2 * m} ${h + 2 * m}" width="${(w + 2 * m) * s}" height="${(h + 2 * m) * s}">${g}</svg>`;
+}
+const SY_CARDS = [
+  { h: "c1_h", p: "c1_p", fig: () => `<div class="syr">${syrBoard(4, 3, [[SYR_A, [0, 0], 0], [SYR_B, [0, 3], 1], [SYR_C, [2, 1], 2]], { size: 17 })}
+      <span class="syr-arrow">→</span>${syrBoard(2, 3, [[SYR_A, [0, 0], 0], [SYR_B, [0, 1], 1], [SYR_C, [2, 0], 2]], { size: 17 })}</div>` },
+  { h: "c2_h", p: "c2_p", fig: () => `<div class="syr">
+      <div>${syrBoard(2, 3, [[SYR_A, [0, 0], 0], [SYR_B, [0, 1], 1], [SYR_C, [2, 0], 2]], { size: 21, axis: [1, -.25, 1, 3.25] })}<span class="syr-tag ok">✓</span></div>
+      <div>${syrBoard(3, 3, [[SYR_A, [0, 0], 0], [SYR_B, [0, 1], 1], [SYR_C, [2, 2], 2]], { size: 21 })}<span class="syr-tag no">✗</span></div></div>` },
+  { h: "c3_h", p: "c3_p", fig: () => `<div class="syr">${syrBoard(1, 3, [[SYR_B, [0, 0], 1]], { size: 30 })}<span class="syr-arrow">↻</span>
+      ${syrBoard(3, 1, [[syOrient(SYR_B, 1), [0, 0], 1]], { size: 30 })}</div>` },
+];
+
+PK.start({
+  id: "symmetry-puzzle", peerPrefix: "symmetry-", proto: 1, kind: "self",
+  ruleCards: SY_CARDS, ruleCardsBg: "#fdf6dc",
+  solo: { stages: 1, useLevel: true, bestTag: "r", gen: (stage, rng, level) => syRound(level, rng) },   // một lượt = 3 bộ, kỷ lục là tổng thời gian
+  online: { target: 1, maxRounds: 1, roundMs: 0, levels: SY_LEVELS, defaultLevel: "easy", wrong: null, gen: (k, level, rng) => syRound(level, rng) },
+  mount: mountSY,
+  prompt(pz, ctx) {
+    const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches, st = SV && SV.status, n = pz.sets[0].pieces.length;
+    let line = "";
+    if (st && st.shown) line = `<span class="sy-st">${ctx.tr("st_shown")}</span>`;
+    else if (SV && SV.won) line = `<span class="sy-st ok">${ctx.tr("st_won")}</span>`;
+    else if (st && st.over) line = `<span class="sy-st bad">${ctx.tr("st_over")}</span>`;
+    else if (st && st.joined) line = `<span class="sy-st bad">${ctx.tr("st_nosym")}</span>`;
+    return `<span class="q">${ctx.tr("prompt_q", SV ? SV.cur + 1 : 1, pz.sets.length, n, SV ? SV.solved : 0)}</span>${ctx.tr("prompt", st ? st.cluster : 1, n)}${line}` +
+      `<span class="hint">${ctx.tr(touch ? "hint_touch" : "hint")}${pz.flip ? " " + ctx.tr("hint_flip") : ""}</span>`;
+  },
+  stageNote: pz => PK.tr("stage_note", pz.sets.length, pz.sets[0].pieces.length) + (pz.flip ? PK.tr("stage_flip") : ""),
+  progressText: (pz, k) => PK.tr("opp_prog", k || 0, pz.sets.length),
+  rules: [["h_rules", ["r_rules"]], ["h_ctrl", ["r_ctrl"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
+  i18n: {
+    vi: {
+      brand: "Xếp hình đối xứng", tagline: "Ghép hết các mảnh thành một hình gấp đôi trùng khít.",
+      r_intro: "Mỗi bộ có vài mảnh ghép. Hãy <b>dùng hết các mảnh</b> ghép thành <b>một hình liền</b>, sao cho gấp đôi hình theo một đường thẳng thì hai nửa trùng khít nhau. Không có hình mẫu: tự tìm ra hình chính là phần khó.",
+      c1_h: "Dùng hết các mảnh", c1_p: "Ghép các mảnh sát cạnh nhau thành một hình liền, không chồng lên nhau, không mảnh nào đứng riêng.",
+      c2_h: "Gấp đôi phải trùng khít", c2_p: "Hình có trục đối xứng dọc, ngang hoặc chéo. Hình đối xứng nào cũng được, không cần giống đáp án.",
+      c3_h: "Kéo để dời, chạm để xoay", c3_p: "Mỗi lần chạm, mảnh xoay 90°. Mức Khó được lật mảnh: chạm chọn mảnh rồi bấm Lật mảnh.",
+      h_rules: "Luật", h_ctrl: "Cách chơi", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
+      r_rules: ["Dùng <b>tất cả</b> các mảnh của bộ, ghép sát cạnh nhau thành <b>một hình liền</b>. Hai mảnh chỉ chạm nhau ở một góc thì chưa tính là liền. Không mảnh nào được chồng lên mảnh khác.",
+        "Gấp hình theo một đường thẳng (dọc, ngang hoặc chéo 45°) thì hai nửa phải trùng khít nhau.",
+        "Mỗi bộ được cắt ra từ một hình đối xứng nên luôn có lời giải. Ghép ra hình đối xứng khác cũng được tính.",
+        "Độ khó: Dễ 3 mảnh, Vừa 4 mảnh (như trong show), Khó 5 mảnh. Dễ và Vừa chỉ được xoay mảnh, Khó được xoay và lật.",
+        "Một lượt có <b>3 bộ</b>. Bấm các ô 1, 2, 3 phía trên bàn để chuyển qua lại giữa các bộ bất cứ lúc nào. Xong cả 3 bộ là xong lượt.",
+        "Ghép đúng thì game tự nhận ra, vẽ trục đối xứng và khoá bộ đó lại (ô số có dấu ✓), không cần bấm nộp."],
+      r_ctrl: ["Giữ và kéo mảnh để dời (mảnh nhấc lên có bóng), thả tay là mảnh tự khớp vào vị trí gần nhất. Giữ rồi thả mà không kéo thì mảnh không xoay.",
+        "Chạm nhanh (bấm) vào mảnh để xoay 90° theo chiều kim đồng hồ. Máy tính: chuột phải để xoay ngược lại, phím R cũng xoay mảnh vừa chọn.",
+        "Mức Khó: chạm hoặc kéo một mảnh để chọn (mảnh có viền đậm), rồi bấm <b>Lật mảnh</b> hoặc phím F.",
+        "Ô 1, 2, 3 phía trên bàn (hoặc phím 1, 2, 3) để chuyển bộ; mảnh của mỗi bộ giữ nguyên chỗ khi quay lại.",
+        "Mảnh chồng lên nhau có viền đỏ nét đứt. <b>Xếp lại</b> đưa mọi mảnh của bộ đang xem về chỗ lúc đầu.",
+        "<b>Bỏ cuộc</b> (bấm 2 lần cho chắc): các bộ chưa xong tự ghép thành đáp án. Chỉ có khi chơi một mình, không tính kỷ lục."],
+      r_solo: ["Chọn độ khó rồi ghép cả 3 bộ. Đồng hồ chạy từ lúc bấm Bắt đầu tới khi xong bộ cuối, tổng thời gian là thành tích của bạn.", "Kỷ lục lưu riêng từng độ khó, trên máy này."],
+      r_online: ["Chủ phòng chọn độ khó. Hai người ghép cùng 3 bộ mảnh, ai xong cả 3 bộ trước thì thắng.",
+        "Thanh trên cùng cho biết đối thủ đã xong mấy bộ."],
+      r_tips: ["Tìm hai cạnh chéo khớp nhau: hai nửa ô chéo thường ghép lại thành một ô vuông hoặc một mái nhọn.",
+        "Hình đối xứng hay có một mảnh nằm vắt qua trục, hoặc từng cặp phần giống nhau nằm hai bên trục.",
+        "Đừng quên trục chéo: nhiều hình chỉ đối xứng khi nhìn nghiêng 45°."],
+      r_note: "Lấy cảm hứng từ trò xếp hình đối xứng trong show The Devil's Plan mùa 3 (Netflix). Game không liên kết với Netflix.",
+      t_flip: "Lật mảnh", t_reset: "Xếp lại", f_pick: "Chạm vào một mảnh để chọn trước đã.",
+      prompt_q: "Bộ {0}/{1} · {2} mảnh · đã xong {3}", tab_set: "Bộ {0}", prompt: "Đang có <b>{0}/{1}</b> mảnh liền nhau",
+      st_over: "Có mảnh đang chồng lên nhau.", st_nosym: "Đã liền một khối nhưng chưa đối xứng.", st_won: "Đối xứng rồi!", st_shown: "Trên bàn là một cách ghép đúng.",
+      cv_round: "Chuẩn bị", c_round: "Lượt",
+      hint: "Kéo để dời mảnh, bấm để xoay 90°. Chuột phải: xoay ngược.", hint_touch: "Kéo để dời mảnh, chạm để xoay 90°.",
+      hint_flip: "Chọn mảnh rồi bấm Lật mảnh (phím F).",
+      opp_prog: "Đối thủ đã xong {0}/{1} bộ", stage_note: "{0} bộ, mỗi bộ {1} mảnh", stage_flip: ", được lật mảnh",
+      lvn_easy: "3 mảnh, chỉ được xoay.", lvn_normal: "4 mảnh như trong show, chỉ được xoay.", lvn_hard: "5 mảnh, được xoay và lật.",
+      m_solo_note: "Ghép cả 3 bộ, chuyển qua lại giữa các bộ lúc nào cũng được. Đồng hồ chạy tới khi xong bộ cuối, kỷ lục lưu riêng từng độ khó.",
+      m_online_note: "Hai người ghép cùng 3 bộ mảnh, ai xong cả 3 bộ trước thì thắng.",
+      s_done: "Xong cả 3 bộ!", s_done_p: "Bạn ghép xong cả 3 bộ trong <b>{1}</b>.", s_again: "Lượt mới",
+      r_point_me: "Bạn xong cả 3 bộ trước.", r_point_opp: "Đối thủ xong cả 3 bộ trước. Các bộ bạn chưa xong đã tự ghép thành đáp án.",
+      r_gave_me: "Bạn đã bỏ cuộc. Các bộ chưa xong đã tự ghép thành đáp án.", r_gave_opp: "Đối thủ đã bỏ cuộc.",
+      s_gave_p: "Các bộ chưa xong đã tự ghép thành một cách đúng (bấm ô 1, 2, 3 để xem).", s_gave_again: "Lượt mới",
+    },
+    en: {
+      brand: "Symmetry Puzzle", tagline: "Fit all the pieces into one shape with matching halves.",
+      r_intro: "Each set has a few pieces. <b>Use every piece</b> to build <b>one connected shape</b> that you could fold along a straight line so the two halves match exactly. There is no target picture: finding the shape is the puzzle.",
+      c1_h: "Use every piece", c1_p: "Join the pieces edge to edge into one shape. No overlaps, and no piece left on its own.",
+      c2_h: "Both halves must match", c2_p: "The shape needs a mirror line: up-down, across or diagonal. Any symmetrical shape counts, not just the answer.",
+      c3_h: "Drag to move, tap to turn", c3_p: "Each tap turns a piece 90°. Hard also lets you flip: tap a piece, then press Flip.",
+      h_rules: "Rules", h_ctrl: "Controls", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
+      r_rules: ["Use <b>all</b> the pieces of the set, joined edge to edge into <b>one connected shape</b>. Pieces that only touch at a corner don't count as joined. Pieces may not overlap.",
+        "Fold the shape along one straight line (up-down, across or at 45°) and the two halves must cover each other exactly.",
+        "Every set is cut from a symmetrical shape, so it can always be solved. Any other symmetrical shape counts too.",
+        "Difficulty: Easy has 3 pieces, Medium 4 (as on the show), Hard 5. Easy and Medium only allow turning; Hard allows turning and flipping.",
+        "A round has <b>3 sets</b>. Tap 1, 2, 3 above the board to switch between sets at any time. Finish all 3 to finish the round.",
+        "When a shape is right, the game spots it by itself, draws the mirror line and locks that set (its tab gets a ✓). No need to submit."],
+      r_ctrl: ["Hold and drag a piece to move it (it lifts and casts a shadow). It snaps into place when you let go. Holding and releasing without dragging doesn't turn it.",
+        "Quick-tap (click) a piece to turn it 90° clockwise. With a mouse, right-click turns it back; R also turns the selected piece.",
+        "Hard: tap or drag a piece to select it (bold outline), then press <b>Flip</b> or F.",
+        "Tabs 1, 2, 3 above the board (or keys 1, 2, 3) switch sets; pieces stay where you left them.",
+        "Overlapping pieces get a dashed red outline. <b>Reset</b> puts the current set's pieces back where they started.",
+        "<b>Give up</b> (tap twice to be sure): unfinished sets slide into an answer. Solo only; it doesn't count toward your best time."],
+      r_solo: ["Pick a difficulty and solve all 3 sets. The clock runs from Start until the last set is done, and your total time is your score.", "Your best time is saved separately for each difficulty, on this device."],
+      r_online: ["The host picks the difficulty. Both players get the same 3 sets, and the first to finish all 3 wins.",
+        "The top bar shows how many sets your opponent has finished."],
+      r_tips: ["Look for diagonal edges that fit: two half-squares often make a full square or a pointed roof.",
+        "Symmetrical shapes often have one piece sitting across the mirror line, or matching parts on each side of it.",
+        "Don't forget diagonal mirror lines: some shapes are only symmetrical when you tilt your head 45°."],
+      r_note: "Inspired by the symmetrical puzzle on The Devil's Plan season 3 (Netflix). Not affiliated with Netflix.",
+      t_flip: "Flip", t_reset: "Reset", f_pick: "Tap a piece to select it first.",
+      prompt_q: "Set {0}/{1} · {2} pieces · {3} done", tab_set: "Set {0}", prompt: "<b>{0}/{1}</b> pieces joined",
+      st_over: "Some pieces overlap.", st_nosym: "All joined, but not symmetrical yet.", st_won: "Symmetrical!", st_shown: "The board shows one correct answer.",
+      cv_round: "Get ready", c_round: "Round",
+      hint: "Drag to move a piece, click to turn it 90°. Right-click: turn back.", hint_touch: "Drag to move a piece, tap to turn it 90°.",
+      hint_flip: "Select a piece, then press Flip (F key).",
+      opp_prog: "Opponent finished {0}/{1} sets", stage_note: "{0} sets of {1} pieces", stage_flip: ", flipping allowed",
+      lvn_easy: "3 pieces, turning only.", lvn_normal: "4 pieces as on the show, turning only.", lvn_hard: "5 pieces, turning and flipping.",
+      m_solo_note: "Solve all 3 sets, switching between them whenever you like. The clock runs until the last set is done; best times are kept per difficulty.",
+      m_online_note: "Both players get the same 3 sets, and the first to finish all 3 wins.",
+      s_done: "All 3 sets done!", s_done_p: "You solved all 3 sets in <b>{1}</b>.", s_again: "New round",
+      r_point_me: "You finished all 3 sets first.", r_point_opp: "Your opponent finished all 3 sets first. Your unfinished sets now show an answer.",
+      r_gave_me: "You gave up. Your unfinished sets now show an answer.", r_gave_opp: "Your opponent gave up.",
+      s_gave_p: "Unfinished sets now show one correct answer (tap 1, 2, 3 to look).", s_gave_again: "New round",
+    },
+  },
+});
+</script>
+</body>
+</html>

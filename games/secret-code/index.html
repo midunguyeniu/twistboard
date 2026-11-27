@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secret Code · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<link rel="stylesheet" href="../../assets/puzzle-kit.css">
+<script src="../../assets/platform.js"></script>
+<script src="../../assets/puzzle-kit.js"></script>
+<style>
+/* lá bài theo kiểu lá trong show (chủ game gửi ảnh mẫu 11/2026): nền pastel, viền trắng ngà, khung trong góc lõm, chữ - số - hình đen xếp dọc */
+.scc-gray{--cc:#d3d5d3}.scc-yellow{--cc:#e3db7e}.scc-blue{--cc:#8fd6df}.scc-green{--cc:#b9dc8c}.scc-purple{--cc:#a990d3}
+.sc{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+.sc-card{position:relative;width:var(--cw);height:calc(var(--cw) * 1.4);border-radius:calc(var(--cw) * .06);background:var(--cc);color:#1b1b1b;padding:0;flex:none;
+  border:calc(var(--cw) * .055) solid #eef0ea;box-shadow:0 0 0 1px #7d8582,0 3px 6px rgba(0,0,0,.35);cursor:pointer;
+  font-family:Georgia,"Times New Roman",serif;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--cw) * .07);
+  transition:transform .12s ease-out,opacity .15s,box-shadow .15s,filter .15s}
+.sc-card .fr{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.sc-card .fr path{fill:none;stroke:rgba(30,30,30,.55);stroke-width:1;vector-effect:non-scaling-stroke}
+.sc-card .fr circle{fill:rgba(30,30,30,.5)}
+.sc-card .l{font-size:calc(var(--cw) * .27);font-weight:600}
+.sc-card .n{font-size:calc(var(--cw) * .26);font-variant-numeric:tabular-nums}
+.sc-card .s{width:calc(var(--cw) * .2);height:calc(var(--cw) * .2);display:block;overflow:visible}
+.sc-card .s *{fill:#151515}
+.sc-card:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.06)}
+.sc-card:disabled{cursor:default}
+.sc-board{background:radial-gradient(ellipse at 30% 20%,#3e4446 0,transparent 60%),radial-gradient(ellipse at 80% 90%,#30353a 0,transparent 55%),#262a2c;
+  border-radius:14px;padding:var(--pad,14px);box-shadow:inset 0 0 30px rgba(0,0,0,.45);max-width:100%}
+.sc-grid{display:grid;grid-template-columns:repeat(6,var(--cw));gap:var(--gap);justify-content:center}   /* 6 cột × 5 hàng như bảng trong show */
+.sc-grid .sc-card[data-i="24"]{grid-column:5}
+/* máy tính: bảng bên trái, hàng mật mã (4 ô 2×2 + nút) bên phải; màn hẹp: hàng mật mã dưới bảng */
+.sc-main{display:flex;gap:22px;align-items:center;justify-content:center;flex-wrap:wrap;max-width:100%}
+.sc.wide .sc-code{flex-direction:column;align-items:stretch}
+.sc.wide .sc-slots{display:grid;grid-template-columns:repeat(2,var(--cw));justify-content:center}
+.sc.wide .sc-btns{min-width:0}
+.sc:not(.wide) .sc-btns{flex-direction:row}
+.sc-grid .sc-card.on{opacity:.2;transform:scale(.92)}
+.sc-grid .sc-card.on::after{content:"";position:absolute;inset:calc(var(--cw) * -.1);border:2px dashed rgba(255,255,255,.75);border-radius:6px}
+.sc-grid.reveal .sc-card{opacity:.3}
+.sc-grid.reveal .sc-card.ans{opacity:1;transform:none;box-shadow:0 0 0 1px #7d8582,0 0 0 4px #ffc928,0 0 14px rgba(255,201,40,.6)}
+.sc-grid.reveal .sc-card.ans::after{display:none}
+/* hàng mật mã */
+.sc-code{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
+.sc-slots{display:flex;gap:var(--gap);padding:8px;border-radius:14px;background:var(--tb-surface-2);border:1.5px solid var(--tb-border)}
+.sc-slot{width:var(--cw);height:calc(var(--cw) * 1.4);border-radius:calc(var(--cw) * .08);border:2px dashed var(--tb-border-strong);display:grid;place-items:center;
+  color:var(--tb-faint);font-weight:800;font-size:calc(var(--cw) * .28);flex:none}
+.sc-slots.bad{border-color:var(--tb-red);animation:pkshake .4s}
+.sc-slots.good{border-color:var(--tb-green);background:#e7f7ec}
+.sc-btns{display:flex;flex-direction:column;gap:8px;min-width:120px}
+.sc-btns .btn{font-size:15px;padding:10px 16px}
+.sc-msg{min-height:1.4em;font-size:14px;font-weight:800;color:var(--tb-muted);text-align:center}
+.sc-msg.bad{color:var(--tb-red)}.sc-msg.good{color:var(--tb-green)}
+/* gợi ý */
+.sc-clues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;width:100%;counter-reset:cl}
+.sc-clues li{display:flex;gap:9px;align-items:flex-start;font-size:15px;font-weight:700;line-height:1.38;color:var(--tb-text);counter-increment:cl}
+.sc-clues li::before{content:counter(cl);flex:none;width:22px;height:22px;border-radius:50%;background:#1d2330;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:900;margin-top:1px}
+.sc-clues li.ok::before{content:"✓";background:var(--tb-green)}
+.sc-clues b{font-variant-numeric:tabular-nums}
+.pk-prompt .sc-clues{margin-top:8px}
+.sc .sc-clues{max-width:560px}
+@media (min-width:781px){.sc .sc-clues{display:none}}
+@media (max-width:780px){.pk-prompt .sc-clues{display:none}}
+/* số lá từng màu / hình (mức ★) */
+.sc-counts{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:13px;font-weight:800;color:var(--tb-muted)}
+.sc-counts span{display:inline-flex;align-items:center;gap:5px}
+.sc-counts i{width:15px;height:15px;border-radius:4px;background:var(--cc);display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.sc-counts svg{width:calc(var(--cw) * .2);height:calc(var(--cw) * .2);overflow:visible}   /* đúng cỡ hình trên lá (.sc-card .s) */
+.sc-left{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:100%}   /* thanh đếm canh giữa theo bảng lá */
+/* kéo thả lá vào / ra hàng mật mã */
+.sc-main .sc-card{touch-action:none}
+.sc-card.dragging{opacity:.3}
+.sc-ghost{position:fixed;z-index:90;margin:0;pointer-events:none;transform:rotate(-4deg) scale(1.08);box-shadow:0 0 0 1px #7d8582,0 12px 26px rgba(0,0,0,.45);transition:none}
+.sc-slots.drop{border-color:#ffc928;box-shadow:0 0 0 3px rgba(255,201,40,.45)}
+.sc-board.drop{box-shadow:inset 0 0 30px rgba(0,0,0,.45),0 0 0 3px rgba(255,201,40,.55)}
+.sc-counts svg *{fill:#1d2330}
+.sc-counts b{color:var(--tb-text);font-size:15px}
+.sc-counts .sep{width:1px;height:16px;background:var(--tb-border-strong)}
+/* nút mức: ★ vàng, ★★ xanh dương, ★★★ đỏ (như Poker Trí Nhớ, Poker Phép Tính, Wall Go) */
+#pkSegLevel button[data-v="easy"]{border-color:#ffd24a;background:rgba(255,210,74,.2)}
+#pkSegLevel button[data-v="normal"]{border-color:#3d8bff;background:rgba(61,139,255,.16)}
+#pkSegLevel button[data-v="hard"]{border-color:#e5453b;background:rgba(229,69,59,.16)}
+#pkSegLevel button:hover:not(.on):not(:disabled){filter:brightness(1.06)}
+#pkSegLevel button.on[data-v="easy"]{background:#ffd24a;border-color:#ffd24a;color:#3a2a00}
+#pkSegLevel button.on[data-v="normal"]{background:#3d8bff;border-color:#3d8bff;color:#fff}
+#pkSegLevel button.on[data-v="hard"]{background:#e5453b;border-color:#e5453b;color:#fff}
+#pkSegLevel button{white-space:nowrap;min-width:0;padding:10px 6px;font-size:15px}
+#pkSegLevel button[data-v="random"]{flex:1.3 1 0}
+@media (max-width:560px){#pkSegLevel button{flex:1 1 40%}#pkSegLevel button[data-v="random"]{flex:1 1 100%}}
+/* hình nhỏ trong thẻ Luật chơi */
+.scr{display:flex;gap:6px;align-items:flex-end;justify-content:center;--cw:34px}
+.scr .sc-card{cursor:default}
+.pk-rc-fig .scr-cl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;width:100%;max-width:190px}
+.pk-rc-fig .scr-cl li{background:#fff;border-radius:8px;padding:4px 8px;box-shadow:0 1px 3px rgba(20,30,60,.12);font-size:12px;font-weight:800;color:#1d2330;line-height:1.3;margin:0}
+.scr-row{display:flex;gap:5px;padding:6px;border-radius:10px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.35);--cw:32px}
+.scr-go{background:var(--tb-primary);color:var(--tb-primary-ink);border-radius:8px;padding:4px 12px;font-weight:900;font-size:13px}
+@media (max-width:560px){.scr{--cw:28px}.scr-row{--cw:26px}}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "secret-code" });</script>
+<script>
+"use strict";
+
+/* RULES-START: luật + sinh đề Mật mã, không đụng DOM (cắt ra chạy bằng Node được).
+   Cách sinh bộ bài và ra đề chép theo bản web quoridorgame.com/en/secret-code (chủ game chọn chép, 11/2026). */
+const SC_COLORS = ["gray", "yellow", "blue", "green", "purple"];   // vị trí giữ như bản gốc (red ở đầu), chỉ đổi tên màu hiển thị
+const SC_SHAPES = ["circle", "triangle", "diamond", "square", "star"];
+const SC_AMOUNTS = [8, 6, 5, 4, 3];   // số lá của 5 màu (và 5 hình), gán ngẫu nhiên mỗi đề
+const SC_KINDS = ["sum", "colorKinds", "shapeKinds", "diff", "pairSum", "product", "range", "ends", "rank"];
+const SC_PAIRS = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]];   // cặp lá theo thứ tự số: 0 nhỏ nhất ... 3 lớn nhất
+const SC_HARD = ["diff", "range", "product", "ends", "rank"];
+const scCmp = (c, a, b) => c === "eq" ? a === b : c === "le" ? a <= b : a >= b;
+const scLead = c => c.kind === "sum" ? 3 : 2 * (c.kind === "colorKinds" || c.kind === "shapeKinds");
+const scIsHard = c => SC_HARD.includes(c.kind);
+const SC_LEVELS = {
+  easy: { min: 6, max: 7, hardAtLeast: 0, needSum: true,
+    allow: c => c.kind === "sum" ? c.cmp === "eq" : c.kind === "rank" ? c.pos === 0 || c.pos === 3 : c.kind !== "product" && c.kind !== "ends",
+    lead: c => scLead(c) || +(c.kind === "rank") },
+  normal: { min: 5, max: 6, hardAtLeast: 1, needSum: true, allow: c => c.kind !== "sum" || c.cmp !== "ge", lead: scLead,
+    boostOne: [[["rank"], 1], [["pairSum", "range"], .5]] },
+  hard: { min: 4, max: 6, hardAtLeast: 3, needSum: false, allow: c => c.kind !== "sum" || c.cmp !== "eq", lead: () => 0 },
+};
+
+/* số ngẫu nhiên có seed từ chuỗi (mã hôm nay) */
+function scHash(s) {
+  let t = 0x6a09e667 ^ s.length;
+  for (let i = 0; i < s.length; i++) { t = Math.imul(t ^ s.charCodeAt(i), 0xcc9e2d51); t = t << 13 | t >>> 19; }
+  t = Math.imul(t ^ t >>> 16, 0x85ebca6b); t = Math.imul(t ^ t >>> 13, 0xc2b2ae35);
+  return (t ^ t >>> 16) >>> 0;
+}
+function scRng(seed) {
+  let n = seed >>> 0;
+  return () => { let e = n = n + 0x6d2b79f5 >>> 0; e = Math.imul(e ^ e >>> 15, 1 | e); e ^= e + Math.imul(e ^ e >>> 7, 61 | e); return ((e ^ e >>> 14) >>> 0) / 4294967296; };
+}
+function scShuffle(arr, r) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+/* ---------- BỘ BÀI: 26 lá A-Z, mỗi lá 1 màu + 1 hình ---------- */
+function scMakeDeck(r) {
+  const cAmt = scShuffle(SC_AMOUNTS, r), sAmt = scShuffle(SC_AMOUNTS, r);
+  let m;
+  for (;;) {   // bảng màu × hình: mỗi ô tối đa 3 lá, đủ số lá từng màu/hình
+    m = SC_COLORS.map(() => SC_SHAPES.map(() => 0));
+    const cl = [...cAmt], sl = [...sAmt]; let ok = true;
+    for (let k = 0; k < 26 && ok; k++) {
+      const opts = [];
+      SC_COLORS.forEach((_, a) => SC_SHAPES.forEach((_, b) => { if (cl[a] > 0 && sl[b] > 0 && m[a][b] < 3) opts.push([a, b]); }));
+      if (!opts.length) { ok = false; break; }
+      const [a, b] = opts[Math.floor(r() * opts.length)];
+      m[a][b]++; cl[a]--; sl[b]--;
+    }
+    if (ok) break;
+  }
+  const list = [];
+  SC_COLORS.forEach((c, a) => SC_SHAPES.forEach((s, b) => { for (let k = 0; k < m[a][b]; k++) list.push({ color: c, shape: s }); }));
+  for (;;) {   // xếp lá vào A-Z: 2 lá kề không giống hệt, 3 lá liền không cùng màu/cùng hình, mỗi màu nằm rải đều (số trung bình 8-19)
+    const d = scShuffle(list, r);
+    let ok = true;
+    for (let i = 1; i < d.length && ok; i++) {
+      const p = d[i - 1], q = d[i];
+      if (p.color === q.color && p.shape === q.shape) ok = false;
+      else if (i >= 2) { const o = d[i - 2]; if ((o.color === p.color && p.color === q.color) || (o.shape === p.shape && p.shape === q.shape)) ok = false; }
+    }
+    for (const c of SC_COLORS) {
+      if (!ok) break;
+      const pos = d.flatMap((x, i) => x.color === c ? [i + 1] : []), avg = pos.reduce((a, b) => a + b, 0) / pos.length;
+      if (avg < 8 || avg > 19) ok = false;
+    }
+    if (ok) return d.map((x, i) => ({ id: i, letter: String.fromCharCode(65 + i), n: i + 1, ...x }));
+  }
+}
+const scColorCounts = deck => SC_COLORS.map(c => deck.filter(x => x.color === c).length);
+const scShapeCounts = deck => SC_SHAPES.map(s => deck.filter(x => x.shape === s).length);
+const scRankOf = cnt => cnt.map(t => cnt.filter(e => e > t).length);   // 0 = nhiều nhất ... 4 = ít nhất
+function scRanks(deck) {   // hạng màu / hạng hình của từng lá
+  const rc = scRankOf(scColorCounts(deck)), rs = scRankOf(scShapeCounts(deck));
+  return { color: deck.map(x => rc[SC_COLORS.indexOf(x.color)]), shape: deck.map(x => rs[SC_SHAPES.indexOf(x.shape)]) };
+}
+
+/* ---------- BẢNG 14.950 BỘ 4 LÁ + MẶT NẠ BIT ---------- */
+let SC_T = null;
+const SC_DECK_CACHE = new WeakMap();
+function scTable() {
+  if (SC_T) return SC_T;
+  const hands = [];
+  for (let a = 0; a < 26; a++) for (let b = a + 1; b < 26; b++) for (let c = b + 1; c < 26; c++) for (let d = c + 1; d < 26; d++) hands.push([a, b, c, d]);
+  const N = hands.length, T = { hands, sum: new Uint16Array(N), ends: new Uint8Array(N), diff: SC_PAIRS.map(() => new Uint8Array(N)),
+    pairSum: SC_PAIRS.map(() => new Uint8Array(N)), product: SC_PAIRS.map(() => new Uint16Array(N)), words: Math.ceil(N / 32) };
+  hands.forEach((h, k) => {
+    T.sum[k] = h[0] + h[1] + h[2] + h[3] + 4; T.ends[k] = h[0] + h[3] + 2;
+    SC_PAIRS.forEach(([i, j], p) => { T.diff[p][k] = h[j] - h[i]; T.pairSum[p][k] = h[i] + h[j] + 2; T.product[p][k] = (h[i] + 1) * (h[j] + 1); });
+  });
+  return SC_T = T;
+}
+function scDeckTable(deck) {
+  let D = SC_DECK_CACHE.get(deck); if (D) return D;
+  const { hands } = scTable(), N = hands.length, rk = scRanks(deck), col = deck.map(x => x.color), shp = deck.map(x => x.shape);
+  D = { colorKinds: new Uint8Array(N), shapeKinds: new Uint8Array(N), colorRank: [0, 1, 2, 3].map(() => new Uint8Array(N)), shapeRank: [0, 1, 2, 3].map(() => new Uint8Array(N)) };
+  hands.forEach((h, k) => {
+    D.colorKinds[k] = new Set(h.map(x => col[x])).size; D.shapeKinds[k] = new Set(h.map(x => shp[x])).size;
+    for (let p = 0; p < 4; p++) { D.colorRank[p][k] = rk.color[h[p]]; D.shapeRank[p][k] = rk.shape[h[p]]; }
+  });
+  SC_DECK_CACHE.set(deck, D); return D;
+}
+const scPair = (i, j) => SC_PAIRS.findIndex(([a, b]) => a === i && b === j);
+function scMask(clue, deck) {   // bit k = 1 nếu bộ thứ k khớp gợi ý
+  const T = scTable(), { hands, words } = T;
+  const [arr, cmp, n] = (() => {
+    switch (clue.kind) {
+      case "sum": return [T.sum, clue.cmp, clue.n];
+      case "ends": return [T.ends, clue.cmp, clue.n];
+      case "diff": return [T.diff[scPair(clue.i, clue.j)], "eq", clue.n];
+      case "range": return [T.diff[scPair(0, 3)], "eq", clue.n];
+      case "pairSum": return [T.pairSum[scPair(clue.i, clue.j)], clue.cmp, clue.n];
+      case "product": return [T.product[scPair(clue.i, clue.j)], clue.cmp, clue.n];
+      case "colorKinds": return [scDeckTable(deck).colorKinds, "eq", clue.n];
+      case "shapeKinds": return [scDeckTable(deck).shapeKinds, "eq", clue.n];
+      case "rank": return [scDeckTable(deck)[clue.attr === "color" ? "colorRank" : "shapeRank"][clue.pos], "eq", clue.rank];
+    }
+  })();
+  const m = new Uint32Array(words);
+  for (let k = 0; k < hands.length; k++) if (scCmp(cmp, arr[k], n)) m[k >>> 5] |= 1 << (k & 31);
+  return m;
+}
+function scPop(m, stop = Infinity) {
+  let n = 0;
+  for (let i = 0; i < m.length; i++) { let x = m[i]; while (x) { x &= x - 1; n++; } if (n > stop) break; }
+  return n;
+}
+function scFull() {
+  const { hands, words } = scTable(), m = new Uint32Array(words).fill(0xffffffff), r = hands.length & 31;
+  if (r) m[words - 1] = (1 << r) - 1;
+  return m;
+}
+function scAnd(list) { const m = scFull(); for (const x of list) for (let i = 0; i < m.length; i++) m[i] &= x[i]; return m; }
+const scStep = v => v <= 50 ? 5 : v <= 200 ? 10 : 50;   // gợi ý ≤/≥ làm tròn theo bước này
+function scBounds(make, v, deck) {   // gợi ý dạng ≤ / ≥ quanh giá trị thật, bỏ gợi ý quá lỏng (còn > 60% số bộ)
+  const N = scTable().hands.length, out = [];
+  for (const [cmp, n] of [["le", Math.ceil(v / scStep(v)) * scStep(v)], ["ge", Math.floor(v / scStep(v)) * scStep(v)]]) {
+    if (n <= 0) continue;
+    const clue = make(cmp, n), mask = scMask(clue, deck), left = scPop(mask);
+    if (left <= .6 * N) out.push({ clue, mask, left });
+  }
+  return out;
+}
+const scBestBound = (make, v, deck) => scBounds(make, v, deck).sort((a, b) => a.left - b.left)[0] || null;
+function scGroup(c) {   // gợi ý cùng nhóm thì chỉ lấy 1
+  switch (c.kind) {
+    case "sum": case "colorKinds": case "shapeKinds": case "ends": return c.kind;
+    case "range": return "diff:03";
+    case "pairSum": return c.i === 0 && c.j === 3 ? "ends" : `pairSum:${c.i}${c.j}`;
+    case "diff": case "product": return `${c.kind}:${c.i}${c.j}`;
+    case "rank": return `rank:${c.pos}:${c.attr}`;
+  }
+}
+function scCandidates(hand, deck) {   // mọi gợi ý đúng với đáp án
+  const n = p => hand[p] + 1, rk = scRanks(deck), sum = n(0) + n(1) + n(2) + n(3);
+  const inner = SC_PAIRS.filter(([i, j]) => i !== 0 || j !== 3);
+  const list = [{ kind: "sum", cmp: "eq", n: sum },
+    { kind: "colorKinds", n: new Set(hand.map(x => deck[x].color)).size },
+    { kind: "shapeKinds", n: new Set(hand.map(x => deck[x].shape)).size },
+    ...inner.map(([i, j]) => ({ kind: "diff", i, j, n: n(j) - n(i) })),
+    { kind: "range", n: n(3) - n(0) },
+    ...[0, 1, 2, 3].flatMap(p => [{ kind: "rank", pos: p, attr: "color", rank: rk.color[hand[p]] }, { kind: "rank", pos: p, attr: "shape", rank: rk.shape[hand[p]] }]),
+  ].map(clue => ({ clue, mask: scMask(clue, deck) }));
+  for (const x of [...scBounds((cmp, v) => ({ kind: "sum", cmp, n: v }), sum, deck),
+    scBestBound((cmp, v) => ({ kind: "ends", cmp, n: v }), n(0) + n(3), deck),
+    ...inner.map(([i, j]) => scBestBound((cmp, v) => ({ kind: "pairSum", i, j, cmp, n: v }), n(i) + n(j), deck)),
+    ...SC_PAIRS.map(([i, j]) => scBestBound((cmp, v) => ({ kind: "product", i, j, cmp, n: v }), n(i) * n(j), deck))]) if (x) list.push({ clue: x.clue, mask: x.mask });
+  return list;
+}
+function scPickSet(masks, groups, order, dropOrder) {   // thêm gợi ý tới khi còn đúng 1 bộ, rồi bỏ bớt gợi ý thừa
+  let cur = scFull(), left = scPop(cur);
+  const used = [], seen = new Set();
+  for (const s of order) {
+    if (seen.has(groups[s])) continue;
+    const nx = cur.map((w, i) => w & masks[s][i]), o = scPop(nx);
+    if (o < left) { cur = nx; left = o; used.push(s); seen.add(groups[s]); if (left === 1) break; }
+  }
+  if (left !== 1) return null;
+  let keep = [...used];
+  for (const t of dropOrder) {
+    if (!keep.includes(t)) continue;
+    const rest = keep.filter(x => x !== t);
+    if (scPop(scAnd(rest.map(x => masks[x])), 1) === 1) keep = rest;
+  }
+  return keep;
+}
+function scSortClues(list) {
+  const sub = c => c.kind === "diff" || c.kind === "product" || c.kind === "pairSum" ? 4 * c.i + c.j : c.kind === "rank" ? 2 * c.pos + +(c.attr === "shape") : 0;
+  return [...list].sort((a, b) => SC_KINDS.indexOf(a.kind) - SC_KINDS.indexOf(b.kind) || sub(a) - sub(b));
+}
+/* Sinh 1 đề: { level, deck, answer (4 chỉ số lá, tăng dần), clues } */
+function scGen(level, r) {
+  const L = SC_LEVELS[level] || SC_LEVELS.normal, { hands } = scTable();
+  const deck = scMakeDeck(r);
+  scDeckTable(deck);
+  for (;;) {
+    const hand = hands[Math.floor(r() * hands.length)];
+    const cand = scCandidates(hand, deck).filter(x => L.allow(x.clue));
+    const sumMode = r() < .5 ? "eq" : "bound";
+    const order0 = scShuffle(cand.map((_, i) => i), r), boost = new Map();
+    for (const [kinds, w] of L.boostOne || []) { const k = order0.find(t => kinds.includes(cand[t].clue.kind)); if (k !== undefined) boost.set(k, w); }
+    const score = k => { const c = cand[k].clue; return L.lead(c) + (boost.get(k) || 0) + .5 * (c.kind === "sum" && ((c.cmp === "eq") === (sumMode === "eq"))); };
+    const order = [...order0].sort((a, b) => score(b) - score(a));
+    const drop = [...order].reverse().filter(k => !L.needSum || cand[k].clue.kind !== "sum");
+    const pick = scPickSet(cand.map(x => x.mask), cand.map(x => scGroup(x.clue)), order, drop);
+    if (!pick || pick.length < L.min || pick.length > L.max) continue;
+    const clues = pick.map(k => cand[k].clue);
+    if (clues.filter(scIsHard).length < L.hardAtLeast) continue;
+    if (L.needSum) {
+      const si = pick.findIndex(k => cand[k].clue.kind === "sum");
+      if (si < 0 || scPop(scAnd(pick.filter((_, i) => i !== si).map(k => cand[k].mask)), 1) === 1) continue;
+    }
+    return { level, deck, answer: hand, clues: scSortClues(clues) };
+  }
+}
+const scGenSeed = (key, level, prefix = "twistboard-secret-code") => scGen(level, scRng(scHash(`${prefix}|${level}|${key}`)));
+/* Kiểm 1 bộ 4 lá (chỉ số bất kỳ thứ tự): trả danh sách chỉ số gợi ý KHÔNG khớp */
+function scBroken(pz, pick) {
+  const s = [...pick].sort((a, b) => a - b), v = p => s[p] + 1, rk = scRanks(pz.deck);
+  return pz.clues.flatMap((c, k) => {
+    let ok;
+    switch (c.kind) {
+      case "sum": ok = scCmp(c.cmp, s.reduce((a, b) => a + b + 1, 0), c.n); break;
+      case "colorKinds": ok = new Set(s.map(x => pz.deck[x].color)).size === c.n; break;
+      case "shapeKinds": ok = new Set(s.map(x => pz.deck[x].shape)).size === c.n; break;
+      case "diff": ok = v(c.j) - v(c.i) === c.n; break;
+      case "pairSum": ok = scCmp(c.cmp, v(c.i) + v(c.j), c.n); break;
+      case "product": ok = scCmp(c.cmp, v(c.i) * v(c.j), c.n); break;
+      case "range": ok = v(3) - v(0) === c.n; break;
+      case "ends": ok = scCmp(c.cmp, v(0) + v(3), c.n); break;
+      case "rank": ok = rk[c.attr][s[c.pos]] === c.rank; break;
+    }
+    return ok ? [] : [k];
+  });
+}
+const scIsAnswer = (pz, pick) => pick.length === 4 && [...pick].sort((a, b) => a - b).join() === pz.answer.join();
+/* RULES-END */
+
+/* ---------- 1 MÃ NGẪU NHIÊN: độ khó cũng chọn ngẫu nhiên (chủ game chọn thay cho mã hôm nay, 11/2026) ---------- */
+function scRandom(rng) { const lv = ["easy", "normal", "hard"][Math.floor(rng() * 3)], pz = scGen(lv, rng); pz.random = true; return pz; }
+
+/* ---------- VẼ ---------- */
+const SC_SVG = {
+  circle: `<circle cx="50" cy="50" r="40"/>`,
+  triangle: `<path d="M50 8L93 86H7Z"/>`,
+  diamond: `<path d="M50 4L92 50L50 96L8 50Z"/>`,
+  square: `<rect x="13" y="13" width="74" height="74" rx="7"/>`,
+  star: `<path d="M50 5L61.2 35.6L93.8 36.6L68.1 56.7L77.1 88L50 69.7L22.9 88L31.9 56.7L6.2 36.6L38.8 35.6Z"/>`,
+};
+const scShape = s => `<svg viewBox="0 0 100 100" aria-hidden="true">${SC_SVG[s]}</svg>`;
+const SC_FRAME = `<svg class="fr" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true"><path d="M14 6H86A8 8 0 0 0 94 14V126A8 8 0 0 0 86 134H14A8 8 0 0 0 6 126V14A8 8 0 0 0 14 6Z"/><circle cx="6" cy="6" r="2"/><circle cx="94" cy="6" r="2"/><circle cx="6" cy="134" r="2"/><circle cx="94" cy="134" r="2"/></svg>`;
+const scCardLabel = (c, tr) => tr("card_label", c.letter, c.n, tr("col_" + c.color), tr("shp_" + c.shape));
+function scCardHtml(c, tr, attrs = "") {
+  return `<button type="button" class="sc-card scc-${c.color}" data-i="${c.id}" aria-label="${scCardLabel(c, tr)}"${attrs}>${SC_FRAME}<span class="l">${c.letter}</span><span class="n">${c.n}</span>${scShape(c.shape).replace("<svg ", '<svg class="s" ')}</button>`;
+}
+function scClueText(c, tr) {
+  const pos = p => tr("pos")[p], rank = r => tr("rank")[r], b = v => `<b>${v}</b>`;
+  switch (c.kind) {
+    case "sum": return tr(c.cmp === "eq" ? "cl_sum" : c.cmp === "le" ? "cl_sum_le" : "cl_sum_ge", b(c.n));
+    case "colorKinds": return c.n === 4 ? tr("cl_col_all") : c.n === 1 ? tr("cl_col_one") : tr("cl_col", b(c.n));
+    case "shapeKinds": return c.n === 4 ? tr("cl_shp_all") : c.n === 1 ? tr("cl_shp_one") : tr("cl_shp", b(c.n));
+    case "diff": return tr("cl_diff", pos(c.i), pos(c.j), b(c.n));
+    case "pairSum": return tr(c.cmp === "le" ? "cl_psum_le" : "cl_psum_ge", pos(c.i), pos(c.j), b(c.n));
+    case "range": return tr("cl_range", b(c.n));
+    case "product": return tr(c.cmp === "le" ? "cl_prod_le" : "cl_prod_ge", pos(c.i), pos(c.j), b(c.n));
+    case "ends": return tr(c.cmp === "le" ? "cl_ends_le" : "cl_ends_ge", b(c.n));
+    case "rank": return tr(c.attr === "color" ? "cl_rank_col" : "cl_rank_shp", pos(c.pos), rank(c.rank));
+  }
+  return "";
+}
+const scCluesHtml = (pz, tr) => `<ol class="sc-clues">${pz.clues.map(c => `<li${pz.shown ? ' class="ok"' : ""}><span>${scClueText(c, tr)}</span></li>`).join("")}</ol>`;
+function scCountsHtml(pz, tr) {   // mức ★: liệt kê số lá từng màu, từng hình (nhiều tới ít)
+  const cc = scColorCounts(pz.deck), sc = scShapeCounts(pz.deck);
+  const cols = SC_COLORS.map((c, i) => [c, cc[i]]).sort((a, b) => b[1] - a[1]), shps = SC_SHAPES.map((s, i) => [s, sc[i]]).sort((a, b) => b[1] - a[1]);
+  return `<div class="sc-counts" aria-label="${tr("counts")}">${cols.map(([c, n]) => `<span class="scc-${c}" title="${tr("col_" + c)}"><i></i><b>${n}</b></span>`).join("")}<span class="sep"></span>` +
+    shps.map(([s, n]) => `<span title="${tr("shp_" + s)}">${scShape(s)}<b>${n}</b></span>`).join("") + `</div>`;
+}
+
+function mountSC(el, pz, ctx) {
+  const tr = ctx.tr;
+  let sel = [], done = false, tick = 0;
+  pz.shown = false;
+  const showCounts = pz.level === "easy";   // số lá từng màu/hình: mức ★, cả chơi một mình lẫn online (chủ game chốt 11/2026)
+  function draw() {
+    el.innerHTML = `<div class="sc">${scCluesHtml(pz, tr)}
+      <div class="sc-main"><div class="sc-left">${showCounts ? scCountsHtml(pz, tr) : ""}<div class="sc-board"><div class="sc-grid">${pz.deck.map(c => scCardHtml(c, tr)).join("")}</div></div></div>
+      <div class="sc-code"><div class="sc-slots"></div><div class="sc-btns"><button type="button" class="btn primary" id="scSubmit">${tr("b_submit")}</button><button type="button" class="btn" id="scClear">${tr("b_clear")}</button></div></div></div>
+      <div class="sc-msg" id="scMsg"></div></div>`;
+    el.querySelector(".sc-grid").addEventListener("click", e => { const b = e.target.closest(".sc-card"); if (b) toggle(+b.dataset.i); });
+    el.querySelector(".sc-slots").addEventListener("click", e => { const b = e.target.closest(".sc-card"); if (b) toggle(+b.dataset.i); });
+    el.querySelector("#scSubmit").addEventListener("click", submit);
+    el.querySelector("#scClear").addEventListener("click", () => { if (!done && ctx.canPlay()) { sel = []; msg(""); paint(); } });
+    size(); paint();
+  }
+  function msg(t, cls) { const m = el.querySelector("#scMsg"); if (m) { m.textContent = t || ""; m.className = "sc-msg" + (cls ? " " + cls : ""); } }
+  function paint() {
+    const grid = el.querySelector(".sc-grid"); if (!grid) return;
+    const play = ctx.canPlay() && !done;
+    grid.querySelectorAll(".sc-card").forEach(b => { const i = +b.dataset.i; b.classList.toggle("on", sel.includes(i)); b.classList.toggle("ans", pz.shown && pz.answer.includes(i)); b.disabled = !play; });
+    grid.classList.toggle("reveal", !!pz.shown);
+    const s = [...sel].sort((a, b) => a - b);
+    const slots = el.querySelector(".sc-slots"), sig = s.join() + "|" + play;   // chỉ vẽ lại khi đổi (paint chạy 4 lần/giây)
+    if (slots.dataset.sig !== sig) { slots.dataset.sig = sig; slots.innerHTML = [0, 1, 2, 3].map(k => s[k] !== undefined ? scCardHtml(pz.deck[s[k]], tr, play ? "" : " disabled") : `<span class="sc-slot">${k + 1}</span>`).join(""); }
+    el.querySelector("#scSubmit").disabled = !play || sel.length !== 4 || !ctx.canAnswer();
+    el.querySelector("#scClear").disabled = !play || !sel.length;
+  }
+  function toggle(i) {
+    if (done || !ctx.canPlay()) return;
+    const k = sel.indexOf(i);
+    if (k >= 0) sel.splice(k, 1);
+    else if (sel.length < 4) sel.push(i);
+    else { msg(tr("m_full"), "bad"); return; }
+    msg(sel.length === 4 ? tr("m_ready") : ""); if (ctx.canAnswer()) ctx.note(""); ctx.sfx("step"); paint();
+  }
+  function submit() {
+    if (done || sel.length !== 4 || !ctx.canAnswer()) return;
+    const slots = el.querySelector(".sc-slots");
+    if (scIsAnswer(pz, sel)) { done = true; slots.classList.add("good"); msg(""); ctx.note(""); ctx.solved(); paint(); return; }
+    slots.classList.remove("bad"); void slots.offsetWidth; slots.classList.add("bad");
+    msg(tr("m_wrong", [...sel].sort((a, b) => a - b).map(i => pz.deck[i].letter).join("")), "bad");
+    ctx.wrong(); paint();
+  }
+  function size() {
+    const box = el.querySelector(".sc"); if (!box) return;
+    const w0 = Math.max(240, el.clientWidth || 600), wide = w0 >= 560, gap = wide ? 10 : 6, pad = wide ? 16 : 9;
+    let cw;
+    if (wide) {   // bảng 6 cột + khung mật mã 2 cột bên phải, cao vừa màn hình (5 hàng lá cao 1,4 lần)
+      const top = el.getBoundingClientRect().top + window.scrollY, extra = showCounts ? 34 : 0;
+      const byW = (w0 - 6 * gap - 2 * pad - 44) / 8, byH = (window.innerHeight - top - 58 - 2 * pad - 4 * gap - extra) / 7;
+      cw = Math.min(byW, byH);
+    } else cw = (w0 - 5 * gap - 2 * pad) / 6;
+    cw = Math.floor(Math.max(32, Math.min(66, cw)));
+    box.classList.toggle("wide", wide);
+    box.style.setProperty("--cw", cw + "px"); box.style.setProperty("--gap", gap + "px"); box.style.setProperty("--pad", pad + "px");
+  }
+  /* kéo thả (ngoài bấm): kéo lá từ bảng vào hàng mật mã để chọn, kéo lá trong hàng mật mã ra ngoài để bỏ.
+     Chưa di quá 6px thì vẫn là bấm bình thường; đã kéo thì bỏ qua cú click trình duyệt sinh ra sau khi thả. */
+  let drag = null, justDragged = false;
+  const dropAt = (x, y) => { const t = document.elementFromPoint(x, y); return !t ? null : t.closest(".sc-code") ? "code" : t.closest(".sc-board") ? "board" : null; };
+  const markDrop = where => {
+    const s = el.querySelector(".sc-slots"), b = el.querySelector(".sc-board");
+    if (s) s.classList.toggle("drop", where === "code" && !drag.fromCode);
+    if (b) b.classList.toggle("drop", where !== "code" && drag.fromCode);
+  };
+  function onDown(e) {
+    if (e.button !== 0 || done || !ctx.canPlay()) return;
+    const b = e.target.closest(".sc-card"); if (!b || b.disabled || !el.contains(b)) return;
+    const i = +b.dataset.i, fromCode = !!b.closest(".sc-slots");
+    if (!fromCode && sel.includes(i)) return;   // lá đã chọn trên bảng: chỉ bấm để bỏ
+    drag = { i, fromCode, src: b, x0: e.clientX, y0: e.clientY, pid: e.pointerId, ghost: null };
+  }
+  function onMove(e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    if (!drag.ghost) {
+      if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+      const r = drag.src.getBoundingClientRect(), g = drag.src.cloneNode(true);
+      g.classList.add("sc-ghost"); g.classList.remove("on");
+      g.style.setProperty("--cw", getComputedStyle(el.querySelector(".sc")).getPropertyValue("--cw"));
+      const cs = getComputedStyle(drag.src); g.style.fontFamily = cs.fontFamily; g.style.fontWeight = cs.fontWeight;   // lá kéo nằm ngoài khung game: chép đúng kiểu chữ của lá gốc
+      drag.dx = drag.x0 - r.left; drag.dy = drag.y0 - r.top;
+      document.body.appendChild(g); drag.ghost = g; drag.src.classList.add("dragging");
+      drag.raf = requestAnimationFrame(autoScroll);
+    }
+    e.preventDefault();
+    drag.lx = e.clientX; drag.ly = e.clientY;
+    drag.ghost.style.left = (e.clientX - drag.dx) + "px"; drag.ghost.style.top = (e.clientY - drag.dy) + "px";
+    markDrop(dropAt(e.clientX, e.clientY));
+  }
+  function autoScroll() {   // đang kéo mà lá ở gần mép trên/dưới màn hình thì tự cuộn (điện thoại: hàng mật mã nằm dưới bảng)
+    if (!drag || !drag.ghost) return;
+    const H = window.innerHeight, edge = 80, y = drag.ly;
+    const v = y > H - edge ? (y - (H - edge)) / edge * 16 : y < edge ? -(edge - y) / edge * 16 : 0;
+    if (v) { window.scrollBy(0, v); markDrop(dropAt(drag.lx, drag.ly)); }
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
+  function onUp(e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    const d = drag;
+    cancelAnimationFrame(d.raf);
+    if (d.ghost) {
+      const where = e.type === "pointerup" ? dropAt(e.clientX, e.clientY) : null;
+      markDrop(null); d.ghost.remove(); d.src.classList.remove("dragging");
+      justDragged = true; setTimeout(() => { justDragged = false; }, 0);
+      drag = null;
+      if (!done && ctx.canPlay()) {
+        if (!d.fromCode && where === "code" && !sel.includes(d.i)) toggle(d.i);
+        else if (d.fromCode && where !== "code" && e.type === "pointerup" && sel.includes(d.i)) toggle(d.i);
+      }
+    } else drag = null;
+  }
+  el.addEventListener("pointerdown", onDown);
+  window.addEventListener("pointermove", onMove, { passive: false });
+  window.addEventListener("pointerup", onUp); window.addEventListener("pointercancel", onUp);
+  el.addEventListener("click", e => { if (justDragged) { e.stopPropagation(); e.preventDefault(); justDragged = false; } }, true);
+  draw();
+  tick = setInterval(paint, 250);   // mở khoá nút Gửi mã khi hết thời gian bị khoá
+  ctx.tools([{ id: "giveup", label: "t_giveup", confirm: "t_giveup_sure", cls: "danger wide", on: () => ctx.giveUp() }]);
+  return {
+    start() { paint(); },
+    resize: size,
+    key(e) {
+      if (done || !ctx.canPlay() || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); toggle(e.key.toUpperCase().charCodeAt(0) - 65); }
+      else if (e.key === "Enter") { e.preventDefault(); submit(); }
+      else if (e.key === "Backspace" && sel.length) { e.preventDefault(); sel.pop(); msg(""); paint(); }
+    },
+    reveal() {   // hiện đáp án: tô 4 lá đúng, xếp vào hàng mật mã, đánh dấu mọi gợi ý
+      done = true; pz.shown = true; sel = [...pz.answer];
+      const ol = el.querySelector(".sc .sc-clues"); if (ol) ol.outerHTML = scCluesHtml(pz, tr);
+      ctx.prompt(); paint();
+      msg(tr("m_answer", pz.answer.map(i => pz.deck[i].letter).join("")), "good");
+    },
+    lang() { const keep = sel, d = done; draw(); sel = keep; done = d; paint(); },
+    destroy() {
+      clearInterval(tick);
+      if (drag) { cancelAnimationFrame(drag.raf); if (drag.ghost) drag.ghost.remove(); }
+      drag = null;
+      window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); window.removeEventListener("pointercancel", onUp);
+    },
+  };
+}
+
+/* ---------- THẺ LUẬT CHƠI ---------- */
+const SC_EX = [   // lá mẫu cho hình minh hoạ
+  { id: 2, letter: "C", n: 3, color: "green", shape: "triangle" }, { id: 14, letter: "O", n: 15, color: "gray", shape: "triangle" },
+  { id: 3, letter: "D", n: 4, color: "blue", shape: "circle" }, { id: 4, letter: "E", n: 5, color: "blue", shape: "square" },
+  { id: 0, letter: "A", n: 1, color: "purple", shape: "diamond" },
+];
+const scrCard = (c, tr) => scCardHtml(c, tr, " disabled tabindex=\"-1\"");
+const SC_CARDS = [
+  { h: "c1_h", p: "c1_p", fig: ({ tr }) => `<div class="scr">${[4, 0, 1, 2].map(i => scrCard(SC_EX[i], tr)).join("")}</div>` },
+  { h: "c2_h", p: "c2_p", fig: ({ tr }) => `<ul class="scr-cl"><li>${tr("cl_sum", "<b>27</b>")}</li><li>${tr("cl_col", "<b>4</b>")}</li><li>${tr("cl_diff", tr("pos")[0], tr("pos")[1], "<b>2</b>")}</li></ul>` },
+  { h: "c3_h", p: "c3_p", fig: ({ tr }) => `<div class="scr-row">${[0, 2, 3, 1].map(i => scrCard(SC_EX[i], tr)).join("")}</div><span class="scr-go">${tr("b_submit")}</span>` },
+];
+
+PK.start({
+  id: "secret-code", ruleCards: SC_CARDS, ruleCardsBg: "#2c3133", peerPrefix: "secretcode-", proto: 1, kind: "self", showMiss: true,
+  solo: { stages: 3, stagesFor: lv => lv === "random" ? 1 : 3, useLevel: true, levels: ["random", "easy", "normal", "hard"],
+    gen: (stage, rng, level) => level === "random" ? scRandom(rng) : scGen(level, rng),
+    noteFor: lv => lv === "random" ? PK.tr("m_solo_random") : null,
+    labelFor: lv => lv === "random" ? null : PK.tr("lvs_" + lv) },
+  online: { target: 2, maxRounds: 3, roundMs: 300000, levels: ["easy", "normal", "hard"], defaultLevel: "easy", wrong: "lock", lockMs: 20000, gen: (k, level, rng) => scGen(level, rng) },
+  mount: mountSC,
+  prompt: (pz, ctx) => `<span class="q">${ctx.tr(pz.random ? "q_random" : "q_level", ctx.tr("lv_" + pz.level))}</span>${ctx.tr("prompt")}${scCluesHtml(pz, ctx.tr)}`,
+  stageNote: pz => (pz.random ? PK.tr("sn_random", PK.tr("lv_" + pz.level)) + " " : "") + PK.tr("sn_" + pz.level),
+  rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
+  i18n: {
+    vi: {
+      brand: "Mật mã", tagline: "26 lá bài và một loạt gợi ý. Chỉ có đúng một bộ 4 lá khớp mọi gợi ý.",
+      lv_random: "1 mã ngẫu nhiên", lv_easy: "★", lv_normal: "★★", lv_hard: "★★★", lvs_easy: "Bộ 3 mã ★", lvs_normal: "Bộ 3 mã ★★", lvs_hard: "Bộ 3 mã ★★★",
+      lvn_random: "Giải 1 mã, độ khó chọn ngẫu nhiên trong ★, ★★, ★★★.",
+      lvn_easy: "Nhiều gợi ý dễ, có sẵn số lá từng màu và từng hình.", lvn_normal: "Gợi ý kiểu trong show.", lvn_hard: "Ít gợi ý, nhiều phép trừ, phép nhân và thứ hạng.",
+      m_solo_note_lv: "Giải bộ {0} mã liên tiếp của độ khó bạn chọn. Đồng hồ chỉ chạy khi đang giải, gửi sai bị cộng 5 giây.", c_stage: "Mã", cv_stage: "Mã {0}/{1}", s_clear: "Giải xong mã {0}!", s_took: "Mã này mất <b>{0}</b>{1}. Tổng: <b>{2}</b>.", s_next: "Mã tiếp", s_done: "Phá đảo!", s_done_p: "Bạn đã giải cả {0} mã với tổng thời gian <b>{1}</b>.", s_again: "Chơi lại từ mã 1", c_best_v: "mã {0} · {1}", f_wrong: "Chưa đúng, bị cộng 5 giây.",
+      m_solo_random: "Giải 1 mã với độ khó ngẫu nhiên. Đồng hồ chỉ chạy khi đang giải, gửi sai bị cộng 5 giây.",
+      r_intro: "Có 26 lá từ A tới Z, mỗi lá mang một số (A là 1, Z là 26), một màu và một hình. Mật mã là 4 lá. Đọc các gợi ý và tìm ra bộ 4 lá duy nhất khớp tất cả.",
+      c1_h: "26 lá, mỗi lá một màu một hình", c1_p: "Mỗi đề chia lại bộ bài. 5 màu và 5 hình có số lá khác nhau: 8, 6, 5, 4 và 3 lá.",
+      c2_h: "Đọc gợi ý", c2_p: "Gợi ý nói về 4 lá của mật mã: tổng các số, có mấy màu, mấy hình, hai lá cộng, trừ, nhân ra bao nhiêu...",
+      c3_h: "Chọn 4 lá rồi Gửi mã", c3_p: "Bấm hoặc kéo thả lá vào hàng mật mã (tự xếp theo số); bấm lần nữa hoặc kéo ra ngoài để bỏ. Đủ 4 lá thì bấm Gửi mã.",
+      h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
+      r_rules: ["Mật mã là 4 lá khác nhau, không tính thứ tự. Các gợi ý đều nói về 4 lá đó.",
+        "Gợi ý gọi tên lá theo độ lớn của số: <b>nhỏ nhất</b>, <b>nhỏ nhì</b>, <b>nhỏ thứ ba</b>, <b>lớn nhất</b>.",
+        "Màu (hoặc hình) <b>phổ biến nhất</b> là màu có nhiều lá nhất trong 26 lá, <b>hiếm nhất</b> là màu ít lá nhất. Ở mức ★★ và ★★★ bạn tự đếm; mức ★ có sẵn số lá phía trên các lá bài.",
+        "Chỉ có đúng một bộ 4 lá khớp mọi gợi ý.",
+        "Gõ chữ cái trên bàn phím cũng chọn được lá, Enter để gửi, Backspace bỏ lá vừa chọn.",
+        "<b>Bỏ cuộc</b> (bấm 2 lần để chắc chắn): hiện đáp án. Chơi một mình thì kết thúc lượt chơi và không tính kỷ lục; online không có nút này."],
+      r_solo: ["<b>1 mã ngẫu nhiên</b>: giải 1 mã, độ khó chọn ngẫu nhiên trong ★, ★★, ★★★.",
+        "<b>Bộ 3 mã ★, ★★, ★★★</b>: giải 3 mã liên tiếp của mức bạn chọn, tính tổng thời gian.",
+        "Gửi sai bị cộng 5 giây, các lá vẫn nằm trong hàng mật mã để bạn đổi bớt. Sai từ lần thứ 3 trong cùng một mã thì phải chờ lâu dần.",
+        "Kỷ lục lưu riêng từng lựa chọn trên máy này."],
+      r_online: ["Hai người cùng giải một mã, ai gửi đúng trước được 1 điểm. Ai đạt 2 điểm trước thì thắng (tối đa 3 mã).",
+        "Gửi sai bị khoá 20 giây. Mỗi mã có 5 phút.", "Thứ tự đúng tính theo thời gian giải trên máy mỗi người, nên mạng chậm không bị thiệt."],
+      r_tips: ["Bắt đầu từ gợi ý chặt nhất, thường là tổng hoặc hiệu, để khoanh vùng các số.",
+        "Gợi ý về màu và hình loại được rất nhiều bộ: đếm số màu, số hình trong bộ bạn đang thử.",
+        "Gợi ý ≤ và ≥ dùng mốc tròn, nên thử các số sát mốc trước."],
+      r_note: "Lấy cảm hứng từ trò Secret Code trong The Devil's Plan mùa 3 (Netflix). Cách chia bài và ra đề theo bản web Secret Code của quoridorgame.com. Game không liên kết với Netflix.",
+      prompt: "Tìm 4 lá khớp mọi gợi ý:",
+      q_random: "1 mã ngẫu nhiên · {0}", q_level: "Mức {0}",
+      sn_random: "Độ khó lần này: {0}.", sn_easy: "Nhiều gợi ý, có sẵn số lá từng màu và hình.", sn_normal: "Gợi ý kiểu trong show.", sn_hard: "Ít gợi ý, phải dùng phép trừ, nhân và thứ hạng.",
+      b_submit: "Gửi mã", b_clear: "Bỏ hết",
+      m_full: "Đã đủ 4 lá, bỏ bớt một lá trước.", m_ready: "Đủ 4 lá rồi, bấm Gửi mã để kiểm tra.", m_wrong: "{0} chưa đúng, đổi lá rồi gửi lại.", m_answer: "Đáp án: {0}",
+      counts: "Số lá từng màu và từng hình",
+      card_label: "{0}, số {1}, {2}, {3}",
+      col_gray: "xám", col_yellow: "vàng", col_blue: "xanh da trời", col_green: "xanh lá", col_purple: "tím",
+      shp_circle: "hình tròn", shp_triangle: "tam giác", shp_diamond: "hình thoi", shp_square: "hình vuông", shp_star: "ngôi sao",
+      pos: ["nhỏ nhất", "nhỏ nhì", "nhỏ thứ ba", "lớn nhất"],
+      rank: ["phổ biến nhất", "phổ biến thứ hai", "phổ biến thứ ba", "hiếm thứ hai", "hiếm nhất"],
+      cl_sum: "Tổng 4 số là {0}", cl_sum_le: "Tổng 4 số ≤ {0}", cl_sum_ge: "Tổng 4 số ≥ {0}",
+      cl_col_all: "4 lá có 4 màu khác nhau", cl_col_one: "4 lá cùng một màu", cl_col: "4 lá có {0} màu",
+      cl_shp_all: "4 lá có 4 hình khác nhau", cl_shp_one: "4 lá cùng một hình", cl_shp: "4 lá có {0} loại hình",
+      cl_diff: "Số {0} và số {1} hơn kém nhau {2}", cl_range: "Số lớn nhất và số nhỏ nhất hơn kém nhau {0}",
+      cl_psum_le: "Số {0} + số {1} ≤ {2}", cl_psum_ge: "Số {0} + số {1} ≥ {2}",
+      cl_prod_le: "Số {0} × số {1} ≤ {2}", cl_prod_ge: "Số {0} × số {1} ≥ {2}",
+      cl_ends_le: "Số nhỏ nhất + số lớn nhất ≤ {0}", cl_ends_ge: "Số nhỏ nhất + số lớn nhất ≥ {0}",
+      cl_rank_col: "Lá số {0} mang màu {1} trong 26 lá", cl_rank_shp: "Lá số {0} có hình {1} trong 26 lá",
+    },
+    en: {
+      brand: "Secret Code", tagline: "26 cards and a string of clues. Exactly one set of 4 cards fits them all.",
+      lv_random: "1 random code", lv_easy: "★", lv_normal: "★★", lv_hard: "★★★", lvs_easy: "Set of 3 ★", lvs_normal: "Set of 3 ★★", lvs_hard: "Set of 3 ★★★",
+      lvn_random: "Crack 1 code at a random level: ★, ★★ or ★★★.",
+      lvn_easy: "More, easier clues, with the card counts listed.", lvn_normal: "Clues like the ones on the show.", lvn_hard: "Fewer clues, more gaps, products and ranks.",
+      m_solo_note_lv: "Crack a set of {0} codes in a row at the level you pick. The clock only runs while you solve, and each wrong code adds 5 seconds.", c_stage: "Code", cv_stage: "Code {0}/{1}", s_clear: "Code {0} cracked!", s_took: "This code took <b>{0}</b>{1}. Total: <b>{2}</b>.", s_next: "Next code", s_done_p: "You cracked all {0} codes in <b>{1}</b> total.", s_again: "Play again from code 1", c_best_v: "code {0} · {1}",
+      m_solo_random: "Crack 1 code at a random level. The clock only runs while you solve, and each wrong code adds 5 seconds.",
+      r_intro: "There are 26 cards from A to Z. Each has a number (A is 1, Z is 26), a color and a shape. The code is 4 cards. Read the clues and find the only set of 4 that fits them all.",
+      c1_h: "26 cards, each a color and a shape", c1_p: "Every code deals a new deck. The 5 colors and 5 shapes come in different amounts: 8, 6, 5, 4 and 3 cards.",
+      c2_h: "Read the clues", c2_p: "Clues talk about the 4 code cards: their total, how many colors or shapes they use, what two of them add, subtract or multiply to...",
+      c3_h: "Pick 4, then Submit", c3_p: "Tap or drag a card into the code row (sorted by number); tap it again or drag it out to remove it. With 4 cards in, press Submit.",
+      h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
+      r_rules: ["The code is 4 different cards, in no particular order. Every clue is about those 4.",
+        "Clues name a card by the size of its number: <b>lowest</b>, <b>second-lowest</b>, <b>third-lowest</b>, <b>highest</b>.",
+        "The <b>most common</b> color (or shape) is the one with the most cards among the 26, the <b>rarest</b> the one with the fewest. On ★★ and ★★★ you count them yourself; ★ lists the counts above the cards.",
+        "Exactly one set of 4 cards fits every clue.",
+        "You can also type letters on the keyboard to pick cards, Enter to submit, Backspace to drop the last card.",
+        "<b>Give up</b> (tap twice to be sure) shows the answer. In solo it ends the run and doesn't count toward your best; there is no Give up online."],
+      r_solo: ["<b>1 random code</b>: crack one code at a random level (★, ★★ or ★★★).",
+        "<b>Set of 3 ★, ★★, ★★★</b>: crack 3 codes in a row at the level you pick, against the clock.",
+        "A wrong code adds 5 seconds and the cards stay in the code row so you can swap some. From the 3rd miss on the same code you wait longer and longer.",
+        "Your best is saved per choice on this device."],
+      r_online: ["Both players crack the same code and the first correct one scores a point. First to 2 points wins (up to 3 codes).",
+        "A wrong code locks you for 20 seconds. Each code has 5 minutes.", "Who was first is decided by each player's own solving time, so a slow connection doesn't cost you."],
+      r_tips: ["Start from the tightest clue, usually a total or a gap, to narrow down the numbers.",
+        "Color and shape clues rule out a lot: count the colors and shapes in the set you are trying.",
+        "≤ and ≥ clues use round numbers, so try values close to the mark first."],
+      r_note: "Inspired by Secret Code on The Devil's Plan season 3 (Netflix). The deck and the clues are made the way the Secret Code web version on quoridorgame.com makes them. Not affiliated with Netflix.",
+      prompt: "Find the 4 cards that fit every clue:",
+      q_random: "1 random code · {0}", q_level: "Level {0}",
+      sn_random: "This time: {0}.", sn_easy: "More clues, with the card counts listed.", sn_normal: "Clues like the ones on the show.", sn_hard: "Fewer clues: gaps, products and ranks.",
+      b_submit: "Submit", b_clear: "Clear",
+      m_full: "Already 4 cards. Take one out first.", m_ready: "4 cards in. Press Submit to check.", m_wrong: "{0} is not it. Swap some cards and submit again.", m_answer: "Answer: {0}",
+      counts: "Cards per color and per shape",
+      card_label: "{0}, number {1}, {2} {3}",
+      col_gray: "gray", col_yellow: "yellow", col_blue: "blue", col_green: "green", col_purple: "purple",
+      shp_circle: "circle", shp_triangle: "triangle", shp_diamond: "diamond", shp_square: "square", shp_star: "star",
+      pos: ["lowest", "second-lowest", "third-lowest", "highest"],
+      rank: ["most common", "second most common", "third most common", "second rarest", "rarest"],
+      cl_sum: "The four numbers add up to {0}", cl_sum_le: "The four numbers add up to {0} or less", cl_sum_ge: "The four numbers add up to {0} or more",
+      cl_col_all: "The four cards are all different colors", cl_col_one: "The four cards are all the same color", cl_col: "The four cards show {0} colors",
+      cl_shp_all: "The four cards are all different shapes", cl_shp_one: "The four cards are all the same shape", cl_shp: "The four cards show {0} shapes",
+      cl_diff: "The {0} and {1} numbers are {2} apart", cl_range: "The highest and lowest numbers are {0} apart",
+      cl_psum_le: "The {0} number + the {1} number ≤ {2}", cl_psum_ge: "The {0} number + the {1} number ≥ {2}",
+      cl_prod_le: "The {0} number × the {1} number ≤ {2}", cl_prod_ge: "The {0} number × the {1} number ≥ {2}",
+      cl_ends_le: "The lowest + the highest number ≤ {0}", cl_ends_ge: "The lowest + the highest number ≥ {0}",
+      cl_rank_col: "The card with the {0} number has the {1} color in the deck", cl_rank_shp: "The card with the {0} number has the {1} shape in the deck",
+    },
+  },
+});
+</script>
+</body>
+</html>

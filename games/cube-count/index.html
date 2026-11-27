@@ -11,9 +11,23 @@
 <script src="../../assets/platform.js"></script>
 <script src="../../assets/puzzle-kit.js"></script>
 <style>
+/* Mức = số sao, màu giống Cờ Vua Triệu Hồi: 1 sao xanh lá, 2 vàng, 3 xanh dương, 4 đỏ */
+#pkSegLevel button{letter-spacing:-1px;white-space:nowrap}
+#pkSegLevel button[data-v="easy"],.pk-lvseg button[data-v="easy"]{border-color:#9fd83c;background:rgba(159,216,60,.2)}
+#pkSegLevel button[data-v="normal"],.pk-lvseg button[data-v="normal"]{border-color:#ffd24a;background:rgba(255,210,74,.2)}
+#pkSegLevel button[data-v="hard"],.pk-lvseg button[data-v="hard"]{border-color:#3d8bff;background:rgba(61,139,255,.22)}
+#pkSegLevel button[data-v="beyond"],.pk-lvseg button[data-v="beyond"]{border-color:#e5453b;background:rgba(229,69,59,.22)}
+#pkSegLevel button:hover:not(.on):not(:disabled){filter:brightness(1.08)}
+#pkSegLevel button.on[data-v="easy"],.pk-lvseg button.on[data-v="easy"]{background:#9fd83c;border-color:#9fd83c;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+#pkSegLevel button.on[data-v="normal"],.pk-lvseg button.on[data-v="normal"]{background:#ffd24a;border-color:#ffd24a;color:#3a2a00}
+#pkSegLevel button.on[data-v="hard"],.pk-lvseg button.on[data-v="hard"]{background:#3d8bff;border-color:#3d8bff;color:#fff}
+#pkSegLevel button.on[data-v="beyond"],.pk-lvseg button.on[data-v="beyond"]{background:#e5453b;border-color:#e5453b;color:#fff}
+.pk-modal .off #pkSegLevel button,.pk-modal .off #pkSegLevel button.on{border-color:var(--tb-border);background:#fff;color:var(--tb-text);text-shadow:none}
 .cc{width:100%;display:grid;place-items:center}
 .cc canvas{display:block;max-width:100%;touch-action:none;cursor:grab;border-radius:12px;background:radial-gradient(ellipse at 50% 40%,#fbfcff,#e9eef7 75%)}
 .cc canvas:active{cursor:grabbing}
+/* 4 nút công cụ (khi có phóng to/thu nhỏ): xếp 2×2 cho đều */
+#pkTools:has([data-tool="zin"]) .btn{flex:1 1 calc(50% - 4px)}
 /* hình nhỏ trong thẻ Luật chơi */
 .ccr-svg{display:block;overflow:visible}
 .ccr-t{background:#1d2330;color:#fff;border-radius:99px;padding:1px 12px;font-family:var(--tb-font-brand);font-weight:800;font-size:15px;line-height:1.35;align-self:flex-end;margin-right:4px}
@@ -31,54 +45,102 @@
 <script>TB.mountHeader({ page: "game", gameId: "cube-count" });</script>
 <script>
 "use strict";
-/* RULES-START: sinh đề, không đụng DOM (cắt ra chạy bằng Node được)
-   Đề là một "bản đồ chiều cao": lưới w×d, mỗi ô là một cột khối xếp chồng (h[y*w+x] khối). Không khối nào lơ lửng. */
-/* Độ khó: mỗi mức là một dải số khối mục tiêu (đề đầu → đề cuối, tăng theo cấp số nhân) và chiều cao cột tối đa.
-   Dễ/Vừa theo các tầng của Cube Count gốc (DUVA: 3-12, 11-23, 22-55), Khó theo Cube Count 2 (khoảng 35 tới 175 khối, khối rộng và cao hơn). */
-const CC_LEVELS = {
-  easy:   { t: [6, 26],   h: [2, 4] },
-  normal: { t: [30, 65],  h: [4, 6] },
-  hard:   { t: [80, 175], h: [6, 9] },
-};
-const CC_SOLO = 5;   // chơi một mình: 5 câu mỗi mức
-function ccSpec(level, i, n) {   // đề thứ i (1..n) của mức level
-  const L = CC_LEVELS[level] || CC_LEVELS.normal, f = n > 1 ? (i - 1) / (n - 1) : 0;
-  return { T: Math.round(L.t[0] * Math.pow(L.t[1] / L.t[0], f)), maxH: Math.round(L.h[0] + (L.h[1] - L.h[0]) * f) };
+/* RULES-START: chọn đề, không đụng DOM (cắt ra chạy bằng Node được)
+   Đề là một "bản đồ chiều cao": lưới w×d, mỗi ô là một cột khối xếp chồng (h[y*w+x] khối). Không khối nào lơ lửng.
+   Mọi đề lấy từ thư viện 70 màn cố định (7 chương × 10 màn, khó dần), ý tưởng chia chương theo Count the Cubes của quoridorgame.com. */
+/* CC-LIB-START: thư viện 70 màn cố định, sinh bằng tools/build-cube-library.js (đừng sửa tay).
+   Mỗi màn "rộngxsâu:chiều cao từng ô" (chữ số hệ 36, đọc theo hàng). Chỉ số = chương*10 + màn (đều đếm từ 0). */
+const CC_CHAPTERS = [{"vi":"Một lớp","en":"One layer"},{"vi":"Những cột cao thấp","en":"Columns"},{"vi":"Khối bị che","en":"Hidden cubes"},{"vi":"Bậc thang","en":"Stairs"},{"vi":"Tường, rãnh, tháp","en":"Walls, trenches, towers"},{"vi":"Cỡ như show","en":"Show size"},{"vi":"Khó hơn show","en":"Beyond the show"}];
+const CC_LIB = [
+  "2x3:101011",
+  "3x2:101111",
+  "3x3:010111110",
+  "3x4:010011111011",
+  "3x4:011011111111",
+  "3x5:110110111111110",
+  "5x5:1110011111111110010000100",
+  "5x5:0001011111111111111110011",
+  "6x5:000110011110111111111111111111",
+  "5x6:111111111111111111111111111111",   // chương 1
+  "2x2:1231",
+  "2x3:220203",
+  "2x4:30401402",
+  "3x3:010123044",
+  "4x3:144103220130",
+  "3x4:030054332003",
+  "3x4:450452441400",
+  "3x5:243240334152004",
+  "5x5:5600001300026130523300632",
+  "6x4:340652563143200351000260",   // chương 2
+  "4x3:121023201221",
+  "3x4:133233122111",
+  "4x5:00110111013313330223",
+  "5x5:1231012431222112320011000",
+  "5x5:1232123421233211321000100",
+  "6x5:234321334312223311111110111100",
+  "6x5:111110122210234321246321234321",
+  "6x6:343200453210343210233210333220233211",
+  "7x5:11211102232320233332134554323465432",
+  "6x7:012222122442124454124554133444122333002221",   // chương 3
+  "2x4:44332211",
+  "4x3:022332233210",
+  "3x4:444333222111",
+  "3x5:022033133244344",
+  "4x5:44004400331133222333",
+  "4x5:00111122223333444455",
+  "4x5:11112222333344445555",
+  "6x6:123466123456123456000033000022000011",
+  "7x7:5500000440000033000002212345111234500123450012345",
+  "5x7:55555455553444424444133330333302222",   // chương 4
+  "5x5:0010011111111151111114144",
+  "5x5:1111161111611116111061110",
+  "6x6:011513011113111113111113111113111111",
+  "6x6:111111111711111111111511005511005511",
+  "6x6:001111144611111611711611161611111111",
+  "7x7:1116110616111051111114112222311222211111110112222",
+  "7x7:1515511441411144141114714111151511115151000015100",
+  "7x7:1111111111111111444411174441817888111711001171100",
+  "8x8:8765500011115111111751111126531111255311112453111123511016665110",
+  "8x8:0001117100017118000661171666611616666555166661141111218311111111",   // chương 5
+  "7x7:0222222227644221444422244442288888822212222222222",
+  "7x7:0022400005555422555546655552888888800222220022200",
+  "7x7:2286600726660063666185666212466621236662222222222",
+  "8x8:0222822022227666222266662222872622227626222111262222222222225000",
+  "8x8:2222200022222922227739222777692227876922777762220077622200072222",
+  "8x8:3333333033333313331113133391331333316663999199637631676733313717",
+  "8x8:0044777744447777366222223666673336777733117777001377770033777700",
+  "9x9:003333000009999000333333000333335a13331111a13222222a1233aaaaa13377773313377773333",
+  "9x9:002222000002122222009883322788883777788883322788883322777777000777772000222122000",
+  "9x9:22222122222222118522666618a92666618922666518522666518622666618000226668000aaaaa80",   // chương 6
+  "10x10:00333698660033368766913339873381333333337133333333aa9876543351333333330033333333003322220000a9876500",
+  "10x10:2222222222222222228255777222825777722282777772228277777222822221111119222922228099997654802222222280",
+  "10x10:33933a330033833a33a333733933a333733833a33373373381557556338355755533a355733433a300733333a30073333330",
+  "11x11:00bbbbbbb3308988833333089888333330898883113388988811113888888111133555223333300052333333000533333330003333333300033333333",
+  "11x11:000044444440000333113300007772444000077744448b888774444668887844446688888444466888884444668888840005554444400043444444000",
+  "11x11:00333333333003333322330033a442333b3339443333b3338443333b3337333333b9999333999b3331333999b3331311999b333131333399999999933",
+  "11x11:0000333b3339333b33b3339333bbbbbb3bba9b769433bba9b7684339333b3153339333b316333ba33b33533aa933b3343333333332223333333333333",
+  "12x12:04accccc000004aaaaaa000094444444000092222222244496664444c44494444444444493344444444493444444444494444444444494443333333400444444444400aaaaa44444",
+  "12x12:4444444444a44444bbba98a64444aaaaaaaa444443aaaaaa4444434494b444444344944442244344b444424444444444774444444444779999944440000099944440000044444440",
+  "12x12:444444444444422cba98765444441c44434449991b99934444441a444344444419444344444ba8444344444abbbbbbbb444446555444a987655554c4044444444444000044444444",   // chương 7
+];
+/* CC-LIB-END */
+/* Mỗi mức lấy đề trong một dải màn của thư viện [từ, tới) (chủ game chọn: Dễ chương 1-3, Vừa 3-5, Khó 5-6, Khó hơn show chương 7, mức này chỉ chơi một mình) */
+const CC_BANDS = { easy: [0, 30], normal: [20, 50], hard: [40, 60], beyond: [60, 70] };
+const CC_SOLO = 5;   // chơi một mình: 5 câu mỗi lượt
+function ccStage(i) {   // màn thứ i (0..69) của thư viện
+  const [wd, s] = CC_LIB[i].split(":"), [w, d] = wd.split("x").map(Number), h = [...s].map(ch => parseInt(ch, 36));
+  return { w, d, h, total: h.reduce((a, b) => a + b, 0), lib: i };
 }
-function ccBuild(T, maxH, rng) {
-  const lo = Math.max(3, Math.floor(T * 0.85)), hi = Math.max(lo + 1, Math.ceil(T * 1.15));
-  let best = null, bestD = Infinity;
-  for (let t = 0; t < 600; t++) {
-    const fill = 0.42 + rng() * 0.25, area = Math.max(2, T / (maxH * fill));
-    const w0 = Math.max(2, Math.min(10, Math.round(Math.sqrt(area) * (0.75 + rng() * 0.5))));
-    const d0 = Math.max(2, Math.min(10, Math.round(area / w0)));
-    const np = 1 + Math.floor(rng() * Math.min(3, 1 + T / 20)), peaks = [];
-    for (let p = 0; p < np; p++) peaks.push({ x: rng() * (w0 - 1), y: rng() * (d0 - 1), h: maxH * (0.6 + rng() * 0.4), f: 0.55 + rng() * 1.0 });
-    const raw = [];
-    for (let y = 0; y < d0; y++) for (let x = 0; x < w0; x++) {
-      let v = 0;
-      for (const p of peaks) v = Math.max(v, p.h - Math.hypot(x - p.x, y - p.y) * p.f);
-      v += (rng() - 0.5) * 1.1;
-      raw.push(Math.max(0, Math.min(maxH, Math.round(v))));
-    }
-    // bỏ hàng/cột trống ở rìa
-    let x0 = w0, x1 = -1, y0 = d0, y1 = -1;
-    for (let y = 0; y < d0; y++) for (let x = 0; x < w0; x++) if (raw[y * w0 + x]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-    if (x1 < 0) continue;
-    const w = x1 - x0 + 1, d = y1 - y0 + 1;
-    if (w * d < 2) continue;
-    const h = [];
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) h.push(raw[y * w0 + x]);
-    const total = h.reduce((a, b) => a + b, 0);
-    const pz = { w, d, h, total };
-    if (total >= lo && total <= hi) return pz;
-    const dist = Math.abs(total - T); if (dist < bestD) { bestD = dist; best = pz; }
-  }
-  return best;
+/* Câu thứ k (0..n-1) của mức level: xếp các màn trong dải theo số khối (dải đi qua nhiều chương nên thứ tự màn chưa chắc đã khó dần),
+   chia thành n nhóm liên tiếp, lấy ngẫu nhiên 1 màn trong nhóm k */
+const ccSorted = level => { const [lo, hi] = CC_BANDS[level] || CC_BANDS.normal; return Array.from({ length: hi - lo }, (_, j) => lo + j).sort((x, y) => ccStage(x).total - ccStage(y).total || x - y); };
+function ccPick(level, k, n, rng) {
+  const L = ccSorted(level), a = Math.floor(L.length * k / n), b = Math.max(a + 1, Math.floor(L.length * (k + 1) / n));
+  return ccStage(L[a + Math.floor(rng() * (b - a))]);
 }
-function ccGen(stage, rng, level) { const sp = ccSpec(level, stage, CC_SOLO); return { ...ccBuild(sp.T, sp.maxH, rng), stage, level }; }
-/* Online: 7 đề trải đều cùng dải số khối của mức chủ phòng chọn */
-function ccOnline(k, level, rng) { const sp = ccSpec(level, k, 7); return { ...ccBuild(sp.T, sp.maxH, rng), stage: k, level }; }
+function ccGen(stage, rng, level) { return { ...ccPick(level, stage - 1, CC_SOLO, rng), stage, level }; }
+/* Online: 7 đề khó dần trong dải màn của mức chủ phòng chọn */
+function ccOnline(k, level, rng) { return { ...ccPick(level, k - 1, 7, rng), stage: k, level }; }
 /* RULES-END */
 
 /* ---------- VẼ 3D (phép chiếu song song, xoay quanh trục đứng, vẽ từ xa tới gần) ---------- */
@@ -88,6 +150,7 @@ function mountCC(el, pz, ctx) {
   const W = pz.w, D = pz.d, HM = Math.max(1, ...pz.h);
   const ht = (x, y) => (x < 0 || y < 0 || x >= W || y >= D) ? 0 : pz.h[y * W + x];
   let yaw = 0.55 + Math.random() * 0.4, pitch = 0.56, aimPitch = null, paused = false, drag = null, lastTouch = -1e9, revealed = false, raf = 0, lastT = performance.now(), dpr = 1;
+  const ZOOMS = [1, 1.3, 1.7, 2.2]; let zi = 0;   // phóng to cho khối lớn (từ 7×7 trở lên mới hiện nút)
 
   function size() {
     const cw = Math.max(240, Math.min(wrap.clientWidth || 600, 640));
@@ -103,11 +166,25 @@ function mountCC(el, pz, ctx) {
     const cw = cv.width, ch = cv.height;
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cw, ch);
     const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
-    const cx0 = W / 2, cy0 = D / 2, cz0 = HM / 2, R = Math.hypot(W / 2 + .3, D / 2 + .3);
-    const s = Math.min(cw * 0.92 / (2 * R), ch * 0.9 / (2 * (R * sp + cz0 * cp)), Math.min(cw, ch) / 4.2);   // khối nhỏ không bị phóng quá to
-    const ox = cw / 2, oy = ch / 2;
-    const P = (x, y, z) => { const X = x - cx0, Y = y - cy0, Z = z - cz0; return [ox + s * (X * cy - Y * sy), oy - s * (Z * cp + (X * sy + Y * cy) * sp)]; };
-    const depth = (x, y, z) => -((x - cx0) * sy + (y - cy0) * cy) * cp + (z - cz0) * sp;
+    const cx0 = W / 2, cy0 = D / 2, cz0 = HM / 2;
+    // Phối cảnh nhẹ (chiếu song song làm mặt trên khối dẹt, nhìn không ra hình lập phương khi xem gần chính diện).
+    // Camera quay quanh tâm khối hình, cách tâm DIST; vx,vy,vz là hướng từ tâm về phía camera.
+    const DIST = Math.max(7, 3.2 * Math.hypot(W / 2, D / 2, cz0));
+    const vx = -sy * cp, vy = -cy * cp, vz = sp, CX = cx0 + vx * DIST, CY = cy0 + vy * DIST, CZ = cz0 + vz * DIST;
+    const raw = (X, Y, Z) => { const k = DIST / (DIST - (X * vx + Y * vy + Z * vz)); return [(X * cy - Y * sy) * k, (Z * cp + (X * sy + Y * cy) * sp) * k]; };
+    // Cỡ hình: lấy khung bao của 8 góc hộp qua mọi góc xoay, nên hình không to nhỏ theo lúc xoay
+    let mx = 0, up = 0, dn = 0;
+    for (let j = 0; j < 24; j++) {
+      const a = j * Math.PI / 12, ca = Math.cos(a), sa = Math.sin(a), k0 = DIST, dz = cp, du = sp;
+      for (const X of [-W / 2 - .3, W / 2 + .3]) for (const Y of [-D / 2 - .3, D / 2 + .3]) for (const Z of [-cz0, cz0]) {
+        const hd = X * sa + Y * ca, k = k0 / (k0 - (-hd * cp + Z * sp)), px = (X * ca - Y * sa) * k, py = (Z * dz + hd * du) * k;
+        mx = Math.max(mx, Math.abs(px)); up = Math.max(up, py); dn = Math.max(dn, -py);
+      }
+    }
+    const s = Math.min(cw * 0.92 / (2 * mx), ch * 0.9 / (up + dn), Math.min(cw, ch) / 4.2) * ZOOMS[zi];   // khối nhỏ không bị phóng quá to
+    const ox = cw / 2, oy = ch / 2 + s * (up - dn) / 2;
+    const P = (x, y, z) => { const [a, b] = raw(x - cx0, y - cy0, z - cz0); return [ox + s * a, oy - s * b]; };
+    const depth = (x, y, z) => -((x - CX) ** 2 + (y - CY) ** 2 + (z - CZ) ** 2);   // xa camera vẽ trước
     g.lineJoin = "round"; g.lineCap = "round";
     // nền: tấm sàn dưới chân khối (không kẻ lưới bên trong, chủ game chọn)
     const floor = [P(-.25, -.25, 0), P(W + .25, -.25, 0), P(W + .25, D + .25, 0), P(-.25, D + .25, 0)];
@@ -118,20 +195,17 @@ function mountCC(el, pz, ctx) {
     const lw = Math.max(1.2 * dpr, s * 0.04);
     const shade = (nx, ny) => lerpCol(SIDE_DARK, SIDE_LIGHT, (1 + nx * LX + ny * LY) / 2);
     for (const [, x, y, z] of cubes) {
-      if (sy > 0 && ht(x - 1, y) <= z) poly([P(x, y, z), P(x, y + 1, z), P(x, y + 1, z + 1), P(x, y, z + 1)], shade(-1, 0), EDGE, lw);
-      if (sy < 0 && ht(x + 1, y) <= z) poly([P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], shade(1, 0), EDGE, lw);
-      if (cy > 0 && ht(x, y - 1) <= z) poly([P(x, y, z), P(x + 1, y, z), P(x + 1, y, z + 1), P(x, y, z + 1)], shade(0, -1), EDGE, lw);
-      if (cy < 0 && ht(x, y + 1) <= z) poly([P(x, y + 1, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], shade(0, 1), EDGE, lw);
-      if (z === ht(x, y) - 1) poly([P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], TOP, EDGE, lw);
-    }
-    if (revealed) {   // đáp án: ghi chiều cao từng cột lên đỉnh cột
-      const r = Math.max(9 * dpr, s * 0.24);
-      g.font = `800 ${Math.round(r * 1.15)}px Nunito, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
-      for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
-        const h = ht(x, y); if (!h) continue;
-        const [px, py] = P(x + .5, y + .5, h);
-        g.beginPath(); g.arc(px, py, r, 0, Math.PI * 2); g.fillStyle = "rgba(46,166,90,.92)"; g.fill();
-        g.fillStyle = "#fff"; g.fillText(h, px, py + r * .06);
+      if (CX < x && ht(x - 1, y) <= z) poly([P(x, y, z), P(x, y + 1, z), P(x, y + 1, z + 1), P(x, y, z + 1)], shade(-1, 0), EDGE, lw);
+      if (CX > x + 1 && ht(x + 1, y) <= z) poly([P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], shade(1, 0), EDGE, lw);
+      if (CY < y && ht(x, y - 1) <= z) poly([P(x, y, z), P(x + 1, y, z), P(x + 1, y, z + 1), P(x, y, z + 1)], shade(0, -1), EDGE, lw);
+      if (CY > y + 1 && ht(x, y + 1) <= z) poly([P(x, y + 1, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], shade(0, 1), EDGE, lw);
+      if (z === ht(x, y) - 1 && CZ > z + 1) {
+        poly([P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], TOP, EDGE, lw);
+        if (revealed) {   // đáp án: chữ đỏ ghi chiều cao cột lên đỉnh cột, vẽ ngay sau mặt đỉnh nên cột phía trước che được số cột phía sau
+          const X = x + .5 - cx0, Y = y + .5 - cy0, Z = z + 1 - cz0, k = DIST / (DIST - (X * vx + Y * vy + Z * vz)), [px, py] = P(x + .5, y + .5, z + 1);
+          g.font = `900 ${Math.round(Math.max(10 * dpr, s * k * 0.34))}px Nunito, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
+          g.fillStyle = "#c0392b"; g.fillText(z + 1, px, py + s * k * 0.03);
+        }
       }
     }
   }
@@ -155,16 +229,29 @@ function mountCC(el, pz, ctx) {
   });
   const endDrag = () => { if (drag) { drag = null; lastTouch = performance.now(); } };
   cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+  const big = W * D >= 49;
   ctx.tools([
     { id: "spin", label: () => ctx.tr(paused ? "t_play" : "t_pause"), always: true, on() { paused = !paused; ctx.prompt(); paintSpin(); } },
-    { id: "view", label: "t_view", always: true, on() { aimPitch = 0.56; lastTouch = -1e9; } },
+    { id: "view", label: "t_view", always: true, on() { aimPitch = 0.56; lastTouch = -1e9; zi = 0; paintZoom(); } },
+    ...(big ? [
+      { id: "zin", label: "t_zin", always: true, on() { zi = Math.min(ZOOMS.length - 1, zi + 1); paintZoom(); } },
+      { id: "zout", label: "t_zout", always: true, on() { zi = Math.max(0, zi - 1); paintZoom(); } },
+    ] : []),
+    { id: "giveup", label: "t_giveup", confirm: "t_giveup_sure", cls: "danger wide", on: () => ctx.giveUp() },   // bấm 2 lần mới bỏ cuộc (giống Slitherlink)
   ]);
   function paintSpin() { const b = document.querySelector('#pkTools [data-tool="spin"]'); if (b) b.textContent = ctx.tr(paused ? "t_play" : "t_pause"); }
+  function paintZoom() {
+    const a = document.querySelector('#pkTools [data-tool="zin"]'), b = document.querySelector('#pkTools [data-tool="zout"]');
+    if (a) a.disabled = zi >= ZOOMS.length - 1; if (b) b.disabled = zi <= 0;
+  }
+  paintZoom();
+  // lăn chuột trên khối hình cũng phóng to/thu nhỏ
+  if (big) cv.addEventListener("wheel", e => { e.preventDefault(); zi = Math.max(0, Math.min(ZOOMS.length - 1, zi + (e.deltaY < 0 ? 1 : -1))); paintZoom(); }, { passive: false });
   size(); raf = requestAnimationFrame(frame);
   return {
     resize: size,
     reveal() { revealed = true; paused = true; aimPitch = 1.2; paintSpin(); },   // nghiêng gần nhìn từ trên để đọc số trên đỉnh cột
-    lang() { paintSpin(); },
+    lang() { paintSpin(); paintZoom(); },
     destroy() { cancelAnimationFrame(raf); },
   };
 }
@@ -205,18 +292,17 @@ const CC_CARDS = [
 ];
 
 PK.start({
-  id: "cube-count", peerPrefix: "cubecount-", proto: 2, kind: "number",
+  id: "cube-count", peerPrefix: "cubecount-", proto: 4, kind: "number",   // proto 3: đề lấy từ thư viện 70 màn; 4: thêm Bỏ cuộc (tin "give")
   ruleCards: CC_CARDS, ruleCardsBg: "#d5ddd6",
-  solo: { stages: CC_SOLO, gen: ccGen, useLevel: true },
+  solo: { stages: CC_SOLO, gen: ccGen, useLevel: true, levels: ["easy", "normal", "hard", "beyond"], bestTag: "lib" },
   online: { target: 3, maxRounds: 7, roundMs: 150000, levels: ["easy", "normal", "hard"], defaultLevel: "easy", wrong: "lock", lockMs: 20000, gen: ccOnline },
   answer: pz => pz.total,
   mount: mountCC,
   prompt: (pz, ctx) => `<span class="q">${ctx.tr("prompt_q")}</span>${ctx.tr("prompt")}<span class="hint">${ctx.tr("hint")}</span>`,
-  stageNote: pz => PK.tr("sn_" + (pz.level || "normal")),
   rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
   i18n: {
     vi: {
-      brand: "Cube Count", tagline: "Đếm hết khối lập phương trong khối hình đang xoay, kể cả khối bị che.",
+      brand: "Đếm khối lập phương", tagline: "Đếm hết khối lập phương trong khối hình đang xoay, kể cả khối bị che.",
       r_intro: "Một khối hình xếp từ các khối lập phương bằng nhau đang xoay trên màn hình. Hãy đếm xem có tất cả bao nhiêu khối, kể cả những khối nằm khuất phía sau và bên dưới.",
       c1_h: "Đếm khối đang xoay", c1_p: "Khối hình tự xoay. Đếm hết các khối, kể cả khối khuất phía sau và bên dưới.",
       c2_h: "Cộng chiều cao các cột", c2_p: "Thấy đỉnh một cột thì bên dưới đầy khối. Cộng chiều cao các cột là ra đáp án.",
@@ -224,8 +310,9 @@ PK.start({
       h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
       r_rules: ["Không khối nào lơ lửng: mỗi khối nằm trên sàn hoặc ngay trên một khối khác. Thấy đỉnh một cột cao 3 thì dưới đó có đủ 3 khối.",
         "Hình tự xoay. Kéo ngang để xoay, kéo dọc để nghiêng nhìn từ trên xuống. Nút Dừng xoay để giữ yên.",
-        "Nhập số khối bằng bàn phím số rồi bấm Trả lời (hoặc gõ phím số + Enter)."],
-      r_solo: ["Chọn độ khó Dễ, Vừa hoặc Khó. Mỗi mức có 5 câu, khối to dần: Dễ khoảng 6 tới 26 khối, Vừa 30 tới 65, Khó 80 tới 175 (khối rộng và cao hơn).", "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một câu thì phải chờ lâu dần mới được trả lời lại.",
+        "Nhập số khối bằng bàn phím số rồi bấm Trả lời (hoặc gõ phím số + Enter).",
+        "<b>Bỏ cuộc</b> (bấm 2 lần để chắc chắn): hiện đáp án. Chơi một mình thì kết thúc lượt chơi và không tính kỷ lục; online không có nút này."],
+      r_solo: ["Chọn mức ★ (khoảng 4 tới 105 khối), ★★ (17 tới 180), ★★★ (34 tới 350) hoặc ★★★★ (380 tới 740 khối, khó hơn trong show, chỉ có khi chơi một mình). Mỗi lượt 5 câu, khó dần.", "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một câu thì phải chờ lâu dần mới được trả lời lại.",
         "Tính tổng thời gian cả 5 câu. Kỷ lục (câu xa nhất, thời gian ngắn nhất) lưu riêng từng mức trên máy này."],
       r_online: ["Hai người cùng xem một khối hình, ai trả lời đúng trước được 1 điểm. Ai đạt 3 điểm trước thì thắng.",
         "Trả lời sai bị khoá 20 giây, trong lúc đó đối thủ vẫn trả lời được.", "Mỗi đề có 2 phút 30 giây. Hết giờ mà không ai đúng thì không ai được điểm.",
@@ -236,8 +323,10 @@ PK.start({
       r_note: "Lấy cảm hứng từ trò đếm khối lập phương trong show The Devil's Plan (Netflix). Game không liên kết với Netflix.",
       prompt_q: "Đếm khối", prompt: "Có tất cả bao nhiêu khối lập phương?", hint: "Kéo ngang để xoay, kéo dọc để nghiêng. Thấy đỉnh cột thì bên dưới đầy khối.",
       t_pause: "Dừng xoay", t_play: "Xoay tiếp", t_view: "Góc nhìn chuẩn",
-      sn_easy: "Khối hình nhỏ, đếm từng cột là ra.", sn_normal: "Khối hình vừa, có cột bị che phía sau.", sn_hard: "Khối hình lớn và cao, cần đếm có hệ thống.",
-      lvn_easy: "Khối hình nhỏ, khoảng 6 tới 26 khối.", lvn_normal: "Khối hình vừa, khoảng 30 tới 65 khối.", lvn_hard: "Khối hình lớn và cao, khoảng 80 tới 175 khối.",
+      t_zin: "Phóng to", t_zout: "Thu nhỏ",
+      lv_easy: "★", lv_normal: "★★", lv_hard: "★★★", lv_beyond: "★★★★",
+      lvn_easy: "Khoảng 4 tới 105 khối.", lvn_normal: "Khoảng 17 tới 180 khối.",
+      lvn_hard: "Khoảng 34 tới 350 khối.", lvn_beyond: "Khoảng 380 tới 740 khối. Chỉ có khi chơi một mình.",
     },
     en: {
       brand: "Cube Count", tagline: "Count every cube in the turning stack, hidden ones too.",
@@ -248,8 +337,9 @@ PK.start({
       h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
       r_rules: ["No cube floats: each one sits on the floor or right on top of another. If you see the top of a column 3 high, it holds 3 cubes.",
         "The stack turns by itself. Drag sideways to turn it, drag up or down to tilt and look from above. Press Pause to hold it still.",
-        "Type the count on the keypad and press Answer (or use the number keys and Enter)."],
-      r_solo: ["Pick Easy, Medium or Hard. Each level has 5 puzzles that grow as you go: Easy about 6 to 26 cubes, Medium 30 to 65, Hard 80 to 175 (wider, taller stacks).", "A wrong answer adds 5 seconds. From the 3rd miss on the same puzzle you wait longer and longer before you can answer again.",
+        "Type the count on the keypad and press Answer (or use the number keys and Enter).",
+        "<b>Give up</b> (tap twice to be sure) shows the answer. In solo it ends the run and doesn't count toward your best; there is no Give up online."],
+      r_solo: ["Pick ★ (about 4 to 105 cubes), ★★ (17 to 180), ★★★ (34 to 350) or ★★★★ (380 to 740 cubes, beyond the show, solo only). Each run has 5 puzzles that get harder.", "A wrong answer adds 5 seconds. From the 3rd miss on the same puzzle you wait longer and longer before you can answer again.",
         "Your total time over the 5 puzzles counts. Your best (furthest puzzle, shortest time) is saved per level on this device."],
       r_online: ["Both players see the same stack and the first correct answer scores a point. First to 3 points wins.",
         "A wrong answer locks you out for 20 seconds while your opponent can still answer.", "Each puzzle has 2 minutes 30 seconds. If nobody gets it, nobody scores.",
@@ -260,8 +350,10 @@ PK.start({
       r_note: "Inspired by the cube counting game on The Devil's Plan (Netflix). Not affiliated with Netflix.",
       prompt_q: "Cube count", prompt: "How many cubes are there in total?", hint: "Drag sideways to turn, up or down to tilt. A visible top means the column is full below it.",
       t_pause: "Pause", t_play: "Spin", t_view: "Reset view",
-      sn_easy: "A small stack: count it column by column.", sn_normal: "A medium stack, with some columns hidden at the back.", sn_hard: "A big, tall stack: count it step by step.",
-      lvn_easy: "Small stacks, about 6 to 26 cubes.", lvn_normal: "Medium stacks, about 30 to 65 cubes.", lvn_hard: "Big, tall stacks, about 80 to 175 cubes.",
+      t_zin: "Zoom in", t_zout: "Zoom out",
+      lv_easy: "★", lv_normal: "★★", lv_hard: "★★★", lv_beyond: "★★★★",
+      lvn_easy: "About 4 to 105 cubes.", lvn_normal: "About 17 to 180 cubes.",
+      lvn_hard: "About 34 to 350 cubes.", lvn_beyond: "About 380 to 740 cubes. Solo only.",
     },
   },
 });

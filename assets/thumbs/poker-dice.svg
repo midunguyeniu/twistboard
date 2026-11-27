@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+  <radialGradient id="felt" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="#36b374"/><stop offset=".6" stop-color="#17794a"/><stop offset="1" stop-color="#0c4e2f"/></radialGradient>
+  <linearGradient id="face" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#f3f5fa"/><stop offset="1" stop-color="#dfe4ee"/></linearGradient>
+  <radialGradient id="back" cx="30%" cy="25%" r="80%"><stop offset="0" stop-color="#4b5b86"/><stop offset=".72" stop-color="#25304d"/></radialGradient>
+  <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#04301b" flood-opacity=".45"/></filter>
+</defs>
+<rect width="400" height="400" fill="url(#felt)"/>
+<ellipse cx="200" cy="200" rx="172" ry="118" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3" stroke-dasharray="10 8"/>
+<!-- 5 xúc xắc mặt bài: 3 con A ngửa (viền vàng), K, và 1 viên úp -->
+<g filter="url(#sh)" font-family="'Arial Black', Arial, sans-serif" font-weight="900" text-anchor="middle">
+  <g transform="translate(78 236) rotate(-14)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#face)" stroke="#ffc928" stroke-width="6"/><text y="17" font-size="44" fill="#8a4fd1">A</text></g>
+  <g transform="translate(160 196) rotate(-5)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#face)" stroke="#ffc928" stroke-width="6"/><text y="17" font-size="44" fill="#8a4fd1">A</text></g>
+  <g transform="translate(244 194) rotate(6)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#face)" stroke="#ffc928" stroke-width="6"/><text y="17" font-size="44" fill="#8a4fd1">A</text></g>
+  <g transform="translate(324 234) rotate(15)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#back)" stroke="#1b2440" stroke-width="3"/><text y="15" font-size="42" fill="#fff" fill-opacity=".5">?</text></g>
+  <g transform="translate(204 282) rotate(-3)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#face)" stroke="#c9cfdc" stroke-width="3"/><text y="17" font-size="44" fill="#d9362b">K</text></g>
+</g>
+<!-- chồng xèng -->
+<g filter="url(#sh)">
+  <ellipse cx="94" cy="118" rx="26" ry="9" fill="#ef3f5a"/><rect x="68" y="104" width="52" height="14" fill="#ef3f5a"/><ellipse cx="94" cy="104" rx="26" ry="9" fill="#ff6b80" stroke="#fff" stroke-width="2.5" stroke-dasharray="7 6"/>
+  <ellipse cx="312" cy="124" rx="22" ry="8" fill="#7c4ddb"/><rect x="290" y="112" width="44" height="12" fill="#7c4ddb"/><ellipse cx="312" cy="112" rx="22" ry="8" fill="#9a72e8" stroke="#fff" stroke-width="2.2" stroke-dasharray="6 5"/>
+</g>
+</svg>

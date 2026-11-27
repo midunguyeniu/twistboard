@@ -182,6 +182,7 @@ const KT_CARDS = [
 ];
 
 PK.start({
+  flatStage: true,   // bàn vuông có khung riêng, bỏ khung chữ nhật bao ngoài
   id: "knight-tour", peerPrefix: "knighttour-", proto: 2, kind: "self",   // proto 2: online đổi sang chọn kích thước bàn
   ruleCards: KT_CARDS, ruleCardsBg: "#d5dae3",
   solo: { stages: 1, useLevel: true, gen: ktSolo },
@@ -196,7 +197,7 @@ PK.start({
   rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
   i18n: {
     vi: {
-      brand: "Knight's Tour", tagline: "Cho quân Mã nhảy qua mọi ô trên bàn, mỗi ô đúng một lần.",
+      brand: "Mã đi tuần", tagline: "Cho quân Mã nhảy qua mọi ô trên bàn, mỗi ô đúng một lần.",
       r_intro: "Bài toán Mã đi tuần: quân Mã nhảy hình chữ L và phải ghé mọi ô của bàn cờ, mỗi ô đúng một lần.",
       c1_h: "Mã đi hình chữ L", c1_p: "2 ô theo một hướng rồi 1 ô sang ngang. Chỉ nhảy được vào ô có chấm xanh.",
       c2_h: "Đi qua mỗi ô đúng một lần", c2_p: "Ô đã đi giữ số thứ tự và không đi vào lại được. Đi kín bàn là xong.",

@@ -2,10 +2,12 @@
 <defs>
   <radialGradient id="felt" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="#36b374"/><stop offset=".6" stop-color="#17794a"/><stop offset="1" stop-color="#0c4e2f"/></radialGradient>
   <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#f4a20b"/></linearGradient>
+  <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9cc8ff"/><stop offset="1" stop-color="#3f7fe6"/></linearGradient>
   <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#04301b" flood-opacity=".45"/></filter>
-  <pattern id="back" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="12" fill="#4a6fd8"/><rect width="6" height="12" fill="#3b5fc9"/></pattern>
+  <pattern id="back" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#2d5a92"/><path d="M3.5 0 7 3.5 3.5 7 0 3.5Z" fill="none" stroke="#fff" stroke-width=".7"/><circle cx="3.5" cy="3.5" r="1" fill="#fff"/><circle cx="0" cy="0" r=".8" fill="#fff"/><circle cx="7" cy="0" r=".8" fill="#fff"/><circle cx="0" cy="7" r=".8" fill="#fff"/><circle cx="7" cy="7" r=".8" fill="#fff"/></pattern>
 </defs>
 <rect width="400" height="400" fill="url(#felt)"/>
+<g transform="translate(0 8)">   <!-- cả hình dời xuống 2% (chủ game chọn 11/2026) -->
 <ellipse cx="200" cy="200" rx="172" ry="118" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3" stroke-dasharray="10 8"/>
 <!-- quân chip -->
 <g filter="url(#sh)">
@@ -14,16 +16,16 @@
   <g transform="translate(340 308)"><ellipse cx="0" cy="10" rx="30" ry="11" fill="#1d7a43"/><rect x="-30" y="-6" width="60" height="16" fill="#25934f"/><ellipse cx="0" cy="-6" rx="30" ry="11" fill="#2ea65a"/><ellipse cx="0" cy="-6" rx="19" ry="7" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="6 5"/></g>
 </g>
 <!-- lá bài xoè -->
-<g filter="url(#sh)" font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" text-anchor="middle">
-  <g transform="translate(100 200) rotate(-16)"><rect x="-46" y="-64" width="92" height="128" rx="13" fill="url(#back)" stroke="#2d4ba8" stroke-width="3"/><circle r="17" fill="#6f8ff0"/></g>
+<g filter="url(#sh)" font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" text-anchor="middle"><g transform="translate(0 16)">
+  <g transform="translate(100 200) rotate(-16)"><rect x="-46" y="-64" width="92" height="128" rx="13" fill="#fff" stroke="#cfd3dc" stroke-width="3"/><g transform="translate(-46 -64.4) scale(.92)"><rect x="8" y="8" width="84" height="124" rx="2.5" fill="#2d5a92"/><rect x="11" y="11" width="78" height="118" fill="url(#back)"/><rect x="11" y="11" width="78" height="118" fill="none" stroke="#fff" stroke-width="1"/><path d="M50 40 80 70 50 100 20 70Z" fill="#2d5a92" stroke="#fff" stroke-width="2"/><path d="M50 46 74 70 50 94 26 70Z" fill="none" stroke="#fff" stroke-width=".8"/><path d="M50 49v-3M50 91v3M29 70h-3M71 70h3" stroke="#fff" stroke-width="1.2"/><path d="M50 70L50.00 57.50M50 70L52.87 63.07M50 70L58.84 61.16M50 70L56.93 67.13M50 70L62.50 70.00M50 70L56.93 72.87M50 70L58.84 78.84M50 70L52.87 76.93M50 70L50.00 82.50M50 70L47.13 76.93M50 70L41.16 78.84M50 70L43.07 72.87M50 70L37.50 70.00M50 70L43.07 67.13M50 70L41.16 61.16M50 70L47.13 63.07" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/><circle cx="50" cy="70" r="3.2" fill="#2d5a92" stroke="#fff" stroke-width="1.2"/></g></g>
   <g transform="translate(162 186) rotate(-6)"><rect x="-46" y="-64" width="92" height="128" rx="13" fill="#fff" stroke="#d6dae4" stroke-width="3"/><text y="26" font-size="72" fill="#1d2330">6</text><g fill="#f0a020"><circle cx="-32" cy="-50" r="4"/><circle cx="-21" cy="-50" r="4"/></g></g>
   <g transform="translate(226 184) rotate(4)"><rect x="-46" y="-64" width="92" height="128" rx="13" fill="#fff8f1" stroke="#d6dae4" stroke-width="3"/><rect x="-38" y="-56" width="76" height="112" rx="9" fill="none" stroke="#e0682b" stroke-opacity=".3" stroke-width="2.5"/><text y="27" font-size="80" fill="#e0682b">×</text></g>
   <g transform="translate(290 196) rotate(14)"><rect x="-46" y="-64" width="92" height="128" rx="13" fill="#fff" stroke="#d6dae4" stroke-width="3"/><text y="26" font-size="72" fill="#1d2330">4</text><g fill="#f0a020"><circle cx="-32" cy="-50" r="4"/><circle cx="-21" cy="-50" r="4"/><circle cx="-10" cy="-50" r="4"/></g></g>
-</g>
+</g></g>
 <!-- mục tiêu 1 và 20 -->
 <g font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" text-anchor="middle" filter="url(#sh)">
-  <g transform="translate(64 102)"><circle r="40" fill="#fff"/><circle r="33" fill="none" stroke="#2f6fd6" stroke-width="4"/><text y="18" font-size="50" fill="#2f6fd6">1</text></g>
-  <g transform="translate(334 100)"><circle r="48" fill="url(#gold)"/><circle r="40" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="4"/><text y="19" font-size="52" fill="#7a3d00">20</text></g>
-  <g transform="translate(200 300)"><rect x="-74" y="-28" width="148" height="56" rx="28" fill="#1d2330"/><text y="15" font-size="38" fill="#ffc928">= 20</text></g>
+  <g transform="translate(70 102)"><circle r="46" fill="url(#blue)"/><circle r="38" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="4"/><text y="18" font-size="50" fill="#123a86">1</text></g>
+  <g transform="translate(330 102)"><circle r="46" fill="url(#gold)"/><circle r="38" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="4"/><text y="18" font-size="50" fill="#7a3d00">20</text></g>
+</g>
 </g>
 </svg>

@@ -371,6 +371,7 @@ function mountBX(el, pz, ctx) {
     hl.style.left = (c1 * cellPx - 4) + "px"; hl.style.top = (r1 * cellPx - 4) + "px";
     hl.style.width = ((c2 - c1 + 1) * cellPx + 8) + "px"; hl.style.height = ((r2 - r1 + 1) * cellPx + 8) + "px";
   }
+  ctx.tools([{ id: "giveup", label: "t_giveup", confirm: "t_giveup_sure", cls: "danger wide", on: () => ctx.giveUp() }]);   // bấm 2 lần mới bỏ cuộc (giống Slitherlink)
   size();
   return {
     resize: size,
@@ -410,7 +411,7 @@ const BX_CARDS = [
 ];
 
 PK.start({
-  id: "box-count", ruleCards: BX_CARDS, ruleCardsBg: "#ecd8c0", peerPrefix: "boxcount-", proto: 2, kind: "number",
+  id: "box-count", ruleCards: BX_CARDS, ruleCardsBg: "#ecd8c0", peerPrefix: "boxcount-", proto: 3, kind: "number",   // proto 3: thêm Bỏ cuộc (tin "give")
   solo: { stages: BX_SOLO_N, gen: bxGen, useLevel: true },
   online: { target: 3, maxRounds: 7, roundMs: 180000, levels: ["easy", "normal", "hard"], defaultLevel: "easy", wrong: "out", gen: bxOnline },
   answer: pz => pz.answer,
@@ -420,7 +421,7 @@ PK.start({
   rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
   i18n: {
     vi: {
-      brand: "Box Count", tagline: "Đếm mọi hình chữ nhật trên lưới số có tổng đúng bằng số đích.",
+      brand: "Đếm hình chữ nhật", tagline: "Đếm mọi hình chữ nhật trên lưới số có tổng đúng bằng số đích.",
       r_intro: "Trên bảng là một lưới số và một số đích. Hãy đếm có bao nhiêu hình chữ nhật (gồm các ô liền nhau) mà tổng các số bên trong đúng bằng số đích.",
       c1_h: "Đếm hình có tổng bằng đích", c1_p: "Gom các ô liền nhau thành hình chữ nhật rồi cộng lại. Một ô đứng riêng cũng tính, các hình chồng lên nhau tính riêng từng hình.", c1_cap: "Đáp án: 3",
       c2_h: "Chỗ khuyết chặn hình", c2_p: "Chỗ không có ô là lỗ, hình không đi qua được. Ô trắng không ghi số là 0, nên hình chứa nó vẫn tính.",
@@ -430,7 +431,8 @@ PK.start({
         "Một ô đứng riêng cũng là một hình. Các hình chồng lên nhau vẫn tính riêng từng hình.",
         "<b>Ô trắng không ghi số tính là 0</b>: hình chứa nó vẫn được tính. Bàn có thể khuyết hình: hình chữ nhật không được đi ra chỗ không có ô.",
         "Số âm và phân số cộng bình thường. Đáp án có thể là 0.",
-        "Nhập số hình đếm được rồi bấm Trả lời. Hết đề sẽ hiện lần lượt từng hình đúng."],
+        "Nhập số hình đếm được rồi bấm Trả lời. Hết đề sẽ hiện lần lượt từng hình đúng.",
+        "<b>Bỏ cuộc</b> (bấm 2 lần để chắc chắn): hiện đáp án. Chơi một mình thì kết thúc lượt chơi và không tính kỷ lục; online không có nút này."],
       r_solo: ["Chọn độ khó Dễ, Vừa hoặc Khó. Mỗi mức có 5 câu, lưới lớn dần: Dễ là lưới nhỏ, Vừa là lưới vừa có nhiều ô trắng và ô mồi, Khó là lưới lớn có số âm.",
         "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một câu thì phải chờ lâu dần.", "Tính tổng thời gian cả 5 câu. Kỷ lục lưu riêng từng mức trên máy này."],
       r_online: ["Hai người cùng giải một lưới, ai trả lời đúng trước được 1 điểm. Ai đạt 3 điểm trước thì thắng.",
@@ -458,7 +460,8 @@ PK.start({
         "A single cell is a rectangle on its own. Overlapping rectangles each count separately.",
         "<b>An empty white cell counts as 0</b>: rectangles containing it still count. The board can have an odd shape: a rectangle can't cover a spot with no cell.",
         "Negatives and fractions add as usual. The answer can be 0.",
-        "Enter your count and press Answer. After each puzzle, every matching rectangle is shown in turn."],
+        "Enter your count and press Answer. After each puzzle, every matching rectangle is shown in turn.",
+        "<b>Give up</b> (tap twice to be sure) shows the answer. In solo it ends the run and doesn't count toward your best; there is no Give up online."],
       r_solo: ["Pick Easy, Medium or Hard. Each level has 5 puzzles that grow as you go: Easy uses small grids, Medium medium grids with more empty cells and decoys, Hard big grids with negatives.",
         "A wrong answer adds 5 seconds. From the 3rd miss on the same puzzle you wait longer and longer.", "Your total time over the 5 puzzles counts. Your best is saved per level on this device."],
       r_online: ["Both players solve the same grid and the first correct answer scores a point. First to 3 points wins.",

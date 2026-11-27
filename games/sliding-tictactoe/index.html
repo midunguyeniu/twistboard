@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sliding Tic Tac Toe · Twistboard</title>
+<title>Cờ ca-rô trượt · Twistboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
 <link rel="stylesheet" href="../../assets/platform.css">
@@ -172,7 +172,7 @@ body.portrait .ptime{font-size:22px}
 <script>TB.mountHeader({ page: "game", gameId: "sliding-tictactoe" });</script>
 <div id="app">
   <header class="top">
-    <div class="brand"><h1 data-i18n="brand">Sliding Tic Tac Toe</h1></div>
+    <div class="brand"><h1 data-i18n="brand">Cờ ca-rô trượt</h1></div>
     <div class="actions">
       <button class="btn" id="btnRules" data-i18n="b_rules">Luật chơi</button>
       <button class="btn primary" id="btnNew" data-i18n="b_new">Ván mới</button>
@@ -204,7 +204,7 @@ body.portrait .ptime{font-size:22px}
 
 <div class="modal" id="mRules" hidden>
   <div class="card">
-    <h2 data-i18n="brand">Sliding Tic Tac Toe</h2>
+    <h2 data-i18n="brand">Cờ ca-rô trượt</h2>
     <p data-i18n="r_intro"></p>
     <div class="demo" id="rulesDemo"></div>
     <h3 data-i18n="r_h_rules"></h3>
@@ -420,7 +420,7 @@ function aiPick(R, S, xm, om, s, level, rnd = Math.random) {
 /* ---------- ĐA NGÔN NGỮ (vi / en) ---------- */
 const I18N = {
 vi: {
-  title: "Sliding Tic Tac Toe", brand: "Sliding Tic Tac Toe",
+  title: "Cờ ca-rô trượt", brand: "Cờ ca-rô trượt",
   b_rules: "Luật chơi", b_new: "Ván mới", b_view: "Xem bàn cờ", cancel: "Huỷ",
   r_intro: "Cờ ca-rô 3×3 quen thuộc, nhưng mỗi bên chỉ có <b>3 quân</b>. Đặt hết quân rồi thì phải <b>kéo quân cũ</b> sang chỗ mới, nên ván cờ không bao giờ đứng yên.",
   r_h_rules: "Luật chơi",

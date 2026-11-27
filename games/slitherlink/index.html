@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nối hàng rào · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<link rel="stylesheet" href="../../assets/puzzle-kit.css">
+<script src="../../assets/platform.js"></script>
+<script src="../../assets/puzzle-kit.js"></script>
+<script src="bank.js"></script>
+<style>
+.sl{width:100%;display:grid;place-items:center}
+.sl-svg{display:block;width:min(100%,600px,calc(100vh - 230px));min-width:250px;aspect-ratio:1;border-radius:8px;background:#fbf6ea;
+  box-shadow:0 0 0 5px #fff,0 0 0 6px var(--tb-border),0 12px 28px rgba(20,30,60,.2);user-select:none;-webkit-user-select:none;touch-action:none;cursor:pointer;font-family:inherit}
+.sl-svg.off{cursor:default}
+.sl-clue{font-weight:900;font-size:.6px;fill:#2c3e6e;text-anchor:middle;dominant-baseline:central;transition:fill-opacity .15s,fill .15s}
+.sl-clue.ok{fill-opacity:.3}
+.sl-clue.bad{fill:#d6453d}
+.sl-ln{stroke:transparent;stroke-width:.13;stroke-linecap:round}
+.sl-ln.hov{stroke:rgba(44,62,110,.2)}
+.sl-ln.on{stroke:#2c3e6e}
+.sl-x{fill:none;stroke:transparent;stroke-width:.05;stroke-linecap:round}
+.sl-x.on{stroke:#c0533f}
+.sl-dot{fill:#3a3f4b}
+.sl-dot.bad{fill:#d6453d;r:.14px}
+.sl-sol line{stroke:var(--tb-green);stroke-opacity:.55;stroke-width:.11;stroke-linecap:round}
+.sl-svg.won{box-shadow:0 0 0 5px #fff,0 0 0 8px var(--tb-green),0 12px 28px rgba(20,30,60,.2)}
+.sl-svg.won .sl-ln.on{stroke:var(--tb-green)}
+.sl-svg.won .sl-clue{fill-opacity:1;fill:#2c3e6e}
+/* hình nhỏ trong thẻ Luật chơi */
+.slr{display:flex;gap:12px;align-items:center;justify-content:center}
+.slr svg{width:112px;height:112px;border-radius:6px;background:#fbf6ea;box-shadow:0 0 0 2px #fff,0 0 0 3px #b9b2a0}
+.slr.two{gap:8px}
+.slr.two svg{width:72px;height:72px}
+.slr-tag{display:block;text-align:center;font-weight:900;font-size:13px;margin-top:4px}
+.slr-tag.ok{color:var(--tb-green)} .slr-tag.no{color:#d6453d}
+.slr .sl-ln{stroke-width:.15} .slr .sl-x{stroke-width:.07} .slr .sl-dot{r:.09}
+.slr-cap{font-weight:800;font-size:12px;color:#5b6170;text-align:center;line-height:1.35}
+@media (max-width:780px){.sl-svg{width:min(100%,calc(100vh - 250px));box-shadow:0 0 0 3px #fff,0 0 0 4px var(--tb-border),0 8px 18px rgba(20,30,60,.18)}}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "slitherlink" });</script>
+<script>
+"use strict";
+/* RULES-START: luật + bộ giải + chọn đề, không đụng DOM (cắt ra chạy bằng Node được).
+   Bàn n×n ô, chấm ở góc ô. Cạnh là đoạn nối 2 chấm kề nhau. Trạng thái một cạnh: 1 = kẻ, -1 = chắc chắn không kẻ (×), 0 = chưa biết.
+   Đề: clue[ô] = 0..3 hoặc -1 (ô trống). Lời giải: các cạnh kẻ tạo đúng 1 vòng kín, mỗi ô có số thì đúng bấy nhiêu cạnh quanh nó được kẻ. */
+const SL_SIZES = ["5", "7", "10"];
+const SL_LEVEL = { 5: 1, 7: 2, 10: 3 };   // mức suy luận dùng khi sinh đề: 1 luật cơ bản, 2 thêm tô màu trong/ngoài, 3 thêm thử-sai 1 bước
+const SL_TOPO = {};
+/* Đánh số: chấm v = r*(n+1)+c. Cạnh ngang (r,c)-(r,c+1): r*n+c. Cạnh dọc (r,c)-(r+1,c): H + r*(n+1)+c. Ô (r,c): r*n+c, OUT = n*n là "bên ngoài bàn". */
+function slTopo(n) {
+  if (SL_TOPO[n]) return SL_TOPO[n];
+  const W = n + 1, H = W * n, E = 2 * n * W, C = n * n, OUT = C, eV = [], eC = [], cE = [], vE = [];
+  for (let v = 0; v < W * W; v++) vE.push([]);
+  for (let r = 0; r <= n; r++) for (let c = 0; c < n; c++) {
+    const e = r * n + c; eV[e] = [r * W + c, r * W + c + 1]; eC[e] = [r > 0 ? (r - 1) * n + c : OUT, r < n ? r * n + c : OUT];
+  }
+  for (let r = 0; r < n; r++) for (let c = 0; c <= n; c++) {
+    const e = H + r * W + c; eV[e] = [r * W + c, (r + 1) * W + c]; eC[e] = [c > 0 ? r * n + c - 1 : OUT, c < n ? r * n + c : OUT];
+  }
+  for (let e = 0; e < E; e++) for (const v of eV[e]) vE[v].push(e);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) cE.push([r * n + c, (r + 1) * n + c, H + r * W + c, H + r * W + c + 1]);
+  return (SL_TOPO[n] = { n, W, H, E, C, OUT, eV, eC, cE, vE });
+}
+/* Lời giải hợp lệ? (st[e] === 1 là kẻ) */
+function slCheck(T, clue, st) {
+  let total = 0, start = -1;
+  for (let v = 0; v < T.vE.length; v++) {
+    let d = 0; for (const e of T.vE[v]) if (st[e] === 1) d++;
+    if (d !== 0 && d !== 2) return false;
+  }
+  for (let c = 0; c < T.C; c++) if (clue[c] >= 0) {
+    let L = 0; for (const e of T.cE[c]) if (st[e] === 1) L++;
+    if (L !== clue[c]) return false;
+  }
+  for (let e = 0; e < T.E; e++) if (st[e] === 1) { total++; if (start < 0) start = e; }
+  if (!total) return false;
+  // đi dọc vòng từ cạnh đầu tiên, phải đi qua đủ mọi cạnh kẻ
+  const seen = new Uint8Array(T.E); let cnt = 0, e = start, v = T.eV[start][1];
+  while (!seen[e]) {
+    seen[e] = 1; cnt++;
+    let nx = -1; for (const f of T.vE[v]) if (f !== e && st[f] === 1) { nx = f; break; }
+    if (nx < 0) return false;
+    e = nx; v = T.eV[e][0] === v ? T.eV[e][1] : T.eV[e][0];
+  }
+  return cnt === total;
+}
+/* Vùng bên trong vòng (mảng 0/1 theo ô) -> các cạnh của vòng */
+function slRegionEdges(T, inside) {
+  const st = new Int8Array(T.E), at = c => c === T.OUT ? 0 : inside[c];
+  for (let e = 0; e < T.E; e++) st[e] = at(T.eC[e][0]) !== at(T.eC[e][1]) ? 1 : -1;
+  return st;
+}
+/* Luật "vòng": một cạnh nối hai đầu của cùng một đoạn đang kẻ sẽ khép vòng. Chỉ được khép khi đoạn đó chứa mọi cạnh đã kẻ và mọi số đều khớp.
+   Trả về -1 nếu mâu thuẫn, số cạnh vừa suy ra được. */
+function slLoopRule(T, clue, st) {
+  const NV = T.vE.length, p = new Int32Array(NV), deg = new Uint8Array(NV), cnt = new Int32Array(NV), ends = new Int32Array(NV);
+  for (let i = 0; i < NV; i++) p[i] = i;
+  const f = x => { while (p[x] !== x) x = p[x] = p[p[x]]; return x; };
+  let total = 0;
+  for (let e = 0; e < T.E; e++) if (st[e] === 1) { total++; const [a, b] = T.eV[e]; deg[a]++; deg[b]++; const ra = f(a), rb = f(b); if (ra !== rb) p[ra] = rb; }
+  if (!total) return 0;
+  for (let e = 0; e < T.E; e++) if (st[e] === 1) cnt[f(T.eV[e][0])]++;
+  for (let v = 0; v < NV; v++) if (deg[v] === 1) ends[f(v)]++;
+  let ch = 0;
+  for (let v = 0; v < NV; v++) if (p[v] === v && cnt[v] && !ends[v]) {   // đã có một vòng kín
+    if (cnt[v] < total) return -1;
+    for (let e = 0; e < T.E; e++) if (st[e] === 0) { st[e] = -1; ch++; }
+    return ch;
+  }
+  const cellL = new Int8Array(T.C); let bad = 0;
+  for (let c = 0; c < T.C; c++) if (clue[c] >= 0) { let L = 0; for (const e of T.cE[c]) if (st[e] === 1) L++; cellL[c] = L; if (L !== clue[c]) bad++; }
+  for (let e = 0; e < T.E; e++) if (st[e] === 0) {
+    const a = f(T.eV[e][0]); if (a !== f(T.eV[e][1]) || !cnt[a]) continue;
+    let ok = cnt[a] === total;
+    if (ok) {
+      let b2 = bad;
+      for (const c of T.eC[e]) if (c !== T.OUT && clue[c] >= 0) b2 += (cellL[c] + 1 !== clue[c]) - (cellL[c] !== clue[c]);
+      ok = b2 === 0;
+    }
+    if (!ok) { st[e] = -1; ch++; }
+  }
+  return ch;
+}
+/* Tô màu trong/ngoài: hai ô cạnh nhau khác màu khi cạnh giữa chúng được kẻ, cùng màu khi bị ×. Gom ô theo quan hệ màu (union-find có chẵn lẻ),
+   rồi xét từng ô có số và từng chấm: thử mọi cách đặt các cạnh chưa biết quanh nó, giữ cách hợp với số/bậc chấm và với quan hệ màu. */
+function slParity(T, clue, st) {
+  const N = T.C + 1, p = new Int32Array(N), x = new Uint8Array(N);
+  for (let i = 0; i < N; i++) p[i] = i;
+  let FR = 0;
+  const find = i => {
+    let par = 0, r = i; while (p[r] !== r) { par ^= x[r]; r = p[r]; }
+    let cur = i, cp = par;
+    while (cur !== r) { const nx = p[cur], np = cp ^ x[cur]; p[cur] = r; x[cur] = cp; cur = nx; cp = np; }
+    FR = r; return par;
+  };
+  for (let e = 0; e < T.E; e++) if (st[e]) {
+    const pa = find(T.eC[e][0]), ra = FR, pb = find(T.eC[e][1]), rb = FR, d = st[e] === 1 ? 1 : 0;
+    if (ra === rb) { if ((pa ^ pb) !== d) return -1; }
+    else { p[ra] = rb; x[ra] = pa ^ pb ^ d; }
+  }
+  let ch = 0;
+  const eRoot = new Int32Array(T.E * 2), ePar = new Uint8Array(T.E);   // gốc 2 ô hai bên cạnh + chẵn lẻ giữa chúng
+  for (let e = 0; e < T.E; e++) {
+    const pa = find(T.eC[e][0]), ra = FR, pb = find(T.eC[e][1]), rb = FR;
+    eRoot[2 * e] = ra; eRoot[2 * e + 1] = rb; ePar[e] = pa ^ pb;
+    if (st[e] === 0 && ra === rb) { st[e] = pa ^ pb ? 1 : -1; ch++; }
+  }
+  if (ch) return ch;
+  const lp = new Int32Array(16), lx = new Uint8Array(16), roots = [];
+  const local = (list, mask) => {   // các cạnh trong list với giá trị theo mask có hợp với quan hệ màu không
+    roots.length = 0;
+    const id = r => { let k = roots.indexOf(r); if (k < 0) { k = roots.length; roots.push(r); lp[k] = k; lx[k] = 0; } return k; };
+    const lf = i => { let par = 0; while (lp[i] !== i) { par ^= lx[i]; i = lp[i]; } LR = i; return par; };
+    let LR = 0;
+    for (let j = 0; j < list.length; j++) {
+      const e = list[j], line = (mask >> j) & 1;
+      const a = id(eRoot[2 * e]), b = id(eRoot[2 * e + 1]), need = line ^ ePar[e];
+      const pa = lf(a), ra = LR, pb = lf(b), rb = LR;
+      if (ra === rb) { if ((pa ^ pb) !== need) return false; }
+      else { lp[ra] = rb; lx[ra] = pa ^ pb ^ need; }
+    }
+    return true;
+  };
+  const unk = [];
+  const tryGroup = (edges, okCount) => {
+    unk.length = 0; let L = 0;
+    for (const e of edges) { if (st[e] === 1) L++; else if (st[e] === 0) unk.push(e); }
+    if (!unk.length) return 0;
+    let all1 = (1 << unk.length) - 1, any1 = 0, found = false;
+    for (let m = 0; m < 1 << unk.length; m++) {
+      let k = L; for (let j = 0; j < unk.length; j++) k += (m >> j) & 1;
+      if (!okCount(k) || !local(unk, m)) continue;
+      found = true; all1 &= m; any1 |= m;
+    }
+    if (!found) return -1;
+    let c = 0;
+    for (let j = 0; j < unk.length; j++) {
+      if ((all1 >> j) & 1) { st[unk[j]] = 1; c++; } else if (!((any1 >> j) & 1)) { st[unk[j]] = -1; c++; }
+    }
+    return c;
+  };
+  for (let c = 0; c < T.C; c++) if (clue[c] >= 0) {
+    const k = clue[c], r = tryGroup(T.cE[c], v => v === k);
+    if (r < 0) return -1; if (r) return r;   // quan hệ màu đã đổi: tính lại từ đầu
+  }
+  for (let v = 0; v < T.vE.length; v++) {
+    const r = tryGroup(T.vE[v], d => d === 0 || d === 2);
+    if (r < 0) return -1; if (r) return r;
+  }
+  return 0;
+}
+/* Suy luận tới khi không suy thêm được. Trả về -1 nếu mâu thuẫn. */
+function slProp(T, clue, st, level) {
+  for (;;) {
+    let ch = 0;
+    for (let c = 0; c < T.C; c++) {
+      const k = clue[c]; if (k < 0) continue;
+      let L = 0, U = 0; for (const e of T.cE[c]) { if (st[e] === 1) L++; else if (st[e] === 0) U++; }
+      if (L > k || L + U < k) return -1;
+      if (U && (L === k || L + U === k)) { const v = L === k ? -1 : 1; for (const e of T.cE[c]) if (st[e] === 0) { st[e] = v; ch++; } }
+    }
+    for (let v = 0; v < T.vE.length; v++) {
+      let L = 0, U = 0, ue = -1; for (const e of T.vE[v]) { if (st[e] === 1) L++; else if (st[e] === 0) { U++; ue = e; } }
+      if (L > 2 || (L === 1 && U === 0)) return -1;
+      if (!U) continue;
+      if (L === 2) { for (const e of T.vE[v]) if (st[e] === 0) { st[e] = -1; ch++; } }
+      else if (U === 1) { st[ue] = L === 1 ? 1 : -1; ch++; }
+    }
+    if (ch) continue;
+    const lr = slLoopRule(T, clue, st); if (lr < 0) return -1; if (lr) continue;
+    if (level >= 2) { const pr = slParity(T, clue, st); if (pr < 0) return -1; if (pr) continue; }
+    return 0;
+  }
+}
+/* Giải bằng suy luận. status: 1 giải xong (và vì mọi bước đều là suy luận chắc chắn nên lời giải là duy nhất), 0 kẹt, -1 đề sai.
+   Mức 3: thêm thử-sai 1 bước (giả sử một cạnh kẻ/không kẻ, suy luận mức 2 thấy mâu thuẫn thì chọn ngược lại). trials = số lần phải thử-sai. */
+function slSolve(T, clue, level, st0) {
+  const st = st0 ? Int8Array.from(st0) : new Int8Array(T.E);
+  let trials = 0;
+  if (slProp(T, clue, st, Math.min(level, 2)) < 0) return { st, status: -1, trials };
+  if (level >= 3) {
+    let more = true;
+    while (more && st.indexOf(0) >= 0) {
+      more = false;
+      for (let e = 0; e < T.E; e++) if (st[e] === 0) {
+        for (const val of [1, -1]) {
+          const t = Int8Array.from(st); t[e] = val;
+          if (slProp(T, clue, t, 2) < 0) {
+            st[e] = -val; trials++; more = true;
+            if (slProp(T, clue, st, 2) < 0) return { st, status: -1, trials };
+            break;
+          }
+        }
+      }
+    }
+  }
+  if (st.indexOf(0) >= 0) return { st, status: 0, trials };
+  return { st, status: slCheck(T, clue, st) ? 1 : -1, trials };
+}
+/* Lấy đề trong kho (SL_BANK nằm trong bank.js, sinh bằng tools/gen-slitherlink.js), xoay/lật theo tf (0-7) để thêm biến thể. */
+function slPuzzle(size, idx, tf) {
+  const n = +size, s = SL_BANK[size][idx], clue = new Array(n * n).fill(-1);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    let rr = r, cc = c;
+    if (tf & 1) cc = n - 1 - cc;
+    if (tf & 2) rr = n - 1 - rr;
+    if (tf & 4) [rr, cc] = [cc, rr];
+    const ch = s[r * n + c]; clue[rr * n + cc] = ch === "." ? -1 : +ch;
+  }
+  return { n, clue, idx, tf };
+}
+function slGen(level, rng) {
+  const size = SL_SIZES.includes(level) ? level : "5", bank = SL_BANK[size];
+  const idx = Math.floor(rng() * bank.length), tf = Math.floor(rng() * 8);
+  return slPuzzle(size, idx, tf);
+}
+/* RULES-END */
+
+/* ---------- VẼ + ĐIỀU KHIỂN ---------- */
+let SV = null;   // bàn đang hiện (để khung nhắc đọc số đoạn đã kẻ)
+const svgNS = "http://www.w3.org/2000/svg";
+/* Vẽ bàn bằng SVG: đơn vị = 1 ô, chấm (r,c) ở toạ độ (c, r). */
+function slSvgInner(T, clue, M) {
+  const n = T.n, W = T.W, pt = v => [v % W, Math.floor(v / W)];
+  let clues = "", xs = "", lines = "", dots = "";
+  for (let c = 0; c < T.C; c++) if (clue[c] >= 0) clues += `<text class="sl-clue" data-c="${c}" x="${c % n + .5}" y="${Math.floor(c / n) + .54}">${clue[c]}</text>`;
+  for (let e = 0; e < T.E; e++) {
+    const [a, b] = T.eV[e].map(pt), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, d = .1;
+    xs += `<path class="sl-x" data-e="${e}" d="M${mx - d} ${my - d}L${mx + d} ${my + d}M${mx + d} ${my - d}L${mx - d} ${my + d}"/>`;
+    lines += `<line class="sl-ln" data-e="${e}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
+  }
+  for (let v = 0; v < T.vE.length; v++) { const [x, y] = pt(v); dots += `<circle class="sl-dot" data-v="${v}" cx="${x}" cy="${y}" r=".075"/>`; }
+  return `<g>${clues}</g><g>${xs}</g><g>${lines}</g><g class="sl-sol"></g><g>${dots}</g>`;
+}
+function mountSL(el, pz, ctx) {
+  const T = slTopo(pz.n), n = pz.n, W = T.W, M = .42, st = new Int8Array(T.E), undoStack = [];
+  el.innerHTML = `<div class="sl"><svg class="sl-svg off" viewBox="${-M} ${-M} ${n + 2 * M} ${n + 2 * M}">${slSvgInner(T, pz.clue, M)}</svg></div>`;
+  const svg = el.querySelector("svg");
+  const lnEl = [], xEl = [], dotEl = [], clueEl = new Map();
+  svg.querySelectorAll(".sl-ln").forEach(l => { lnEl[+l.dataset.e] = l; });
+  svg.querySelectorAll(".sl-x").forEach(l => { xEl[+l.dataset.e] = l; });
+  svg.querySelectorAll(".sl-dot").forEach(d => { dotEl[+d.dataset.v] = d; });
+  svg.querySelectorAll(".sl-clue").forEach(t => { clueEl.set(+t.dataset.c, t); });
+  SV = { pz, won: false, lines: () => { let k = 0; for (let e = 0; e < T.E; e++) if (st[e] === 1) k++; return k; } };
+
+  const drawEdge = e => { lnEl[e].classList.toggle("on", st[e] === 1); xEl[e].classList.toggle("on", st[e] === -1); };
+  function drawMarks() {   // số tô mờ khi đủ cạnh, đỏ khi thừa hoặc không còn đủ chỗ; chấm đỏ khi rẽ nhánh hoặc cụt
+    for (const [c, t] of clueEl) {
+      let L = 0, X = 0; for (const e of T.cE[c]) { if (st[e] === 1) L++; else if (st[e] === -1) X++; }
+      const k = pz.clue[c], bad = L > k || 4 - X < k;
+      t.classList.toggle("bad", bad); t.classList.toggle("ok", !bad && L === k && (k > 0 || X === 4));   // số 0 chỉ mờ khi đã × đủ 4 cạnh
+    }
+    for (let v = 0; v < dotEl.length; v++) {
+      let L = 0, U = 0; for (const e of T.vE[v]) { if (st[e] === 1) L++; else if (st[e] === 0) U++; }
+      dotEl[v].classList.toggle("bad", L > 2 || (L === 1 && U === 0));
+    }
+  }
+  function drawAll() {
+    for (let e = 0; e < T.E; e++) drawEdge(e);
+    drawMarks();
+    svg.classList.toggle("won", SV.won); svg.classList.toggle("off", !ctx.canPlay());
+  }
+
+  /* toạ độ chuột -> đơn vị ô */
+  function toGrid(ev) {
+    const r = svg.getBoundingClientRect(), k = (n + 2 * M) / r.width;
+    return { x: (ev.clientX - r.left) * k - M, y: (ev.clientY - r.top) * k - M };
+  }
+  function edgeAt(x, y) {   // cạnh gần nhất với điểm (x, y)
+    const rr = Math.round(y), cc = Math.round(x), fr = Math.floor(y), fc = Math.floor(x);
+    const h = rr >= 0 && rr <= n && fc >= 0 && fc < n ? rr * n + fc : -1;
+    const v = cc >= 0 && cc <= n && fr >= 0 && fr < n ? T.H + fr * W + cc : -1;
+    const dh = Math.abs(y - rr), dv = Math.abs(x - cc);
+    if (h >= 0 && (v < 0 || dh <= dv)) return dh < .5 ? h : -1;
+    if (v >= 0) return dv < .5 ? v : -1;
+    return -1;
+  }
+  function vertexAt(x, y, lim) {
+    const r = Math.round(y), c = Math.round(x);
+    if (r < 0 || r > n || c < 0 || c > n || Math.hypot(x - c, y - r) > lim) return -1;
+    return r * W + c;
+  }
+  function edgeBetween(a, b) {
+    const ra = Math.floor(a / W), ca = a % W, rb = Math.floor(b / W), cb = b % W;
+    if (ra === rb && Math.abs(ca - cb) === 1) return ra * n + Math.min(ca, cb);
+    if (ca === cb && Math.abs(ra - rb) === 1) return T.H + Math.min(ra, rb) * W + ca;
+    return -1;
+  }
+
+  /* Một lần bấm hoặc kéo = một nét (đi lại một lần là gỡ cả nét) */
+  let drag = null, hov = -1;
+  function setEdge(e, val) {
+    if (st[e] === val) return;
+    drag.ch.push([e, st[e], val]); st[e] = val; drawEdge(e);
+  }
+  function paint(e) {   // kéo: cạnh đầu tiên quyết định kẻ hay xoá, các cạnh sau theo cùng kiểu
+    if (drag.target === undefined) drag.target = drag.right ? (st[e] === -1 ? 0 : -1) : (st[e] === 1 ? 0 : 1);
+    const t = drag.target, cur = st[e];
+    if (t === 1 || (t === -1 && cur === 0) || (t === 0 && cur === (drag.right ? -1 : 1))) setEdge(e, t);
+  }
+  function trace(p) {
+    const v = vertexAt(p.x, p.y, .36);
+    if (v < 0 || v === drag.lastV) return;
+    if (drag.lastV >= 0) {
+      const a = drag.lastV, ra = Math.floor(a / W), ca = a % W, rv = Math.floor(v / W), cv = v % W;
+      if (ra === rv || ca === cv) {   // đi nhanh qua nhiều chấm thẳng hàng: kẻ hết các đoạn ở giữa
+        const steps = Math.abs(ra - rv) + Math.abs(ca - cv), dr = Math.sign(rv - ra), dc = Math.sign(cv - ca);
+        let cur = a;
+        for (let s = 0; s < steps; s++) { const nx = cur + dr * W + dc; paint(edgeBetween(cur, nx)); cur = nx; }
+        drawMarks();
+      }
+    }
+    drag.lastV = v;
+  }
+  function endStroke() {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (!d.moved) {   // bấm: trống -> kẻ -> × -> trống; chuột phải: bật/tắt ×
+      const e = edgeAt(d.x0, d.y0);
+      if (e >= 0) { drag = d; setEdge(e, d.right ? (st[e] === -1 ? 0 : -1) : (st[e] === 0 ? 1 : st[e] === 1 ? -1 : 0)); drag = null; }
+    }
+    if (d.ch.length) { undoStack.push(d.ch); afterChange(); ctx.sfx("step"); }
+  }
+  function afterChange() {
+    drawMarks();
+    ctx.progress(SV.lines()); ctx.prompt();
+    if (slCheck(T, pz.clue, st)) { SV.won = true; setHover(-1); ctx.solved(); drawAll(); }
+  }
+  function undo() {
+    if (!ctx.canPlay() || !undoStack.length) return;
+    const ch = undoStack.pop();
+    for (let i = ch.length - 1; i >= 0; i--) { st[ch[i][0]] = ch[i][1]; drawEdge(ch[i][0]); }
+    afterChange();
+  }
+  function clearAll() {
+    if (!ctx.canPlay()) return;
+    const ch = []; for (let e = 0; e < T.E; e++) if (st[e]) { ch.push([e, st[e], 0]); st[e] = 0; drawEdge(e); }
+    if (ch.length) { undoStack.push(ch); afterChange(); }
+  }
+  function setHover(e) {
+    if (e === hov) return;
+    if (hov >= 0) lnEl[hov].classList.remove("hov");
+    hov = e; if (hov >= 0) lnEl[hov].classList.add("hov");
+  }
+
+  svg.addEventListener("contextmenu", e => e.preventDefault());
+  svg.addEventListener("pointerdown", e => {
+    if (!ctx.canPlay() || (e.button !== 0 && e.button !== 2) || drag) return;
+    e.preventDefault();
+    const p = toGrid(e);
+    drag = { id: e.pointerId, x0: p.x, y0: p.y, right: e.button === 2, moved: false, lastV: -1, target: undefined, ch: [] };
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    setHover(-1);
+  });
+  svg.addEventListener("pointermove", e => {
+    const p = toGrid(e);
+    if (!drag) { setHover(e.pointerType === "mouse" && ctx.canPlay() ? edgeAt(p.x, p.y) : -1); return; }
+    if (e.pointerId !== drag.id || !ctx.canPlay()) return;
+    if (!drag.moved) {
+      if (Math.hypot(p.x - drag.x0, p.y - drag.y0) < .3) return;
+      drag.moved = true; drag.lastV = vertexAt(drag.x0, drag.y0, .75);
+    }
+    trace(p);
+  });
+  svg.addEventListener("pointerup", e => { if (drag && e.pointerId === drag.id) endStroke(); });
+  svg.addEventListener("pointercancel", e => { if (drag && e.pointerId === drag.id) endStroke(); });
+  svg.addEventListener("pointerleave", () => setHover(-1));
+  ctx.tools([{ id: "undo", label: "t_undo", on: undo }, { id: "clear", label: "t_clear", on: clearAll },
+    { id: "giveup", label: "t_giveup", confirm: "t_giveup_sure", cls: "danger wide", on: () => ctx.giveUp() }]);   // bấm 2 lần mới bỏ cuộc
+  drawAll();
+
+  return {
+    start() { drawAll(); },
+    reveal() {   // hết đề: chưa giải xong thì hiện lời giải bằng nét xanh mờ
+      drag = null; setHover(-1);
+      if (!SV.won) {
+        const sol = slSolve(T, pz.clue, 3);
+        if (sol.status === 1) {
+          let h = "";
+          for (let e = 0; e < T.E; e++) if (sol.st[e] === 1) { const l = lnEl[e]; h += `<line x1="${l.getAttribute("x1")}" y1="${l.getAttribute("y1")}" x2="${l.getAttribute("x2")}" y2="${l.getAttribute("y2")}"/>`; }
+          svg.querySelector(".sl-sol").innerHTML = h;
+        }
+      }
+      drawAll();
+    },
+    destroy() { SV = null; },
+    key(e) {
+      if (!ctx.canPlay()) return;
+      if (e.key === "Backspace" || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z")) { e.preventDefault(); undo(); }
+    },
+  };
+}
+
+/* ---------- THẺ LUẬT CHƠI ---------- */
+/* Bàn nhỏ: inside = các ô [hàng, cột] bên trong vòng (vẽ vòng quanh), show = chuỗi số hiện (n*n ký tự, "." là ẩn; "*" = hiện số thật),
+   xs = cạnh đánh × [kiểu "h"|"v", hàng, cột], extra = cạnh kẻ thêm, bad = chấm tô đỏ [hàng, cột] */
+function slrBoard(n, { inside = [], show = "", xs = [], extra = [], bad = [], partial = null }) {
+  const T = slTopo(n), ins = new Uint8Array(n * n);
+  for (const [r, c] of inside) ins[r * n + c] = 1;
+  const full = slRegionEdges(T, ins), st = new Int8Array(T.E);
+  const eid = ([k, r, c]) => k === "h" ? r * n + c : T.H + r * T.W + c;
+  if (partial) for (const x of partial) st[eid(x)] = 1; else for (let e = 0; e < T.E; e++) if (full[e] === 1) st[e] = 1;
+  for (const x of extra) st[eid(x)] = 1;
+  for (const x of xs) st[eid(x)] = -1;
+  const clue = new Array(n * n).fill(-1);
+  for (let c = 0; c < n * n; c++) if (show[c] && show[c] !== ".") {
+    let L = 0; for (const e of T.cE[c]) if (full[e] === 1) L++;
+    clue[c] = show[c] === "*" ? L : +show[c];
+  }
+  const M = .32, tmp = document.createElement("div");
+  tmp.innerHTML = `<svg viewBox="${-M} ${-M} ${n + 2 * M} ${n + 2 * M}">${slSvgInner(T, clue, M)}</svg>`;
+  const s = tmp.firstChild;
+  s.querySelectorAll(".sl-ln").forEach(l => { if (st[+l.dataset.e] === 1) l.classList.add("on"); });
+  s.querySelectorAll(".sl-x").forEach(l => { if (st[+l.dataset.e] === -1) l.classList.add("on"); });
+  for (const [r, c] of bad) s.querySelector(`.sl-dot[data-v="${r * T.W + c}"]`).classList.add("bad");
+  return s.outerHTML;
+}
+const SL_CARDS = [
+  { h: "c1_h", p: "c1_p", fig: () => `<div class="slr">${slrBoard(3, { inside: [[0, 0], [0, 1], [1, 0]], show: "*********" })}</div>` },
+  { h: "c2_h", p: "c2_p", fig: ({ tr }) => `<div class="slr two">
+      <div>${slrBoard(3, { inside: [[0, 0], [0, 1], [1, 1], [2, 1], [2, 2]] })}<span class="slr-tag ok">✓</span></div>
+      <div>${slrBoard(3, { inside: [[0, 0], [2, 1], [2, 2]] })}<span class="slr-tag no">✗</span></div></div>` },
+  { h: "c3_h", p: "c3_p", fig: () => `<div class="slr">${slrBoard(3, { inside: [[0, 0], [0, 1], [1, 1], [2, 1], [2, 2]], show: "....0....",
+      partial: [["h", 0, 0], ["h", 0, 1], ["v", 0, 0]], xs: [["h", 1, 1], ["h", 2, 1], ["v", 1, 1], ["v", 1, 2]] })}</div>` },
+];
+
+PK.start({
+  flatStage: true,   // bàn vuông có khung riêng, bỏ khung chữ nhật bao ngoài
+  id: "slitherlink", peerPrefix: "slitherlink-", proto: 2, kind: "self",   // proto 2: thêm Bỏ cuộc (tin "give")
+  ruleCards: SL_CARDS, ruleCardsBg: "#e8e2d2",
+  solo: { stages: 1, useLevel: true, gen: (stage, rng, level) => slGen(level, rng) },
+  online: { target: 1, maxRounds: 1, roundMs: 0, levels: SL_SIZES, defaultLevel: "5", wrong: null, gen: (k, level, rng) => slGen(level, rng) },
+  mount: mountSL,
+  prompt(pz, ctx) {
+    const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+    return `<span class="q">${ctx.tr("prompt_q", pz.n)}</span>${ctx.tr("prompt", SV ? SV.lines() : 0)}<span class="hint">${ctx.tr(touch ? "hint_touch" : "hint")}</span>`;
+  },
+  stageNote: (pz) => PK.tr("stage_note", pz.n),
+  progressText: (pz, k) => PK.tr("opp_prog", k || 0),
+  rules: [["h_rules", ["r_rules"]], ["h_ctrl", ["r_ctrl"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
+  i18n: {
+    vi: {
+      brand: "Nối hàng rào", tagline: "Nối các chấm thành một vòng kín, khớp với mọi con số.",
+      r_intro: "Nối các chấm thành <b>một vòng kín duy nhất</b>. Số trong ô cho biết quanh ô đó có bao nhiêu cạnh được kẻ. Mỗi đề có đúng một lời giải và suy luận ra được, không cần đoán.",
+      c1_h: "Số = số cạnh được kẻ", c1_p: "Ô số 3 có 3 cạnh được kẻ, ô số 0 không có cạnh nào. Ô không ghi số thì kẻ bao nhiêu cạnh cũng được.",
+      c2_h: "Một vòng kín duy nhất", c2_p: "Các đường kẻ nối thành một vòng khép kín, không rẽ nhánh, không cắt nhau. Hai vòng tách rời là sai.",
+      c3_h: "Đánh dấu × cạnh không kẻ", c3_p: "Bấm cạnh để kẻ, bấm lần nữa để đánh × (chắc chắn không kẻ), bấm lần nữa để xoá. Quanh số 0 toàn là ×.",
+      h_rules: "Luật", h_ctrl: "Cách chơi", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
+      r_rules: ["Kẻ các đoạn nối hai chấm cạnh nhau (theo chiều ngang hoặc dọc) sao cho tất cả nối thành <b>một vòng kín</b>: không rẽ nhánh, không cắt nhau, không có vòng thứ hai.",
+        "Ô có số thì đúng bấy nhiêu cạnh của ô đó được kẻ (0 tới 3). Ô không có số thì không giới hạn.",
+        "Mọi số khớp và vòng khép kín là giải xong, game tự nhận ra, không cần bấm nộp."],
+      r_ctrl: ["Bấm vào khoảng giữa hai chấm: lần 1 kẻ, lần 2 đánh ×, lần 3 xoá. Máy tính: chuột phải để đánh × ngay.",
+        "Giữ và kéo qua các chấm để kẻ liền nhiều đoạn. Bắt đầu kéo từ một đoạn đã kẻ thì sẽ xoá dọc đường kéo.",
+        "Số mờ đi khi đã đủ cạnh, chuyển đỏ khi thừa cạnh hoặc không còn đủ chỗ. Chấm đỏ là chỗ rẽ nhánh hoặc đường cụt.",
+        "<b>Đi lại</b> (Ctrl+Z) gỡ nét vừa kẻ, <b>Xoá hết</b> làm lại từ đầu. Không bị phạt nhưng đồng hồ vẫn chạy.",
+        "<b>Bỏ cuộc</b> (bấm 2 lần để chắc chắn): kết thúc ván và hiện đáp án. Chỉ có khi chơi một mình, không tính kỷ lục."],
+      r_solo: ["Chọn bàn 5×5 (dễ), 7×7 (vừa) hoặc 10×10 (khó, cỡ bàn trong show). Mỗi lần chơi là một đề mới.", "Kỷ lục thời gian lưu riêng cho từng cỡ bàn, trên máy này."],
+      r_online: ["Chủ phòng chọn cỡ bàn. Hai người giải cùng một đề, ai khép vòng đúng trước thì thắng.",
+        "Thanh trên cùng cho biết đối thủ đang có bao nhiêu đoạn kẻ (không cho biết đúng hay sai). Hết trận thì hiện lời giải."],
+      r_tips: ["Bắt đầu từ số 0 (đánh × cả 4 cạnh) và số 3 ở góc bàn (2 cạnh sát mép chắc chắn được kẻ).",
+        "Hai số 3 cạnh nhau: cạnh chung và hai cạnh ngoài cùng song song với nó đều được kẻ.",
+        "Mỗi chấm có 0 hoặc 2 đoạn kẻ. Chấm đã có 1 đoạn mà chỉ còn một hướng đi thì phải đi tiếp hướng đó.",
+        "Không được khép một vòng nhỏ khi bàn còn đoạn kẻ khác: cạnh nối hai đầu của cùng một đường thì đánh ×."],
+      r_note: "Lấy cảm hứng từ trò nối vòng trong show The Devil's Plan mùa 3 (Netflix). Luật dựa trên Slitherlink, thể loại đố có từ lâu của Nhật. Game không liên kết với Netflix.",
+      t_undo: "Đi lại", t_clear: "Xoá hết",
+      prompt_q: "Bàn {0}×{0}", prompt: "Đã kẻ <b>{0}</b> đoạn",
+      hint: "Bấm giữa hai chấm để kẻ, bấm lại để đánh ×. Chuột phải: ×. Kéo để kẻ nhiều đoạn.",
+      hint_touch: "Chạm giữa hai chấm để kẻ, chạm lại để đánh ×, lần nữa để xoá. Kéo ngón tay để kẻ nhiều đoạn.",
+      opp_prog: "Đối thủ đang có {0} đoạn kẻ", stage_note: "Bàn {0}×{0}, một đề.",
+      m_level: "Cỡ bàn", lv_5: "5×5", lv_7: "7×7", lv_10: "10×10",
+      lvn_5: "Dễ, để làm quen. Chỉ cần các luật cơ bản.", lvn_7: "Vừa. Cần nhìn xa hơn một chút.", lvn_10: "Khó, cỡ bàn trong show. Có chỗ phải thử giả định rồi loại trừ.",
+      m_solo_note: "Khép vòng nhanh nhất có thể. Kỷ lục tính riêng cho từng cỡ bàn.",
+      m_online_note: "Hai người giải cùng một đề, ai khép vòng đúng trước thì thắng.",
+      m_net_create: "Bạn tạo phòng rồi gửi mã (hoặc link) cho bạn bè. Chủ phòng chọn cỡ bàn.",
+      m_net_join: "Nhập mã 5 ký tự bạn bè gửi. Cỡ bàn do chủ phòng chọn.",
+      s_done: "Khép vòng!", s_done_p: "Bạn giải xong với thời gian <b>{1}</b>.", s_again: "Đề mới",
+      r_point_me: "Bạn khép vòng trước.", r_point_opp: "Đối thủ khép vòng trước. Nét xanh mờ là lời giải.",
+      r_gave_me: "Bạn đã bỏ cuộc. Nét xanh mờ là lời giải.", r_gave_opp: "Đối thủ đã bỏ cuộc. Nét xanh mờ là lời giải.",
+      s_gave_p: "Nét xanh mờ trên bàn là lời giải.", s_gave_again: "Đề mới",
+    },
+    en: {
+      brand: "Slitherlink", tagline: "Join the dots into one closed loop that fits every number.",
+      r_intro: "Join the dots into <b>a single closed loop</b>. A number in a cell tells how many of its sides are part of the loop. Every puzzle has exactly one solution and can be solved by logic alone, no guessing.",
+      c1_h: "Number = sides used", c1_p: "A 3 has three of its sides drawn, a 0 has none. Cells without a number can have any count.",
+      c2_h: "One closed loop", c2_p: "All lines join into one closed loop with no branches and no crossings. Two separate loops are wrong.",
+      c3_h: "Mark × for no line", c3_p: "Tap a side to draw it, tap again to mark × (surely no line), once more to clear. Every side around a 0 is ×.",
+      h_rules: "Rules", h_ctrl: "Controls", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
+      r_rules: ["Draw segments between neighbouring dots (across or down) so that they all join into <b>one closed loop</b>: no branches, no crossings, no second loop.",
+        "A cell with a number has exactly that many of its sides drawn (0 to 3). Cells without a number have no limit.",
+        "When every number fits and the loop is closed, you're done. The game spots it by itself, no need to submit."],
+      r_ctrl: ["Tap between two dots: once to draw, twice for ×, three times to clear. With a mouse, right-click marks × straight away.",
+        "Hold and drag across dots to draw several segments at once. Starting the drag on a drawn segment erases along the way.",
+        "A number fades once it has enough sides and turns red when it has too many or no longer has room. A red dot marks a branch or a dead end.",
+        "<b>Undo</b> (Ctrl+Z) takes back your last stroke, <b>Clear</b> starts over. No penalty, but the clock keeps running.",
+        "<b>Give up</b> (tap twice to be sure) ends the game and shows the answer. Solo only; it doesn't count toward your best time."],
+      r_solo: ["Pick a 5×5 (easy), 7×7 (medium) or 10×10 board (hard, the size used on the show). Each game is a new puzzle.", "Your best time is saved separately for each board size, on this device."],
+      r_online: ["The host picks the board size. Both players solve the same puzzle, and the first to close the loop correctly wins.",
+        "The top bar shows how many segments your opponent has drawn (not whether they're right). The solution is shown when the match ends."],
+      r_tips: ["Start with the 0s (× on all four sides) and any 3 in a corner of the board (its two sides on the edge are always drawn).",
+        "Two 3s side by side: the side they share and the two outer sides parallel to it are all drawn.",
+        "Every dot has 0 or 2 segments. A dot with one segment and only one way left must continue that way.",
+        "You can't close a small loop while other segments remain, so a side joining the two ends of one line gets an ×."],
+      r_note: "Inspired by the loop puzzle on The Devil's Plan season 3 (Netflix). Slitherlink is a long-standing Japanese puzzle type. Not affiliated with Netflix.",
+      t_undo: "Undo", t_clear: "Clear",
+      prompt_q: "{0}×{0} board", prompt: "<b>{0}</b> segments drawn",
+      hint: "Click between two dots to draw, click again for ×. Right-click: ×. Drag to draw several.",
+      hint_touch: "Tap between two dots to draw, tap again for ×, once more to clear. Drag your finger to draw several.",
+      opp_prog: "Opponent has {0} segments drawn", stage_note: "{0}×{0} board, one puzzle.",
+      m_level: "Board size", lv_5: "5×5", lv_7: "7×7", lv_10: "10×10",
+      lvn_5: "Easy, to warm up. The basic rules are enough.", lvn_7: "Medium. You need to look a little further ahead.", lvn_10: "Hard, the size used on the show. Some spots need you to test an idea and rule it out.",
+      m_solo_note: "Close the loop as fast as you can. Your best time is kept separately for each board size.",
+      m_online_note: "Both players solve the same puzzle, and the first to close the loop correctly wins.",
+      m_net_create: "Create a room, then send the code (or link) to a friend. The host picks the board size.",
+      m_net_join: "Enter the 5-character code your friend sent. The host picks the board size.",
+      s_done: "Loop closed!", s_done_p: "You solved it in <b>{1}</b>.", s_again: "New puzzle",
+      r_point_me: "You closed the loop first.", r_point_opp: "Your opponent closed the loop first. The faint green lines show the solution.",
+      r_gave_me: "You gave up. The faint green lines show the solution.", r_gave_opp: "Your opponent gave up. The faint green lines show the solution.",
+      s_gave_p: "The faint green lines on the board show the solution.", s_gave_again: "New puzzle",
+    },
+  },
+});
+</script>
+</body>
+</html>

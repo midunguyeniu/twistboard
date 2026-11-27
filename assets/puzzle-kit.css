@@ -31,6 +31,8 @@
 .pk-stage{position:relative;background:var(--tb-surface);border:1px solid var(--tb-border);border-radius:16px;box-shadow:var(--tb-shadow);min-height:440px;
   display:grid;place-items:center;padding:16px;overflow:hidden}
 .pk-play{width:100%;display:grid;place-items:center;min-width:0}
+.pk-stage.flat{background:transparent;border:0;box-shadow:none;padding:8px;overflow:visible}   /* bàn vuông có khung riêng: bỏ khung chữ nhật bao ngoài */
+.pk-stage.flat .pk-cover{inset:0;margin:auto;height:calc(100% - 16px);max-width:calc(100% - 16px);aspect-ratio:1;width:auto}   /* tấm che vuông nằm gọn trong khung riêng của bàn */
 .pk-cover{position:absolute;inset:0;background:var(--tb-surface);display:grid;place-items:center;z-index:5;border-radius:16px;text-align:center;padding:20px}
 /* tấm che đặc ngay từ khung hình đầu (đề mới đã vẽ sẵn bên dưới, không được lộ ra), chỉ chữ bên trong hiện dần */
 .pk-cover > *{animation:pkfade .25s}
@@ -43,6 +45,14 @@
 .pk-cover .score{font-family:var(--tb-font-brand);font-size:44px;font-weight:800;margin:0 0 6px;font-variant-numeric:tabular-nums}
 .pk-cover .score .me{color:var(--tb-green)} .pk-cover .score .opp{color:var(--tb-red)}
 .pk-cover .btn{font-size:15px;padding:10px 20px}
+.pk-nextlv{margin:0 0 16px}   /* chọn mức trận sau trên thẻ hết trận online */
+.pk-nextlv .lab{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tb-gold-ink);margin-bottom:8px}
+.pk-lvseg{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.pk-lvseg button{min-width:64px;background:#fff;color:var(--tb-text);border:2px solid var(--tb-border);border-radius:10px;padding:7px 12px;font:inherit;font-weight:800;cursor:pointer}
+.pk-lvseg button:hover:not(:disabled){background:var(--tb-hover)}
+.pk-lvseg button.on{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:var(--tb-primary)}
+.pk-lvseg button:disabled{cursor:default}
+.pk-lvseg button:disabled:not(.on){opacity:.45}
 @keyframes pkpop{0%{transform:scale(1.6);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.92);opacity:.6}}
 @keyframes pkfade{from{opacity:0}to{opacity:1}}
 
@@ -68,6 +78,11 @@
 .pk-msg.bad{color:var(--tb-red)} .pk-msg.good{color:var(--tb-green)}
 .pk-tools{display:flex;gap:8px;flex-wrap:wrap}
 .pk-tools .btn{flex:1}
+.pk-tools .btn.wide{flex-basis:100%}
+.pk-tools .btn.danger{background:var(--tb-red);border-color:var(--tb-red);color:#fff}
+.pk-tools .btn.danger:hover:not(:disabled){filter:brightness(.93)}
+.pk-tools .btn.danger.armed{background:#b8251d;border-color:#b8251d}
+.pk-tools .btn.danger:disabled{opacity:.45}
 .pk-result h3{margin:0 0 4px;font-family:var(--tb-font-brand);font-size:24px;line-height:1.15}
 .pk-result h3.me{color:var(--tb-green)} .pk-result h3.opp{color:var(--tb-red)}
 .pk-result p{margin:0 0 10px;color:var(--tb-muted);font-size:14px;line-height:1.5}
@@ -104,6 +119,7 @@
 .pk-modal .seg button:hover{background:var(--tb-hover)}
 .pk-modal .seg button.on{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:var(--tb-primary)}
 .pk-modal .seg button:disabled{cursor:not-allowed;pointer-events:none}
+.pk-modal .seg button.pk-solo-only{opacity:.35}   /* mức chỉ có khi chơi một mình: mờ đi khi chọn online */
 .pk-modal .off{opacity:.3;filter:grayscale(1)}
 .pk-modal .off .seg button.on{background:#fff;color:var(--tb-text);border-color:var(--tb-border)}
 .pk-modal .netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}

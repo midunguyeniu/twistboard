@@ -7,10 +7,16 @@
      solo: { stages, gen(stage, rng, level), useLevel? }, online: { target, maxRounds, roundMs, levels?, wrong: "lock" | "out" | null, lockMs, gen(k, level, rng) },
      answer(puzzle) (kind number), mount(el, puzzle, ctx) -> view { destroy(), start?(), reveal?(), resize?() },
      solo.useLevel: người chơi một mình cũng chọn mức trong online.levels (ví dụ kích thước bàn), kỷ lục lưu riêng theo mức.
+    solo.levels: (tuỳ chọn) danh sách mức khi chơi một mình, có thể nhiều hơn online.levels; mức không có trong online.levels bị khoá khi chọn online.
+    solo.bestTag: (tuỳ chọn) gắn thêm vào khoá kỷ lục, đổi khi bộ đề thay đổi để kỷ lục cũ không còn so được.
      online.defaultLevel: mức chọn sẵn (mặc định "normal" nếu có trong levels, không thì mức đầu tiên).
      i18n: { vi: {...}, en: {...} } (bắt buộc có brand, r_intro, r_rules[], prompt...), rules: [[tiêu đề, [khoá...]], ...]
      ruleCards (tuỳ chọn): [{ fig({ tr, lang }) -> HTML hình minh hoạ, h: khoá tiêu đề, p: khoá mô tả }, ...], hiện thành hàng thẻ đánh số ngay dưới r_intro.
      ruleCardsBg (tuỳ chọn): màu nền vùng hình của các thẻ.
+     solo.stagesFor(level) (tuỳ chọn): số màn theo mức (vd. Mật mã: 1 mã ngẫu nhiên là 1 màn). solo.bestSuffix(level): thêm vào khoá kỷ lục (vd. ngày của mã hôm nay).
+    solo.noteFor(level) (tuỳ chọn): chữ giải thích chế độ một mình theo mức, thay cho m_solo_note. solo.labelFor(level): chữ trên nút mức khi chơi một mình (null thì dùng lv_*). showMiss: hiện ô đếm số lần sai cả khi kind là "self".
+    kind "self" có đáp án sai: game gọi ctx.wrong() (phạt/khoá như nhập số sai), ctx.canAnswer() cho biết lúc này được trả lời chưa.
+    flatStage (tuỳ chọn): true thì vùng chơi không có khung nền trắng hình chữ nhật (cho game bàn vuông có khung riêng: Knight's Tour, Slitherlink; chủ game chọn 11/2026).
    ============================================================ */
 (function () {
   "use strict";
@@ -55,7 +61,10 @@
       s_done: "Phá đảo!", s_done_p: "Bạn đã qua cả {0} màn với tổng thời gian <b>{1}</b>.", s_newbest: "Kỷ lục mới!", s_again: "Chơi lại từ màn 1",
       g_win: "Bạn thắng!", g_lose: "Bạn thua", g_draw: "Hoà", g_left: "Đối thủ đã rời phòng nên bạn thắng.",
       g_abort: "Ván dừng giữa chừng.", g_rematch: "Chơi lại", g_wait_rm: "Đang chờ đối thủ bấm Chơi lại...", g_opp_rm: "Đối thủ muốn chơi lại!",
+      g_nextlv: "{0} trận sau", g_host_picks: "chủ phòng chọn", g_lv_changed: "Chủ phòng đã đổi thiết lập trận sau. Bấm Chơi lại nếu đồng ý.",
       g_view: "Xem đề", g_menu: "Chọn chế độ", s_vs: "Tỉ số",
+      t_giveup: "Bỏ cuộc", t_giveup_sure: "Bấm lần nữa để bỏ cuộc", s_gave: "Đã bỏ cuộc", s_gave_p: "Đáp án đã hiện trên bàn.", s_gave_again: "Chơi lại",
+      f_gave: "Bạn đã bỏ cuộc, đang chờ kết quả...", r_gave_me: "Bạn đã bỏ cuộc.", r_gave_opp: "Đối thủ đã bỏ cuộc.",
     },
     en: {
       b_rules: "Rules", b_new: "New game", r_ok: "Got it", cv_idle: "Not started", cv_idle_p: "Press New game to choose a mode and start.",
@@ -91,7 +100,10 @@
       s_done: "All clear!", s_done_p: "You cleared all {0} stages in <b>{1}</b> total.", s_newbest: "New best!", s_again: "Play again from stage 1",
       g_win: "You win!", g_lose: "You lose", g_draw: "Draw", g_left: "Your opponent left, so you win.",
       g_abort: "The match stopped.", g_rematch: "Rematch", g_wait_rm: "Waiting for your opponent to press Rematch...", g_opp_rm: "Your opponent wants a rematch!",
+      g_nextlv: "{0} for the next match", g_host_picks: "host picks", g_lv_changed: "The host changed the next match settings. Press Rematch if you agree.",
       g_view: "View puzzle", g_menu: "Game mode", s_vs: "Score",
+      t_giveup: "Give up", t_giveup_sure: "Tap again to give up", s_gave: "You gave up", s_gave_p: "The answer is now shown on the board.", s_gave_again: "Play again",
+      f_gave: "You gave up, waiting for the result...", r_gave_me: "You gave up.", r_gave_opp: "Your opponent gave up.",
     },
   };
   function tr(key, ...a) {
@@ -159,7 +171,9 @@
     // online
     seed: 0, level: "normal", k: 0, me: 0, opp: 0, out: false, oppNote: null, oppProg: 0, result: null, over: null, cdEnd: 0, nextAt: 0,
   };
-  const BEST_KEY = () => "twistboard." + G.id + ".best" + (G.solo.useLevel ? "." + ST.level : "");   // chọn mức khi chơi một mình: kỷ lục riêng từng mức
+  const BEST_KEY = () => "twistboard." + G.id + ".best" + (G.solo.bestTag ? "." + G.solo.bestTag : "") + (G.solo.useLevel ? "." + ST.level : "") + (G.solo.bestSuffix ? G.solo.bestSuffix(ST.level) : "");   // chọn mức khi chơi một mình: kỷ lục riêng từng mức
+  const nStages = (lv = ST.level) => G.solo.stagesFor ? G.solo.stagesFor(lv) : G.solo.stages;   // số màn một mình (có thể khác nhau theo mức)
+  const ALL_LEVELS = () => [...new Set([...((G.solo.useLevel && G.solo.levels) || []), ...(G.online.levels || [])])];   // mọi mức hiện trong bảng chọn (theo thứ tự solo.levels nếu có)
   const defLevel = () => G.online.defaultLevel || (!G.online.levels || G.online.levels.includes("normal") ? "normal" : G.online.levels[0]);
   function loadBest() { try { const b = JSON.parse(localStorage.getItem(BEST_KEY()) || "null"); return b && b.stage > 0 && b.ms > 0 ? b : null; } catch (e) { return null; } }
   function saveBest(stage, ms) {
@@ -182,7 +196,7 @@
     <div class="pk-acts"><button class="btn" id="pkRulesBtn"></button><button class="btn primary" id="pkNewBtn"></button></div></header>
   <div class="pk-bar" id="pkBar"></div>
   <main class="pk-main">
-    <section class="pk-stage" id="pkStage"><div class="pk-play" id="pkPlay"></div><div class="pk-cover" id="pkCover" hidden></div></section>
+    <section class="pk-stage${G.flatStage ? " flat" : ""}" id="pkStage"><div class="pk-play" id="pkPlay"></div><div class="pk-cover" id="pkCover" hidden></div></section>
     <aside class="pk-side">
       <div class="pk-box pk-prompt" id="pkPrompt"></div>
       <div class="pk-box" id="pkAns"${G.kind === "number" ? "" : " hidden"}>
@@ -208,7 +222,7 @@
     <p class="note" id="pkNetNote"></p>
   </div>
   <div id="pkLevelOpts"${G.online.levels ? "" : " hidden"}><h3 data-k="m_level"></h3>
-    <div class="seg" id="pkSegLevel">${(G.online.levels || []).map(l => `<button data-v="${l}" data-k="lv_${l}"></button>`).join("")}</div>
+    <div class="seg" id="pkSegLevel">${ALL_LEVELS().map(l => `<button data-v="${l}" data-k="lv_${l}"></button>`).join("")}</div>
     <p class="note" id="pkLevelNote"></p></div>
   <div class="foot"><button class="btn" id="pkModeCancel"></button><button class="btn primary" id="pkModeStart"></button></div>
 </div></div>
@@ -240,16 +254,27 @@
 
   /* ---------- GẮN ĐỀ VÀO VÙNG CHƠI ---------- */
   const ctx = {
-    get lang() { return LANG; }, tr, esc, sfx, fmtTime,
+    get lang() { return LANG; }, get mode() { return ST.mode; }, tr, esc, sfx, fmtTime,   // mode: "solo" | "online"
     canPlay: () => ST.phase === "play",
     solved() { if (ST.phase === "play") onCorrect(); },
+    wrong() { if (ST.phase === "play" && !ST.out && now() >= ST.lockUntil) onWrong(); },   // game tự chấm (kind "self") báo đáp án sai
+    canAnswer: () => ST.phase === "play" && !ST.out && now() >= ST.lockUntil,
+    giveUp() { if (ST.phase === "play" && ST.mode !== "online") giveUp(); },   // online không cho bỏ cuộc (chủ game chọn 11/2026)
     progress(n) { if (ST.mode === "online" && ST.phase === "play") netSend({ t: "prog", k: ST.k, n }); },
     prompt() { renderPrompt(); },
     tools(list) {
       const box = $("#pkTools"); box.innerHTML = "";
       for (const t of list) {
-        const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.dataset.tool = t.id;
-        b.addEventListener("click", () => t.on()); box.appendChild(b);
+        const b = document.createElement("button"); b.className = "btn" + (t.cls ? " " + t.cls : ""); b.type = "button"; b.dataset.tool = t.id;
+        b.addEventListener("click", () => {
+          if (t.confirm && !b.dataset.armed) {   // nút nguy hiểm (vd. Bỏ cuộc): bấm lần đầu chỉ hỏi lại, 3 giây không bấm tiếp thì thôi
+            b.dataset.armed = "1"; paintTools();
+            clearTimeout(b._disarm); b._disarm = setTimeout(() => { delete b.dataset.armed; paintTools(); }, 3000);
+            return;
+          }
+          delete b.dataset.armed; clearTimeout(b._disarm); t.on();
+        });
+        box.appendChild(b);
       }
       ctx._tools = list; paintTools();
     },
@@ -257,12 +282,16 @@
     _tools: [],
   };
   function paintTools() {
+    const shown = t => !(t.id === "giveup" && ST.mode === "online");   // online: ẩn hẳn nút Bỏ cuộc (chủ game chọn 11/2026)
     for (const t of ctx._tools) {
       const b = document.querySelector(`#pkTools [data-tool="${t.id}"]`); if (!b) continue;
-      b.textContent = typeof t.label === "function" ? t.label() : tr(t.label);
+      b.style.display = shown(t) ? "" : "none";
       b.disabled = t.always ? false : ST.phase !== "play";
+      if (b.disabled) delete b.dataset.armed;
+      b.textContent = b.dataset.armed && t.confirm ? tr(t.confirm) : typeof t.label === "function" ? t.label() : tr(t.label);
+      b.classList.toggle("armed", !!b.dataset.armed);
     }
-    $("#pkToolsBox").hidden = !ctx._tools.length;
+    $("#pkToolsBox").hidden = !ctx._tools.some(shown);
   }
   function mountPuzzle() {
     if (ST.view && ST.view.destroy) ST.view.destroy();
@@ -276,7 +305,7 @@
   /* ---------- CHƠI MỘT MÌNH ---------- */
   function startSolo() {
     netClose(true); clearTimers();
-    Object.assign(ST, { mode: "solo", stage: 1, total: 0, miss: 0, newBest: false, over: null });
+    Object.assign(ST, { mode: "solo", stage: 1, total: 0, miss: 0, newBest: false, over: null, gaveUp: false });
     loadStage();
   }
   function loadStage() {
@@ -302,9 +331,23 @@
     const took = now() - ST.startAt + ST.penHere;
     ST.total += took; ST.lastTook = took;
     ST.newBest = saveBest(ST.stage, ST.total);
-    ST.phase = ST.stage >= G.solo.stages ? "done" : "result";
+    ST.phase = ST.stage >= nStages() ? "done" : "result";
     flash("good"); sfx(ST.phase === "done" ? "win" : "ok");
     if (ST.view.reveal) ST.view.reveal();
+    render();
+  }
+
+  /* Bỏ cuộc: một mình thì kết thúc lượt chơi (không tính kỷ lục) và hiện đáp án; online thì thua đề đang giải (đối thủ được điểm). */
+  function giveUp() {
+    if (ST.mode === "solo") {
+      ST.total += now() - ST.startAt + ST.penHere;   // đồng hồ dừng ở lúc bỏ cuộc
+      Object.assign(ST, { gaveUp: true, newBest: false, phase: "done" });
+      sfx("lose");
+      if (ST.view.reveal) ST.view.reveal();
+      return render();
+    }
+    ST.phase = "sent"; sfx("pop"); setMsg(tr("f_gave"), "bad");
+    if (NET.role === "host") hostGiveUp("host"); else netSend({ t: "give", k: ST.k });
     render();
   }
 
@@ -336,7 +379,7 @@
      Chủ phòng là trọng tài: gửi start (seed, level) rồi round (k) cho từng đề. Hai máy tự sinh đề k từ seed nên giống hệt nhau.
      Ai giải xong gửi ans {k, ok, ms} với ms = thời gian giải tính từ lúc đề hiện trên máy mình (để không thiệt vì mạng chậm).
      Chủ phòng nhận đáp án đúng đầu tiên thì chờ thêm GRACE ms phòng đáp án nhanh hơn đang trên đường tới, rồi chốt res {k, win}.
-     Tin nhắn: hello, start, round, ans, prog, res, rematch, bye, err.
+     Tin nhắn: hello, start, round, ans, prog, give (khách bỏ cuộc), res, rematch, lvl (chủ phòng đổi mức trận sau, ngay trên thẻ hết trận), bye, err.
      ============================================================ */
   const PEER_SRC = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
   const PEER_SRI = "sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR";
@@ -422,13 +465,13 @@
     clearTimers();
     NET.playing = true; NET.rm = { me: false, them: false }; NET.H = null;
     for (const id of ["#pkNet", "#pkMode", "#pkRules"]) $(id).hidden = true;
-    Object.assign(ST, { mode: "online", seed, level, k: 0, me: 0, opp: 0, over: null, result: null, phase: "wait", puzzle: null });
+    Object.assign(ST, { mode: "online", seed, level, nextLevel: level, lvChanged: false, k: 0, me: 0, opp: 0, over: null, result: null, phase: "wait", puzzle: null });
     if (ST.view && ST.view.destroy) ST.view.destroy();
     ST.view = {}; ctx._tools = []; $("#pkPlay").innerHTML = ""; paintTools();
     render();
   }
   function hostStartMatch() {
-    const seed = randSeed(), level = ST.level;
+    const seed = randSeed(), level = ST.nextLevel || ST.level;   // chủ phòng có thể đã đổi mức trên thẻ hết trận
     netSend({ t: "start", v: G.proto, seed, level });
     beginMatch(seed, level);
     later(hostNextRound, 900);
@@ -479,6 +522,13 @@
     H.claims[who] = ms;
     if (H.claims.host !== undefined && H.claims.guest !== undefined) return hostResolve("solve");
     if (!H.grace) H.grace = later(() => hostResolve("solve"), GRACE);
+  }
+  function hostGiveUp(who) {
+    const H = NET.H; if (!H || H.done) return;
+    H.done = true;
+    const win = who === "host" ? "guest" : "host";
+    netSend({ t: "res", k: H.k, win, why: "give" });
+    applyResult(H.k, win, "give");
   }
   function hostWrong(who) {
     const H = NET.H; if (!H || H.done) return;
@@ -540,6 +590,9 @@
           render();
         }
         return;
+      case "give":
+        if (NET.role === "host" && d.k === ST.k) hostGiveUp("guest");
+        return;
       case "prog":
         if (d.k === ST.k && Number.isInteger(d.n)) { ST.oppProg = d.n; renderBar(); }
         return;
@@ -551,6 +604,10 @@
         NET.rm.them = true;
         if (NET.role === "host" && NET.rm.me) return hostStartMatch();
         render();
+        return;
+      case "lvl":   // chủ phòng đổi mức trận sau: khách phải bấm Chơi lại lại để đồng ý
+        if (NET.role !== "guest" || !ST.over || !(G.online.levels || []).includes(d.level)) return;
+        ST.nextLevel = d.level; ST.lvChanged = NET.rm.me; NET.rm.me = false; render();
         return;
       case "bye": return onNetLost();
       case "err": return netFail(d.code === "full" ? "n_err_full" : d.code === "version" ? "n_err_version" : "n_err_desync");
@@ -601,12 +658,12 @@
     if (ST.mode === "solo") {
       const b = loadBest();
       const lvChip = G.solo.useLevel ? `<span class="pk-chip">${tr("m_level")} <b>${tr("lv_" + ST.level)}</b></span>` : "";
-      const head = G.solo.stages > 1 ? lvChip + `<span class="pk-chip">${tr("c_stage")} <b>${ST.stage}</b><small>/ ${G.solo.stages}</small></span>`
+      const head = nStages() > 1 ? lvChip + `<span class="pk-chip">${tr("c_stage")} <b>${ST.stage}</b><small>/ ${nStages()}</small></span>`
         : G.solo.useLevel ? `<span class="pk-chip">${tr("m_level")} <b>${tr("lv_" + ST.level)}</b></span>` : "";
       bar.innerHTML = `${head}
         <span class="pk-chip">${tr("c_time")} <b id="pkClock">${fmtTime(curTime())}</b></span>
-        ${G.kind === "number" ? `<span class="pk-chip${ST.miss ? " warn" : ""}">${tr("c_miss")} <b>${ST.miss}</b></span>` : ""}
-        <span class="pk-chip">${tr("c_best")} <b style="font-size:14px">${b ? (G.solo.stages > 1 ? tr("c_best_v", b.stage, fmtTime(b.ms)) : fmtTime(b.ms)) : tr("c_none")}</b></span>`;
+        ${G.kind === "number" || G.showMiss ? `<span class="pk-chip${ST.miss ? " warn" : ""}">${tr("c_miss")} <b>${ST.miss}</b></span>` : ""}
+        <span class="pk-chip">${tr("c_best")} <b style="font-size:14px">${b ? (nStages() > 1 ? tr("c_best_v", b.stage, fmtTime(b.ms)) : fmtTime(b.ms)) : tr("c_none")}</b></span>`;
     } else if (ST.mode === "online") {
       const O = G.online, left = O.roundMs && ST.phase === "play" ? O.roundMs - (now() - ST.startAt) : null;
       const prog = G.progressText && ST.k && (ST.phase === "play" || ST.phase === "sent") ? G.progressText(ST.puzzle, ST.oppProg) : "";
@@ -623,7 +680,7 @@
       html = `<div><div class="kicker">${esc(tr("brand"))}</div><h2>${tr("cv_idle")}</h2><p>${tr("cv_idle_p")}</p>
         <div class="row"><button class="btn primary" id="pkIdleNew">${tr("b_new")}</button></div></div>`;
     } else if (ST.mode === "solo" && ST.phase === "ready") {
-      html = `<div><div class="kicker">${esc(tr("brand"))}</div><h2>${G.solo.stages > 1 ? tr("cv_stage", ST.stage, G.solo.stages) : G.solo.useLevel ? tr("lv_" + ST.level) : ""}</h2>
+      html = `<div><div class="kicker">${esc(tr("brand"))}</div><h2>${nStages() > 1 ? tr("cv_stage", ST.stage, nStages()) : G.solo.useLevel ? tr("lv_" + ST.level) : ""}</h2>
         <p>${G.stageNote ? G.stageNote(ST.puzzle, ST.stage) + "<br>" : ""}${tr("cv_hint")}</p><div class="row"><button class="btn primary" id="pkGo">${tr("cv_start")}</button></div></div>`;
     } else if (ST.mode === "online" && ST.phase === "countdown") {
       const n = Math.max(1, Math.ceil((ST.cdEnd - now()) / 1000));
@@ -635,7 +692,8 @@
       const o = ST.over, title = o.res === "win" ? tr("g_win") : o.res === "lose" ? tr("g_lose") : o.res === "draw" ? tr("g_draw") : tr("g_abort");
       const canRm = netOpen() && o.res !== "abort" && !o.left;
       html = `<div><h2>${title}</h2><div class="score"><span class="me">${ST.me}</span> – <span class="opp">${ST.opp}</span></div>
-        ${o.left ? `<p>${tr("g_left")}</p>` : NET.rm.me ? `<p>${tr("g_wait_rm")}</p>` : NET.rm.them ? `<p>${tr("g_opp_rm")}</p>` : "<p></p>"}
+        ${o.left ? `<p>${tr("g_left")}</p>` : NET.rm.me ? `<p>${tr("g_wait_rm")}</p>` : NET.rm.them ? `<p>${tr("g_opp_rm")}</p>` : ST.lvChanged ? `<p>${tr("g_lv_changed")}</p>` : "<p></p>"}
+        ${canRm ? nextLevelHtml() : ""}
         <div class="row">${canRm ? `<button class="btn primary" id="pkRematch"${NET.rm.me ? " disabled" : ""}>${tr("g_rematch")}</button>` : `<button class="btn primary" id="pkMenu">${tr("g_menu")}</button>`}
         ${ST.puzzle ? `<button class="btn" id="pkView">${tr("g_view")}</button>` : ""}</div></div>`;
     }
@@ -645,10 +703,26 @@
       const idle = $("#pkIdleNew"); if (idle) idle.addEventListener("click", openMode);
       const go = $("#pkGo"); if (go) { go.addEventListener("click", beginPlay); setTimeout(() => go.focus(), 30); }
       const rm = $("#pkRematch"); if (rm) rm.addEventListener("click", requestRematch);
+      cv.querySelectorAll(".pk-lvseg button").forEach(b => b.addEventListener("click", () => pickNextLevel(b.dataset.v)));
       const mn = $("#pkMenu"); if (mn) mn.addEventListener("click", openMode);
       const vw = $("#pkView"); if (vw) vw.addEventListener("click", () => { ST.overSeen = true; render(); });
     }
     if (!html) cv.dataset.html = "";
+  }
+  // Chọn mức (độ khó / cỡ bàn) cho trận sau ngay trên thẻ hết trận, khỏi phải tạo phòng mới (chủ game chọn 11/2026)
+  function nextLevelHtml() {
+    const L = G.online.levels || [];
+    if (L.length < 2) return "";
+    const lab = `<div class="lab">${tr("g_nextlv", tr("m_level"))}${NET.role === "host" ? "" : " · " + tr("g_host_picks")}</div>`;
+    if (NET.role !== "host") return `<div class="pk-nextlv">${lab}<div class="pk-lvseg"><button type="button" class="on" data-v="${esc(ST.nextLevel)}" disabled>${tr("lv_" + ST.nextLevel)}</button></div></div>`;
+    return `<div class="pk-nextlv">${lab}<div class="pk-lvseg">${L.map(l => `<button type="button" data-v="${esc(l)}"${l === ST.nextLevel ? ' class="on"' : ""}${NET.rm.me ? " disabled" : ""}>${tr("lv_" + l)}</button>`).join("")}</div></div>`;
+  }
+  function pickNextLevel(lv) {
+    if (NET.role !== "host" || NET.rm.me || !ST.over || lv === ST.nextLevel || !(G.online.levels || []).includes(lv)) return;
+    ST.nextLevel = lv; if (draft) { draft.level = lv; savePrefs(); }
+    NET.rm.them = false;   // khách đã đồng ý mức cũ thì phải bấm lại
+    netSend({ t: "lvl", level: lv });
+    render();
   }
   function renderPrompt() {
     $("#pkPrompt").innerHTML = ST.puzzle && ST.phase !== "ready" && ST.phase !== "countdown" ? G.prompt(ST.puzzle, ctx)
@@ -660,14 +734,16 @@
     let html = "";
     if (ST.mode === "solo" && (ST.phase === "result" || ST.phase === "done")) {
       const pen = ST.penHere ? tr("s_pen", fmtTime(ST.penHere)) : "";
-      if (ST.phase === "done") html = `<h3 class="me">${tr("s_done")}</h3>${ST.newBest ? `<span class="newbest">${tr("s_newbest")}</span>` : ""}
-        <p>${tr("s_done_p", G.solo.stages, fmtTime(ST.total))}</p><button class="btn primary" id="pkAgain">${tr("s_again")}</button>`;
+      if (ST.phase === "done" && ST.gaveUp) html = `<h3 class="opp">${tr("s_gave")}</h3><p>${tr("s_gave_p")}${G.kind === "number" ? "<br>" + tr("r_ans", G.answer(ST.puzzle)) : ""}</p><button class="btn primary" id="pkGaveNew">${tr("s_gave_again")}</button>`;
+      else if (ST.phase === "done") html = `<h3 class="me">${tr("s_done")}</h3>${ST.newBest ? `<span class="newbest">${tr("s_newbest")}</span>` : ""}
+        <p>${tr("s_done_p", nStages(), fmtTime(ST.total))}</p><button class="btn primary" id="pkAgain">${tr("s_again")}</button>`;
       else html = `<h3 class="me">${tr("s_clear", ST.stage)}</h3>${ST.newBest ? `<span class="newbest">${tr("s_newbest")}</span>` : ""}
         <p>${tr("s_took", fmtTime(ST.lastTook), pen, fmtTime(ST.total))}</p><button class="btn primary" id="pkNext">${tr("s_next")}</button>`;
     } else if (ST.mode === "online" && ST.result && (ST.phase === "result" || ST.phase === "done")) {
       const r = ST.result;
-      const head = r.res === "me" ? tr("r_me") : r.res === "opp" ? tr("r_opp") : tr("r_none");
-      const sub = r.res === "me" ? tr("r_point_me") : r.res === "opp" ? tr("r_point_opp") : r.why === "time" ? tr("r_time") : r.why === "out" ? tr("r_out") : "";
+      const many = G.online.target > 1;   // trận nhiều đề: bỏ cuộc chỉ mất đề đang giải
+      const head = r.why === "give" ? (many ? tr(r.res === "me" ? "r_gave_opp" : "r_gave_me") : tr(r.res === "me" ? "g_win" : "g_lose")) : r.res === "me" ? tr("r_me") : r.res === "opp" ? tr("r_opp") : tr("r_none");
+      const sub = r.why === "give" ? (many ? tr(r.res === "me" ? "r_point_me" : "r_point_opp") : tr(r.res === "me" ? "r_gave_opp" : "r_gave_me")) : r.res === "me" ? tr("r_point_me") : r.res === "opp" ? tr("r_point_opp") : r.why === "time" ? tr("r_time") : r.why === "out" ? tr("r_out") : "";
       const ans = G.kind === "number" ? `<br>${tr("r_ans", G.answer(ST.puzzle))}` : "";
       const nxt = ST.phase === "result" ? `<br>${tr("r_next", fmtSec(ST.nextAt - now()))}` : "";
       html = `<h3 class="${r.res}">${head}</h3><p>${sub}${ans}${nxt}</p>`;
@@ -678,6 +754,7 @@
       box.innerHTML = html; box.dataset.html = html;
       const nx = $("#pkNext"); if (nx) { nx.addEventListener("click", () => { ST.stage++; loadStage(); }); setTimeout(() => nx.focus(), 30); }
       const ag = $("#pkAgain"); if (ag) ag.addEventListener("click", startSolo);
+      const gn = $("#pkGaveNew"); if (gn) gn.addEventListener("click", openMode);   // sau khi bỏ cuộc: mở bảng chọn chế độ/mức như nút Chơi mới
       const ro = $("#pkReopen"); if (ro) ro.addEventListener("click", () => { ST.overSeen = false; render(); });
     }
   }
@@ -710,21 +787,24 @@
   let draft = null;
   function loadPrefs() {
     let p = {}; try { p = JSON.parse(localStorage.getItem(PREF_KEY()) || "{}") || {}; } catch (e) {}
-    return { vs: p.vs === "online" ? "online" : "solo", level: (G.online.levels || []).includes(p.level) ? p.level : defLevel(), net: "create", code: "" };
+    return { vs: p.vs === "online" ? "online" : "solo", level: ALL_LEVELS().includes(p.level) ? p.level : defLevel(), net: "create", code: "" };
   }
   function savePrefs() { try { localStorage.setItem(PREF_KEY(), JSON.stringify({ vs: draft.vs, level: draft.level })); } catch (e) {} }
   function syncMode() {
+    if (draft.vs === "online" && G.online.levels && !G.online.levels.includes(draft.level)) draft.level = defLevel();   // mức chỉ có khi chơi một mình
     for (const [id, key] of [["#pkSegVs", "vs"], ["#pkSegNet", "net"], ["#pkSegLevel", "level"]])
       document.querySelectorAll(id + " button").forEach(b => b.classList.toggle("on", b.dataset.v === draft[key]));
     const online = draft.vs === "online", join = online && draft.net === "join";
-    $("#pkVsNote").textContent = online ? tr("m_online_note", G.online.target) : tr(G.solo.useLevel && G.solo.stages > 1 ? "m_solo_note_lv" : "m_solo_note", G.solo.stages);
+    const soloNote = !online && G.solo.noteFor ? G.solo.noteFor(draft.level) : null;
+    $("#pkVsNote").textContent = online ? tr("m_online_note", G.online.target) : soloNote || tr(G.solo.useLevel && nStages(draft.level) > 1 ? "m_solo_note_lv" : "m_solo_note", nStages(draft.level));
     $("#pkNetOpts").classList.toggle("off", !online);
     $("#pkSegNet").querySelectorAll("button").forEach(b => { b.disabled = !online; });
     $("#pkCode").disabled = !join; $("#pkCode").placeholder = tr("m_code_ph");
     $("#pkNetNote").textContent = tr(join ? "m_net_join" : "m_net_create");
     const lvOff = online ? join : !G.solo.useLevel;
     $("#pkLevelOpts").classList.toggle("off", lvOff);
-    $("#pkSegLevel").querySelectorAll("button").forEach(b => { b.disabled = lvOff; });
+    $("#pkSegLevel").querySelectorAll("button").forEach(b => { b.disabled = lvOff || (online && !!G.online.levels && !G.online.levels.includes(b.dataset.v)); b.classList.toggle("pk-solo-only", online && !!G.online.levels && !G.online.levels.includes(b.dataset.v)); });
+    if (G.solo.labelFor) $("#pkSegLevel").querySelectorAll("button").forEach(b => { b.textContent = (!online && G.solo.labelFor(b.dataset.v)) || tr("lv_" + b.dataset.v); });   // vd. Mật mã: "Bộ 3 mã ★" khi chơi một mình
     $("#pkLevelNote").textContent = G.online.levels ? tr("lvn_" + draft.level) : "";
     $("#pkModeStart").textContent = online ? tr(join ? "m_join" : "m_create") : tr("m_start");
     $("#pkModeCancel").textContent = ST.mode ? tr("cancel") : tr("m_back");

@@ -19,7 +19,7 @@
   <use href="#o" x="157" y="257"/><use href="#fog" x="245" y="257"/><use href="#x" x="289" y="301"/>
   <use href="#fog" x="201" y="301"/><use href="#o" x="113" y="301"/>
 </g>
-<g transform="translate(318 74) rotate(10)" filter="url(#sh)">
+<g transform="translate(318 114) rotate(10)" filter="url(#sh)">
   <circle r="50" fill="#ffc928"/>
   <path d="M-30 0C-18-18 18-18 30 0-18 18 18 18-30 0Z" transform="scale(1 1)" fill="#fff" stroke="#1d2330" stroke-width="5" stroke-linejoin="round"/>
   <path d="M-30 0C-18 18 18 18 30 0" fill="none" stroke="#1d2330" stroke-width="5"/>

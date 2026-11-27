@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f9e6e"/><stop offset="1" stop-color="#1c6b8f"/></linearGradient>
+  <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4d9a2"/><stop offset="1" stop-color="#e2b46e"/></linearGradient>
+  <radialGradient id="blk" cx=".34" cy=".3" r=".75"><stop offset="0" stop-color="#727885"/><stop offset=".45" stop-color="#2b2e36"/><stop offset="1" stop-color="#0c0e12"/></radialGradient>
+  <radialGradient id="wht" cx=".34" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#f3f1ea"/><stop offset="1" stop-color="#c8c3b6"/></radialGradient>
+  <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#0b2f2a" flood-opacity=".45"/></filter>
+  <filter id="ss" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity=".4"/></filter>
+  <circle id="b" r="19" fill="url(#blk)" filter="url(#ss)"/>
+  <circle id="w" r="19" fill="url(#wht)" stroke="#b5ae9f" stroke-width="1" filter="url(#ss)"/>
+</defs>
+<rect width="400" height="400" fill="url(#bg)"/>
+<circle cx="40" cy="360" r="90" fill="#fff" opacity=".1"/><circle cx="380" cy="30" r="70" fill="#fff" opacity=".1"/>
+<!-- thu nhỏ 82% và nghiêng 5 độ quanh tâm, cả bàn vẫn nằm trong khung 4:3 của thẻ trang chủ (ảnh bị cắt còn y 50..350) -->
+<g transform="translate(200 200) rotate(5) scale(.82) translate(-200 -200)">
+<rect x="50" y="50" width="300" height="300" rx="26" fill="url(#wood)" filter="url(#sh)"/>
+<!-- bàn: lưới 7x7, ô 42px, điểm đầu ở (74,74) -->
+<g fill="none" stroke="#6b4423" stroke-width="4" stroke-linecap="round">
+  <rect x="74" y="74" width="252" height="252"/><rect x="116" y="116" width="168" height="168"/><rect x="158" y="158" width="84" height="84"/>
+  <path d="M200 74V158M200 242V326M74 200H158M242 200H326"/>
+</g>
+<!-- cối xay của Đen ở hàng trên cùng -->
+<path d="M74 74H326" stroke="#ffc928" stroke-width="13" stroke-linecap="round" opacity=".95"/>
+<g fill="#6b4423">
+  <circle cx="74" cy="74" r="5"/><circle cx="200" cy="74" r="5"/><circle cx="326" cy="74" r="5"/>
+  <circle cx="116" cy="116" r="5"/><circle cx="200" cy="116" r="5"/><circle cx="284" cy="116" r="5"/>
+  <circle cx="158" cy="158" r="5"/><circle cx="200" cy="158" r="5"/><circle cx="242" cy="158" r="5"/>
+  <circle cx="74" cy="200" r="5"/><circle cx="116" cy="200" r="5"/><circle cx="158" cy="200" r="5"/><circle cx="242" cy="200" r="5"/><circle cx="284" cy="200" r="5"/><circle cx="326" cy="200" r="5"/>
+  <circle cx="158" cy="242" r="5"/><circle cx="200" cy="242" r="5"/><circle cx="242" cy="242" r="5"/>
+  <circle cx="116" cy="284" r="5"/><circle cx="200" cy="284" r="5"/><circle cx="284" cy="284" r="5"/>
+  <circle cx="74" cy="326" r="5"/><circle cx="200" cy="326" r="5"/><circle cx="326" cy="326" r="5"/>
+</g>
+<use href="#b" x="74" y="74"/><use href="#b" x="200" y="74"/><use href="#b" x="326" y="74"/>
+<use href="#b" x="116" y="200"/><use href="#b" x="242" y="242"/>
+<use href="#w" x="284" y="116"/><use href="#w" x="200" y="158"/><use href="#w" x="284" y="200"/><use href="#w" x="200" y="284"/><use href="#w" x="74" y="326"/>
+</g>
+</svg>

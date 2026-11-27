@@ -13,13 +13,12 @@
   <rect x="62" y="72" width="276" height="276" rx="30" fill="#2c3550"/>
   <g fill="#f6f7fb">
     <rect x="76" y="86" width="78" height="78" rx="16" fill="url(#hatch)"/><rect x="161" y="86" width="78" height="78" rx="16"/><rect x="246" y="86" width="78" height="78" rx="16"/>
-    <rect x="76" y="171" width="78" height="78" rx="16"/><rect x="161" y="171" width="78" height="78" rx="16"/><rect x="246" y="171" width="78" height="78" rx="16"/>
-    <rect x="76" y="256" width="78" height="78" rx="16"/><rect x="161" y="256" width="78" height="78" rx="16"/><rect x="246" y="256" width="78" height="78" rx="16"/>
+    <rect x="76" y="171" width="78" height="78" rx="16"/><rect x="161" y="171" width="78" height="78" rx="16" fill="#fde3e6"/><rect x="246" y="171" width="78" height="78" rx="16"/>
+    <rect x="76" y="256" width="78" height="78" rx="16" fill="#fde3e6"/><rect x="161" y="256" width="78" height="78" rx="16"/><rect x="246" y="256" width="78" height="78" rx="16"/>
   </g>
   <rect x="246" y="86" width="78" height="78" rx="16" fill="#fde3e6" stroke="#1fae4b" stroke-width="5"/>
   <use href="#o" x="200" y="125"/><use href="#o" x="115" y="210"/><use href="#o" x="285" y="295"/>
   <use href="#x" x="285" y="125"/><use href="#x" x="200" y="210"/><use href="#x" x="115" y="295"/>
   <path d="M118 112 Q190 40 262 104" fill="none" stroke="#ffc928" stroke-width="9" stroke-linecap="round" stroke-dasharray="2 16" marker-end="url(#ah)"/>
-  <path d="M100 318 L300 102" stroke="#1fae4b" stroke-width="9" stroke-linecap="round" opacity=".85"/>
 </g>
 </svg>
