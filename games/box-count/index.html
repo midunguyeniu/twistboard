@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Box Count · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<link rel="stylesheet" href="../../assets/puzzle-kit.css">
+<script src="../../assets/platform.js"></script>
+<script src="../../assets/puzzle-kit.js"></script>
+<style>
+.bx{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
+.bx-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.bx-target{display:inline-flex;align-items:center;gap:8px;background:#1d2330;color:#fff;border-radius:99px;padding:6px 22px;font-family:var(--tb-font-brand);font-size:30px;font-weight:800;line-height:1.2;
+  box-shadow:0 6px 14px rgba(20,30,60,.22);font-variant-numeric:tabular-nums}
+.bx-target small{font-size:18px;opacity:.75;font-family:var(--tb-font);font-weight:800}
+.bx-grid{position:relative;display:grid;grid-template-columns:repeat(var(--c),var(--s));grid-template-rows:repeat(var(--r),var(--s));
+  user-select:none;-webkit-user-select:none;filter:drop-shadow(0 8px 14px rgba(20,30,60,.16))}
+.bx-cell{background:#fffdf8;border:.7px solid #2b2f3a;display:grid;place-items:center;font-family:var(--tb-font-brand);font-weight:800;font-size:calc(var(--s) * var(--fs,.46));
+  color:#1d2330;font-variant-numeric:tabular-nums;line-height:1}
+.bx-cell.neg{color:#c0392b}
+.bx-cell.gone{background:none;border:0}
+.bx-edge{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}   /* viền đậm quanh hình bàn, nét liền nên góc lồi lõm đều khép kín */
+.bx-edge path{fill:none;stroke:#2b2f3a;stroke-linecap:square}
+.bx-fr{display:inline-flex;flex-direction:column;align-items:center;font-size:.62em;line-height:1.02}
+.bx-fr i{font-style:normal}
+.bx-fr i:first-child{border-bottom:2px solid currentColor;padding:0 .2em .06em}
+.bx-target .bx-fr{font-size:.6em}
+.bx-hl{position:absolute;border:4px solid var(--hc,#e74c3c);border-radius:8px;background:color-mix(in srgb,var(--hc,#e74c3c) 14%,transparent);pointer-events:none;
+  box-shadow:0 0 0 2px #fff;transition:all .22s ease-out;z-index:2}
+.bx-count{font-size:14px;font-weight:800;color:var(--tb-muted);min-height:1.4em}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "box-count" });</script>
+<script>
+"use strict";
+/* RULES-START: luật + sinh đề, không đụng DOM (cắt ra chạy bằng Node được)
+   Luật theo show: đếm mọi hình chữ nhật gồm các ô liền nhau (kể cả 1 ô, các hình chồng nhau tính riêng) có tổng đúng bằng đích.
+   Ô trắng không ghi số tính là 0. Chỗ không có ô (bàn khuyết hình) thì hình không được đi qua.
+   Đề: { rows, cols, cells, target, den, lab?, tlab? }. cells[i]: null = không có ô, 0 = ô trắng, số nguyên = giá trị đã nhân với den
+   (den = mẫu số chung, khác 1 ở đề phân số). lab: chữ hiện trên từng ô (đề phân số), tlab: chữ của đích. */
+function bxRects(rows, cols, cells) {   // mọi hình chữ nhật nằm trọn trong bàn: [r1, c1, r2, c2, tổng]
+  const out = [];
+  for (let r1 = 0; r1 < rows; r1++) {
+    const colSum = new Array(cols).fill(0);   // tổng từng cột từ hàng r1 tới r2 (null nếu đoạn cột đó có chỗ không có ô)
+    for (let r2 = r1; r2 < rows; r2++) {
+      for (let c = 0; c < cols; c++) { const v = cells[r2 * cols + c]; colSum[c] = v === null || colSum[c] === null ? null : colSum[c] + v; }
+      for (let c1 = 0; c1 < cols; c1++) {
+        let s = 0;
+        for (let c2 = c1; c2 < cols && colSum[c2] !== null; c2++) { s += colSum[c2]; out.push([r1, c1, r2, c2, s]); }
+      }
+    }
+  }
+  return out;
+}
+function bxCount(pz) { let n = 0; for (const r of bxRects(pz.rows, pz.cols, pz.cells)) if (r[4] === pz.target) n++; return n; }
+const bxRi = (rng, a, b) => a + Math.floor(rng() * (b - a + 1));
+const bxPick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
+function bxShuffle(rng, arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+const bxGcd = (a, b) => b ? bxGcd(b, a % b) : Math.abs(a), bxLcm = (a, b) => a / bxGcd(a, b) * b;
+const bxGrid = (rows, cols, fill) => ({ rows, cols, cells: new Array(rows * cols).fill(fill), den: 1 });
+function bxTrim(pz) {   // bỏ hàng/cột rìa không có ô nào
+  const { rows, cols, cells } = pz, has = i => cells[i] !== null;
+  let r0 = 0, r1 = rows - 1, c0 = 0, c1 = cols - 1;
+  const rowE = r => { for (let c = 0; c < cols; c++) if (has(r * cols + c)) return false; return true; };
+  const colE = c => { for (let r = 0; r < rows; r++) if (has(r * cols + c)) return false; return true; };
+  while (r0 < r1 && rowE(r0)) r0++; while (r1 > r0 && rowE(r1)) r1--;
+  while (c0 < c1 && colE(c0)) c0++; while (c1 > c0 && colE(c1)) c1--;
+  const out = { ...pz, rows: r1 - r0 + 1, cols: c1 - c0 + 1, cells: [] };
+  if (pz.lab) out.lab = [];
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { out.cells.push(cells[r * cols + c]); if (pz.lab) out.lab.push(pz.lab[r * cols + c]); }
+  return out;
+}
+/* Đề viết tay: mỗi hàng là chuỗi, "." = không có ô, "_" = ô trắng, "a/b" = phân số */
+function bxParse(target, rows) {
+  const toks = rows.map(r => r.trim().split(/\s+/)), R = toks.length, C = toks[0].length;
+  let den = 1;
+  for (const t of [...toks.flat(), String(target)]) if (t.includes("/")) den = bxLcm(den, +t.split("/")[1]);
+  const val = t => t === "." ? null : t === "_" ? 0 : t.includes("/") ? (+t.split("/")[0]) * den / (+t.split("/")[1]) : (+t) * den;
+  const pz = { rows: R, cols: C, cells: toks.flat().map(val), target: val(String(target)), den };
+  if (den > 1) { pz.lab = toks.flat().map(t => t.includes("/") ? t : null); pz.tlab = String(target); }
+  return pz;
+}
+/* Xoay/lật đề (8 cách) để đề cố định không bị học thuộc; đáp án không đổi */
+function bxTransform(pz, k) {
+  const R = pz.rows, C = pz.cols, rot = k % 4, flip = k >= 4;
+  const nR = rot % 2 ? C : R, nC = rot % 2 ? R : C;
+  const src = (r, c) => {
+    let sr, sc;
+    if (rot === 0) { sr = r; sc = c; } else if (rot === 1) { sr = R - 1 - c; sc = r; } else if (rot === 2) { sr = R - 1 - r; sc = C - 1 - c; } else { sr = c; sc = C - 1 - r; }
+    if (flip) sc = C - 1 - sc;
+    return sr * C + sc;
+  };
+  const out = { ...pz, rows: nR, cols: nC, cells: [] };
+  if (pz.lab) out.lab = [];
+  for (let r = 0; r < nR; r++) for (let c = 0; c < nC; c++) { const i = src(r, c); out.cells.push(pz.cells[i]); if (pz.lab) out.lab.push(pz.lab[i]); }
+  return out;
+}
+
+/* ---- 15 đề trong show The Devil's Plan (chủ game gửi ảnh), chia theo bậc khó 1-4 ---- */
+const BX_SHOW = [
+  { id: "s08", tier: 1, t: 5, g: ["_ _ _", "_ 5 _", "_ _ _"] },
+  { id: "s14", tier: 1, t: 12, g: ["12 _", "_ 8", "4 _"] },
+  { id: "s06", tier: 1, t: 1000, g: ["157 580 253", "511 479 757", "332 405 263"] },
+  { id: "s09", tier: 1, t: "1", g: ["1/1 1/2", "1/4 1/3", "1/5 1/6", "1/8 1/7"] },
+  { id: "s12", tier: 2, t: 12, g: ["3 3 3 2", "3 3 3 2", "3 3 3 2", ". _ 2 2", ". _ 2 2", ". _ 2 2"] },
+  { id: "s05", tier: 2, t: 0, g: ["1 -6 6 -1", "3 5 -2 2", "3 -7 4 -8"] },
+  { id: "s11", tier: 2, t: 28, g: ["4 4 4 4 4 4 4 4", "_ . . . . . . .", "17 17 17 17 17 17 17 17", "_ . . . . . . .", "7 7 7 7 7 7 7 7"] },
+  { id: "s01", tier: 2, t: 20, g: ["1 8 6 . 7 3 1", "3 5 2 . 4 5 8", "7 4 9 21 9 2 6", ". . . . . . 21", ". . . . 9 4 7", ". . . . 2 5 3", ". . . . 6 8 1"] },
+  { id: "s10", tier: 3, t: 16, g: ["7 9 2 . . . . .", "4 5 7 _ _ 10 9 6", "3 3 2 _ _ 5 3 2", "_ _ _ _ _ 3 8 6", "_ _ _ _ _ _ _ _", "_ 1 4 2 _ _ . .", ". 5 9 10 . . . .", ". 8 7 3 . . . ."] },
+  { id: "s04", tier: 3, t: 147, g: ["_ _ _ 64 _ _ _", "_ _ _ 64 _ _ _", "_ _ _ 64 _ _ _", "4 4 4 _ 1 1 1", "_ _ _ 16 _ _ _", "_ _ _ 16 _ _ _", "_ _ _ 16 _ _ _"] },
+  { id: "s03", tier: 3, t: 6, g: ["1 7 _ _ 1 _ _ _ 4", "3 _ 7 2 _ _ 1 1 7", "_ 1 1 _ _ 1 7 _ _", "1 _ _ _ _ 1 _ _ _", "7 2 _ _ _ _ _ _ 2", "1 _ _ 7 1 _ _ _ 2", "1 _ 1 3 _ _ _ _ 7", "_ 3 7 2 _ 7 _ 4 1"] },
+  { id: "s07", tier: 3, t: 6, g: ["1 1 1 1 1 1", "1 1 1 1 1 1", "1 1 1 1 1 1", "1 1 1 1 1 1", "1 1 1 1 1 1", "1 1 1 1 1 1"] },
+  { id: "s13", tier: 4, t: 0, g: ["1 -2 3 -4 5", "-6 7 -8 9 -10", "11 -12 13 -14 15", "-16 17 -18 19 -20"] },
+  { id: "s15", tier: 4, t: 203, g: ["1 21 11 31 21 11", "21 41 31 51 11 1", "31 31 21 41 11 21", "1 41 11 51 21 41", "51 21 21 1 11 31", "11 41 31 11 21 31"] },
+  { id: "s02", tier: 4, t: 0, g: [". . . . . _ . _ . . .", "_ _ . . _ _ . _ _ . .", "_ _ _ . _ _ . _ _ _ .", "_ _ _ 1 _ _ 1 _ _ _ _", "_ _ . . _ _ . . . . .", ". . . . _ . . . . . ."] },
+];
+
+/* ---- Các kiểu đề bẫy tự sinh (mỗi lần ra đề mới), lấy ý từ các đề trên ---- */
+function bxTry(n, make, ok) {
+  let last = null;
+  for (let i = 0; i < n; i++) { const p = make(); if (!p) continue; p.answer = bxCount(p); last = p; if (ok(p.answer)) return p; }
+  return last;
+}
+const BX_FAMILIES = [
+  { id: "uniform", tiers: [1, 2, 3, 4], gen(t, rng) {   // cả bàn một số: đếm hình có đúng k ô
+    return bxTry(100, () => {
+      const [R, C] = bxPick(rng, [[[3, 3], [3, 4]], [[4, 4], [4, 5]], [[5, 5], [5, 6]], [[6, 6], [6, 7]]][t - 1]);
+      const v = bxPick(rng, [1, 1, 2, 3, 5]), p = bxGrid(R, C, v);
+      if (t >= 3) for (let i = bxRi(rng, 1, t); i > 0; i--) p.cells[bxRi(rng, 0, R * C - 1)] = 0;   // vài ô trắng phá thế đều
+      p.target = v * bxPick(rng, [2, 3, 4, 6, 6, 8, 9, 12].filter(k => k <= R * C / 2));
+      return p;
+    }, a => a >= [2, 4, 6, 8][t - 1] && a <= [15, 30, 45, 60][t - 1]);
+  } },
+  { id: "lonely", tiers: [1, 2], gen(t, rng) {   // bàn gần như trắng, một số bằng đích: mọi hình chứa nó đều đúng
+    return bxTry(100, () => {
+      const R = t === 1 ? 3 : bxPick(rng, [4, 5]), C = t === 1 ? bxPick(rng, [3, 4]) : bxPick(rng, [4, 5]);
+      const p = bxGrid(R, C, 0), T = bxRi(rng, 3, 9), idx = bxShuffle(rng, [...Array(R * C).keys()]);
+      p.cells[idx[0]] = T; p.target = T;
+      if (t === 2) { const a = bxRi(rng, 1, T - 1); p.cells[idx[1]] = a; p.cells[idx[2]] = T - a; if (rng() < .5) p.cells[idx[3]] = bxRi(rng, T + 1, T + 4); }
+      return p;
+    }, a => a >= 4 && a <= (t === 1 ? 20 : 45));
+  } },
+  { id: "zerofield", tiers: [3, 4], gen(t, rng) {   // bàn bậc thang toàn ô trắng, vài số lẻ loi, đích 0
+    return bxTry(150, () => {
+      const C = t === 3 ? bxRi(rng, 5, 7) : bxRi(rng, 7, 10), R = t === 3 ? 4 : bxRi(rng, 5, 6), base = bxRi(rng, 1, R - 2);
+      const p = bxGrid(R, C, null);
+      for (let c = 0; c < C; c++) { const top = bxRi(rng, 0, base), bot = bxRi(rng, base, R - 1); for (let r = top; r <= bot; r++) p.cells[r * C + c] = 0; }
+      const alive = bxShuffle(rng, p.cells.map((v, i) => v === null ? -1 : i).filter(i => i >= 0)), m = bxRi(rng, 2, t === 3 ? 3 : 4);
+      for (let i = 0; i < m; i++) p.cells[alive[i]] = t === 4 && i % 2 === 1 ? -p.cells[alive[i - 1]] : bxPick(rng, [1, 1, 2, 3]);
+      p.target = 0;
+      return bxTrim(p);
+    }, a => a >= (t === 3 ? 15 : 25) && a <= (t === 3 ? 80 : 130));
+  } },
+  { id: "alternate", tiers: [3, 4], gen(t, rng) {   // số âm dương xen kẽ, đích 0
+    return bxTry(100, () => {
+      const [R, C] = bxPick(rng, t === 3 ? [[3, 4], [4, 4], [3, 5]] : [[4, 5], [5, 5]]), p = bxGrid(R, C, 0), seq = rng() < .5;
+      for (let i = 0; i < R * C; i++) p.cells[i] = (i % 2 ? -1 : 1) * (seq ? i + 1 : bxRi(rng, 1, 9));
+      p.target = rng() < .75 ? 0 : bxPick(rng, [1, -1, 2]);
+      return p;
+    }, a => a >= (t === 3 ? 3 : 6) && a <= (t === 3 ? 25 : 40));
+  } },
+  { id: "cross", tiers: [2, 3], gen(t, rng) {   // chữ thập: bốn nhánh 1/4/16/64, giữa trắng, đích phải đi xuyên tâm
+    return bxTry(100, () => {
+      const N = t === 2 ? 5 : 7, m = (N - 1) / 2, p = bxGrid(N, N, 0), v = bxShuffle(rng, [1, 4, 16, 64]);
+      for (let i = 0; i < m; i++) { p.cells[i * N + m] = v[0]; p.cells[(N - 1 - i) * N + m] = v[1]; p.cells[m * N + i] = v[2]; p.cells[m * N + N - 1 - i] = v[3]; }
+      const r1 = bxRi(rng, 0, m), r2 = bxRi(rng, m, N - 1), c1 = bxRi(rng, 0, m), c2 = bxRi(rng, m, N - 1);
+      let s = 0; for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) s += p.cells[r * N + c];
+      if (!s) return null;
+      p.target = s; return p;
+    }, a => a >= 1 && a <= 6);
+  } },
+  { id: "bridge", tiers: [2, 3], gen(t, rng) {   // ba dải số nối bằng ô trắng: đích bằng a×m, c×n và cả cột dọc a+b+c
+    return bxTry(150, () => {
+      const L = t === 2 ? bxRi(rng, 5, 6) : bxRi(rng, 7, 8), T = bxPick(rng, [12, 18, 20, 24, 28, 30, 36]), ds = [];
+      for (let d = 2; d < T; d++) if (T % d === 0 && T / d <= L) ds.push(d);
+      if (ds.length < 2) return null;
+      const [a, c] = bxShuffle(rng, ds).slice(0, 2), b = T - a - c;
+      if (b < 1 || b === a || b === c) return null;
+      const p = bxGrid(5, L, null), side = rng() < .5 ? 0 : L - 1;
+      for (let x = 0; x < L; x++) { p.cells[x] = a; p.cells[2 * L + x] = b; p.cells[4 * L + x] = c; }
+      p.cells[L + side] = 0; p.cells[3 * L + side] = 0;
+      if (t === 3 && rng() < .6) p.cells[L + (L - 1 - side)] = 0;
+      p.target = T; return p;
+    }, a => a >= 3 && a <= (t === 2 ? 14 : 20));
+  } },
+  { id: "digits", tiers: [3, 4], gen(t, rng) {   // mọi số cùng chữ số tận cùng: nhìn chữ số cuối là loại được nhiều hình (có khi đáp án là 0)
+    return bxTry(150, () => {
+      const [R, C] = bxPick(rng, t === 3 ? [[5, 5], [4, 6]] : [[6, 6], [5, 7]]), d = bxPick(rng, [1, 1, 3, 7]), p = bxGrid(R, C, 0);
+      for (let i = 0; i < R * C; i++) p.cells[i] = 10 * bxRi(rng, 0, 5) + d;
+      const cnt = new Map(); for (const r of bxRects(R, C, p.cells)) cnt.set(r[4], (cnt.get(r[4]) || 0) + 1);
+      if (rng() < .22) {   // bẫy: chữ số tận cùng của đích không đạt được với số ô nhỏ
+        for (let k = 0; k < 30; k++) { const T = 10 * bxRi(rng, 9, 24) + bxRi(rng, 0, 9); if (!cnt.has(T)) { p.target = T; return p; } }
+        return null;
+      }
+      const cand = [...cnt].filter(([s, c]) => c >= 1 && c <= (t === 3 ? 6 : 8) && s >= 60).map(e => e[0]);
+      if (!cand.length) return null;
+      p.target = bxPick(rng, cand); return p;
+    }, a => a >= 0 && a <= (t === 3 ? 6 : 8));
+  } },
+  { id: "bignum", tiers: [1, 2], gen(t, rng) {   // số ba chữ số, đích tròn 1000/1500/2000
+    return bxTry(200, () => {
+      const [R, C] = t === 1 ? [3, 3] : bxPick(rng, [[3, 4], [4, 3]]), T = t === 1 ? 1000 : bxPick(rng, [1000, 1500, 2000]), p = bxGrid(R, C, 0);
+      for (let i = 0; i < R * C; i++) p.cells[i] = bxRi(rng, 101, 899);
+      const want = t === 1 ? 2 : bxRi(rng, 2, 3), fixed = new Set();
+      const rects = bxShuffle(rng, bxRects(R, C, p.cells).filter(r => { const a = (r[2] - r[0] + 1) * (r[3] - r[1] + 1); return a >= 2 && a <= 3; }));
+      let done = 0;
+      for (const r of rects) {
+        if (done >= want) break;
+        const idx = []; for (let y = r[0]; y <= r[2]; y++) for (let x = r[1]; x <= r[3]; x++) idx.push(y * C + x);
+        const free = idx.filter(i => !fixed.has(i)); if (!free.length) continue;
+        const j = free[free.length - 1], v = T - idx.reduce((s, i) => i === j ? s : s + p.cells[i], 0);
+        if (v < 101 || v > 899) continue;
+        p.cells[j] = v; idx.forEach(i => fixed.add(i)); done++;
+      }
+      if (done < want) return null;
+      p.target = T; return p;
+    }, a => a >= 2 && a <= (t === 1 ? 4 : 5));
+  } },
+  { id: "fraction", tiers: [2, 3], gen(t, rng) {   // phân số 1/k, đích 1 hoặc 1/2
+    return bxTry(100, () => {
+      const ks = bxShuffle(rng, t === 2 ? [1, 2, 3, 4, 5, 6, 7, 8] : [2, 2, 3, 3, 4, 4, 6, 6, 12, 12, 8, 5]);
+      const [R, C] = t === 2 ? bxPick(rng, [[4, 2], [2, 4]]) : bxPick(rng, [[3, 4], [4, 3]]);
+      const half = t === 3 && rng() < .4;
+      let den = ks.reduce((a, k) => bxLcm(a, k), 1); if (half) den = bxLcm(den, 2);
+      return { rows: R, cols: C, cells: ks.map(k => den / k), den, lab: ks.map(k => "1/" + k), target: half ? den / 2 : den, tlab: half ? "1/2" : "1" };
+    }, a => a >= 1 && a <= (t === 2 ? 4 : 6));
+  } },
+  { id: "blocks", tiers: [1, 2], gen(t, rng) {   // các khối cùng số, dải trắng, góc khuyết
+    return bxTry(150, () => {
+      const R = t === 1 ? bxRi(rng, 4, 5) : bxRi(rng, 5, 6), C = t === 1 ? bxRi(rng, 3, 4) : bxRi(rng, 4, 5), a = bxRi(rng, 2, 4), b = bxRi(rng, 2, 5);
+      if (a === b) return null;
+      const p = bxGrid(R, C, a), h = bxRi(rng, 1, R - 2), w = bxRi(rng, 1, C - 2);
+      for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if ((r >= h && c >= w) || c === C - 1) p.cells[r * C + c] = b;
+      for (let r = h; r < R; r++) { p.cells[r * C + w - 1] = 0; for (let c = 0; c < w - 1; c++) p.cells[r * C + c] = null; }
+      p.target = bxPick(rng, [a * b * 2, a * b, a * 3, b * 3, a * 4, b * 4, 12]);
+      return bxTrim(p);
+    }, a => a >= (t === 1 ? 3 : 4) && a <= (t === 1 ? 12 : 16));
+  } },
+];
+
+/* ---- Đề thường: bàn khuyết hình, nhiều ô trắng, có ô mồi (đúng bằng đích hoặc nhỉnh hơn đích) ---- */
+//            rows cols  đích(min,max)  tỉ lệ trắng  số ô khuyết  tỉ lệ âm  tỉ lệ mồi  đáp án(min,max)
+const BX_STAGES = [
+  [3, 3, 5, 9, .10, 0, 0, 0, 2, 4], [3, 4, 5, 10, .15, 0, 0, .05, 2, 5], [4, 4, 6, 12, .15, 1, 0, .05, 3, 5], [4, 4, 6, 12, .20, 2, 0, .08, 3, 6],
+  [4, 5, 8, 15, .20, 2, 0, .08, 3, 7], [4, 5, 8, 16, .22, 3, 0, .10, 4, 7], [5, 5, 10, 18, .22, 3, 0, .10, 4, 8], [5, 5, 10, 20, .25, 4, 0, .10, 5, 9], [5, 6, 10, 20, .25, 4, 0, .10, 5, 9],
+  [5, 6, 12, 22, .28, 5, 0, .12, 5, 10], [6, 6, 12, 24, .28, 5, 0, .12, 6, 10], [6, 6, 12, 24, .30, 6, 0, .12, 6, 11], [6, 7, 14, 26, .30, 6, 0, .12, 6, 12], [6, 7, 14, 26, .32, 7, 0, .14, 7, 12],
+  [6, 6, 6, 20, .25, 4, .15, .10, 6, 12], [6, 7, 6, 20, .28, 5, .15, .10, 6, 13], [6, 7, 6, 22, .30, 6, .18, .10, 7, 13], [7, 7, 6, 22, .30, 7, .18, .12, 7, 14], [7, 7, 6, 24, .32, 8, .20, .12, 8, 15], [7, 8, 6, 24, .32, 9, .20, .12, 8, 16],
+];
+const BX_SPECIAL = [3, 6, 9, 12, 15, 18, 20];   // các màn lấy đề đặc biệt
+const bxTier = stage => stage <= 4 ? 1 : stage <= 9 ? 2 : stage <= 14 ? 3 : 4;
+function bxShape(R, C, missing, rng) {   // khoét `missing` ô từ mép vào, giữ các ô còn lại liền nhau
+  const alive = new Array(R * C).fill(true);
+  const edge = i => { const r = Math.floor(i / C), c = i % C; return r === 0 || c === 0 || r === R - 1 || c === C - 1 || !alive[i - C] || !alive[i + C] || !alive[i - 1] || !alive[i + 1]; };
+  const connected = () => {
+    const start = alive.indexOf(true); if (start < 0) return false;
+    const seen = new Uint8Array(R * C), st = [start]; seen[start] = 1; let n = 1;
+    while (st.length) { const i = st.pop(), r = Math.floor(i / C), c = i % C;
+      for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const rr = r + dr, cc = c + dc, j = rr * C + cc;
+        if (rr >= 0 && rr < R && cc >= 0 && cc < C && alive[j] && !seen[j]) { seen[j] = 1; n++; st.push(j); } } }
+    return n === alive.filter(Boolean).length;
+  };
+  let removed = 0;
+  for (let guard = 0; removed < missing && guard < 300; guard++) {
+    const cand = []; for (let i = 0; i < R * C; i++) if (alive[i] && edge(i)) cand.push(i);
+    const i = bxPick(rng, cand); alive[i] = false;
+    if (connected()) removed++; else alive[i] = true;
+  }
+  return alive;
+}
+function bxBase(stage, rng) {
+  const [R, C, tmin, tmax, ep, miss, np, dp, cmin, cmax] = BX_STAGES[stage - 1];
+  let last = null;
+  for (let t = 0; t < 800; t++) {
+    const T = bxRi(rng, tmin, tmax), alive = bxShape(R, C, miss, rng), vmax = Math.max(2, Math.min(9, T - 1));
+    const cells = alive.map(on => {
+      if (!on) return null;
+      const u = rng();
+      if (u < ep) return 0;
+      if (u < ep + dp) return bxPick(rng, [T, T + 1, T + 1, T + 2]);
+      if (u < ep + dp + np) return -bxRi(rng, 1, 5);
+      return bxRi(rng, 1, vmax);
+    });
+    const pz = bxTrim({ rows: R, cols: C, cells, target: T, den: 1 });
+    pz.answer = bxCount(pz); last = pz;
+    if (pz.answer >= cmin && pz.answer <= cmax) return pz;
+  }
+  return last;
+}
+function bxSpecial(tier, rng) {
+  const pool = [
+    ...BX_SHOW.filter(p => p.tier === tier).map(p => () => Object.assign(bxTransform(bxParse(p.t, p.g), bxRi(rng, 0, 7)), { src: p.id })),
+    ...BX_FAMILIES.filter(f => f.tiers.includes(tier)).map(f => () => Object.assign(f.gen(tier, rng), { src: f.id })),
+  ];
+  const pz = bxPick(rng, pool)();
+  pz.answer = bxCount(pz); pz.special = true;
+  return pz;
+}
+function bxGen(stage, rng) {
+  const pz = BX_SPECIAL.includes(stage) ? bxSpecial(bxTier(stage), rng) : bxBase(stage, rng);
+  pz.stage = stage; return pz;
+}
+/* Online: đề chẵn là đề đặc biệt (bậc theo độ khó chủ phòng chọn), đề lẻ là đề thường */
+const BX_LEVELS = { easy: [3, 4, 5, 6, 7, 8, 9], normal: [7, 8, 10, 11, 12, 13, 14], hard: [12, 14, 15, 16, 17, 18, 20] };
+const BX_ONLINE_TIER = { easy: [1, 2], normal: [2, 3], hard: [3, 4] };
+function bxOnline(k, level, rng) {
+  const L = BX_LEVELS[level] || BX_LEVELS.normal, T = BX_ONLINE_TIER[level] || BX_ONLINE_TIER.normal;
+  if (k % 2 === 0) { const pz = bxSpecial(T[k <= 3 ? 0 : 1], rng); pz.stage = 0; return pz; }
+  let st = L[Math.min(k, L.length) - 1]; if (BX_SPECIAL.includes(st)) st--;
+  const pz = bxBase(st, rng); pz.stage = st; return pz;
+}
+/* RULES-END */
+
+/* ---------- VẼ ---------- */
+const HL_COLORS = ["#e74c3c", "#2f6fd6", "#1e9e57", "#8e44ad", "#e67e22", "#0f9aa8"];
+function bxFmt(v, den) {   // chữ hiện cho một giá trị (đã nhân den)
+  if (den > 1 && v % den) { const g = bxGcd(v, den); return (v < 0 ? "−" : "") + Math.abs(v / g) + "/" + den / g; }
+  const x = v / den; return x < 0 ? "−" + (-x) : String(x);
+}
+const bxFrac = s => { const [a, b] = s.replace("−", "").split("/"); return b ? `${s.startsWith("−") ? "−" : ""}<span class="bx-fr"><i>${a}</i><i>${b}</i></span>` : s; };
+const bxTargetText = pz => pz.tlab || bxFmt(pz.target, pz.den);
+function mountBX(el, pz, ctx) {
+  const { rows, cols } = pz;
+  const label = i => { const v = pz.cells[i]; return v === null || v === 0 ? "" : pz.lab && pz.lab[i] ? pz.lab[i] : bxFmt(v, pz.den); };
+  const maxLen = Math.max(1, ...pz.cells.map((v, i) => pz.lab && pz.lab[i] ? 1 : label(i).length));
+  const fs = maxLen <= 2 ? .46 : maxLen === 3 ? .36 : .29;
+  const has = (r, c) => r >= 0 && c >= 0 && r < rows && c < cols && pz.cells[r * cols + c] !== null;
+  let edge = "";   // các cạnh ô giáp chỗ không có ô hoặc mép bàn
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (has(r, c)) {
+    if (!has(r - 1, c)) edge += `M${c} ${r}H${c + 1}`;
+    if (!has(r + 1, c)) edge += `M${c} ${r + 1}H${c + 1}`;
+    if (!has(r, c - 1)) edge += `M${c} ${r}V${r + 1}`;
+    if (!has(r, c + 1)) edge += `M${c + 1} ${r}V${r + 1}`;
+  }
+  const cells = pz.cells.map((v, i) => `<div class="bx-cell${v === null ? " gone" : v < 0 ? " neg" : ""}">${bxFrac(label(i))}</div>`).join("");
+  el.innerHTML = `<div class="bx"><div class="bx-top"><div class="bx-target"><small>${ctx.tr("t_label")} =</small>${bxFrac(bxTargetText(pz))}</div></div>
+    <div class="bx-grid" style="--r:${rows};--c:${cols};--fs:${fs}">${cells}<svg class="bx-edge" viewBox="0 0 ${cols} ${rows}" preserveAspectRatio="none" aria-hidden="true"><path d="${edge}"/></svg><div class="bx-hl" hidden></div></div><div class="bx-count"></div></div>`;
+  const grid = el.querySelector(".bx-grid"), hl = el.querySelector(".bx-hl"), countEl = el.querySelector(".bx-count"), edgePath = el.querySelector(".bx-edge path");
+  let timer = 0, cellPx = 56;
+  function size() {
+    const w = Math.max(220, Math.min(el.clientWidth || 560, 640)), h = window.innerHeight - (window.innerWidth <= 780 ? 400 : 320);
+    cellPx = Math.floor(Math.max(30, Math.min(76, (w - 16) / cols, (h - 40) / rows)));
+    grid.style.setProperty("--s", cellPx + "px");
+    edgePath.setAttribute("stroke-width", 3 / cellPx);   // 3px trên màn hình
+  }
+  function place(r) {   // khung tô một hình chữ nhật
+    const [r1, c1, r2, c2] = r;
+    hl.style.left = (c1 * cellPx - 4) + "px"; hl.style.top = (r1 * cellPx - 4) + "px";
+    hl.style.width = ((c2 - c1 + 1) * cellPx + 8) + "px"; hl.style.height = ((r2 - r1 + 1) * cellPx + 8) + "px";
+  }
+  size();
+  return {
+    resize: size,
+    reveal() {   // đáp án: lần lượt tô từng hình có tổng đúng
+      const list = bxRects(rows, cols, pz.cells).filter(r => r[4] === pz.target);
+      if (!list.length) { countEl.textContent = ctx.tr("hl_none"); return; }
+      let i = 0;
+      const step = () => {
+        const r = list[i % list.length];
+        hl.hidden = false; hl.style.setProperty("--hc", HL_COLORS[i % HL_COLORS.length]); place(r);
+        countEl.textContent = ctx.tr("hl", i % list.length + 1, list.length);
+        i++;
+      };
+      step(); timer = setInterval(step, Math.max(260, Math.min(1100, 40000 / list.length)));
+    },
+    lang() { countEl.textContent = ""; },
+    destroy() { clearInterval(timer); },
+  };
+}
+
+PK.start({
+  id: "box-count", peerPrefix: "boxcount-", proto: 2, kind: "number",
+  solo: { stages: 20, gen: bxGen },
+  online: { target: 3, maxRounds: 7, roundMs: 180000, levels: ["easy", "normal", "hard"], wrong: "out", gen: bxOnline },
+  answer: pz => pz.answer,
+  mount: mountBX,
+  prompt: (pz, ctx) => `<span class="q">${ctx.tr("prompt_q", bxTargetText(pz))}</span>${ctx.tr("prompt", bxTargetText(pz))}<span class="hint">${ctx.tr("hint")}</span>`,
+  stageNote: (pz, stage) => PK.tr(stage <= 4 ? "sn_1" : stage <= 9 ? "sn_2" : stage <= 14 ? "sn_3" : "sn_4"),
+  rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
+  i18n: {
+    vi: {
+      brand: "Box Count", tagline: "Đếm mọi hình chữ nhật trên lưới số có tổng đúng bằng số đích.",
+      r_intro: "Trên bảng là một lưới số và một số đích. Hãy đếm có bao nhiêu hình chữ nhật (gồm các ô liền nhau) mà tổng các số bên trong đúng bằng số đích.",
+      h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
+      r_rules: ["Chỉ tính hình chữ nhật (hình vuông cũng là hình chữ nhật). Hình chéo hay hình chữ L không tính.",
+        "Một ô đứng riêng cũng là một hình. Các hình chồng lên nhau vẫn tính riêng từng hình.",
+        "<b>Ô trắng không ghi số tính là 0</b>: hình chứa nó vẫn được tính. Bàn có thể khuyết hình: hình chữ nhật không được đi ra chỗ không có ô.",
+        "Số âm và phân số cộng bình thường. Đáp án có thể là 0.",
+        "Nhập số hình đếm được rồi bấm Trả lời. Hết đề sẽ hiện lần lượt từng hình đúng."],
+      r_solo: ["20 màn: bàn lớn dần, nhiều ô trắng và ô mồi hơn, từ màn 15 có số âm.",
+        "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một màn thì phải chờ lâu dần.", "Tính tổng thời gian cả 20 màn. Kỷ lục lưu trên máy này."],
+      r_online: ["Hai người cùng giải một lưới, ai trả lời đúng trước được 1 điểm. Ai đạt 3 điểm trước thì thắng.",
+        "Trả lời sai là mất quyền trả lời đề đó. Cả hai cùng sai thì không ai được điểm.", "Mỗi đề có 3 phút.",
+        "Thứ tự đúng tính theo thời gian giải trên máy mỗi người, nên mạng chậm không bị thiệt."],
+      r_tips: ["Quét theo kích thước: đếm hết các ô 1×1 bằng đích, rồi các cặp 1×2 và 2×1, rồi 1×3, 3×1, 2×2...",
+        "Ô trắng không làm đổi tổng: một hình đúng nằm cạnh ô trắng thì kéo dài thêm vẫn đúng, đừng bỏ sót.",
+        "Để ý bẫy: số nhỉnh hơn đích chặn mọi hình đi qua nó; số cùng chữ số tận cùng thì chỉ một số kích thước hình mới cho đúng chữ số cuối của đích.",
+        "Có số âm thì tổng có thể quay lại bằng đích, đừng dừng sớm."],
+      r_note: "Lấy cảm hứng từ trò đếm hình chữ nhật trong show The Devil's Plan (Netflix); một số đề chép từ show. Game không liên kết với Netflix.",
+      prompt_q: "Đích = {0}", prompt: "Có bao nhiêu hình chữ nhật có tổng bằng <b>{0}</b>?",
+      hint: "Ô trắng tính là 0. Hình không được đi ra chỗ không có ô.",
+      t_label: "Đích", hl: "Hình {0}/{1}", hl_none: "Không có hình nào: đáp án là 0.",
+      sn_1: "Lưới nhỏ để làm quen.", sn_2: "Lưới vừa, bàn bắt đầu khuyết hình.", sn_3: "Lưới lớn, nhiều ô trắng và ô mồi.", sn_4: "Lưới lớn, có cả số âm.",
+      lvn_easy: "Lưới nhỏ và vừa, ít bẫy.", lvn_normal: "Lưới vừa và lớn, nhiều ô trắng và bẫy hơn.", lvn_hard: "Lưới lớn có số âm, bẫy khó nhất.",
+    },
+    en: {
+      brand: "Box Count", tagline: "Count every rectangle in the number grid that adds up to the target.",
+      r_intro: "You get a grid of numbers and a target. Count how many rectangles of adjacent cells add up exactly to the target.",
+      h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
+      r_rules: ["Only rectangles count (squares are rectangles too). Diagonal or L-shaped groups don't.",
+        "A single cell is a rectangle on its own. Overlapping rectangles each count separately.",
+        "<b>An empty white cell counts as 0</b>: rectangles containing it still count. The board can have an odd shape: a rectangle can't cover a spot with no cell.",
+        "Negatives and fractions add as usual. The answer can be 0.",
+        "Enter your count and press Answer. After each puzzle, every matching rectangle is shown in turn."],
+      r_solo: ["20 stages: the board grows, with more empty cells and decoys, and negatives from stage 15.",
+        "A wrong answer adds 5 seconds. From the 3rd miss on the same stage you wait longer and longer.", "Your total time over the 20 stages counts. Your best is saved on this device."],
+      r_online: ["Both players solve the same grid and the first correct answer scores a point. First to 3 points wins.",
+        "A wrong answer loses you the right to answer that puzzle. If both answer wrong, nobody scores.", "Each puzzle has 3 minutes.",
+        "Who answered first is decided by each player's own solving time, so a slow connection doesn't cost you."],
+      r_tips: ["Sweep by size: count the 1×1 cells equal to the target, then 1×2 and 2×1 pairs, then 1×3, 3×1, 2×2...",
+        "Empty cells don't change a sum: a matching box next to an empty cell still matches when stretched over it.",
+        "Watch for traps: a number just above the target blocks every box through it; when all numbers share a last digit, only some box sizes can hit the target's last digit.",
+        "With negatives the sum can come back down to the target, so don't stop early."],
+      r_note: "Inspired by the rectangle counting game on The Devil's Plan (Netflix); some puzzles are copied from the show. Not affiliated with Netflix.",
+      prompt_q: "Target = {0}", prompt: "How many rectangles add up to <b>{0}</b>?",
+      hint: "Empty cells count as 0. A box can't cover a spot with no cell.",
+      t_label: "Target", hl: "Box {0}/{1}", hl_none: "No box at all: the answer is 0.",
+      sn_1: "A small grid to warm up.", sn_2: "A medium grid; the board starts to take odd shapes.", sn_3: "A big grid with many empty cells and decoys.", sn_4: "A big grid with negatives too.",
+      lvn_easy: "Small and medium grids, few traps.", lvn_normal: "Medium and big grids, more empty cells and traps.", lvn_hard: "Big grids with negatives, the trickiest traps.",
+    },
+  },
+});
+</script>
+</body>
+</html>

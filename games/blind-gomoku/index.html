@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cờ Ca-rô Mù · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<script src="../../assets/platform.js"></script>
+<style>
+:root{
+  --S:600px; --cell:40px;
+  --bg:var(--tb-bg); --panel:var(--tb-surface); --line:var(--tb-border); --text:var(--tb-text); --muted:var(--tb-muted);
+  --btn:#fff; --btn-hover:var(--tb-hover); --btn-line:var(--tb-border-strong); --field:var(--tb-surface-2); --gold:#ffc928; --gold-ink:var(--tb-gold-ink);
+  --wood:#efc27a; --wood-2:#e3ab58; --grid:#5b3f22;
+  /* màu quân: Rõ ràng (đen/trắng), Mù (1 tông duy nhất) */
+  --st-1:radial-gradient(circle at 34% 30%,#61656f,#17191e 62%);
+  --st-2:radial-gradient(circle at 34% 30%,#fff,#e6e1d3 72%);
+  --blind:radial-gradient(circle at 34% 30%,#8d7ea0,#4f4262 64%);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--tb-font);min-height:100vh;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;transition:transform .12s ease-out,background-color .15s,filter .15s,opacity .15s}
+button:active:not(:disabled){transform:scale(.92)}
+#app{width:fit-content;margin:0 auto;padding:14px 12px 28px}
+body.portrait #app{width:100%;padding:8px 8px 24px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.brand h1{margin:0;font-family:var(--tb-font-brand);font-size:26px;line-height:1.1}
+.actions{display:flex;gap:8px}
+.btn{background:var(--btn);color:var(--text);border:1.5px solid var(--btn-line);border-radius:10px;padding:8px 15px;font-size:14px;font-weight:800;cursor:pointer}
+.btn:hover{background:var(--btn-hover)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.primary{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:transparent}
+.btn.primary:hover{background:var(--tb-primary-hover)}
+
+#status{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);margin-bottom:12px;font-size:14px;min-height:42px}
+#status .muted{color:var(--muted)}
+.dot{flex:none;width:14px;height:14px;border-radius:50%;border:2px solid #2b2f3a}
+.dot.c1{background:#1b1b1b;border-color:#1b1b1b} .dot.c2{background:#fffdf3} .dot.c0{background:#999}
+.dot.think{animation:blink .9s infinite}
+@keyframes blink{50%{opacity:.2}}
+
+#stage{display:flex;gap:20px;align-items:flex-start;justify-content:center}
+#boardWrap{position:relative;flex:none}
+#board{position:relative;width:var(--S);height:var(--S);background:linear-gradient(135deg,var(--wood),var(--wood-2));border-radius:6px;
+  box-shadow:0 0 0 6px #fff,0 0 0 7px var(--tb-border),0 14px 34px rgba(20,30,60,.22);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#grid{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#stones{position:absolute;inset:0;pointer-events:none}
+.st{position:absolute;left:calc((var(--c) + .5) * var(--cell));top:calc((var(--r) + .5) * var(--cell));
+  width:calc(var(--cell) * .86);height:calc(var(--cell) * .86);margin:calc(var(--cell) * -.43) 0 0 calc(var(--cell) * -.43);
+  border-radius:50%;box-shadow:0 2px 3px rgba(0,0,0,.35);background:var(--blind);transition:background .6s}
+.st.new{animation:drop .22s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes drop{0%{transform:scale(1.35);opacity:0}100%{transform:none;opacity:1}}
+body.look-classic .st.k1,body.reveal .st.k1{background:var(--st-1)}
+body.look-classic .st.k2,body.reveal .st.k2{background:var(--st-2)}
+.st.ghost{opacity:.42;box-shadow:none}
+.st.last::after{content:"";position:absolute;inset:-14%;border:2.5px solid #ff7a1a;border-radius:5px;opacity:.95}
+.st.last.mine::after{border-color:#1fae4b}     /* nước vừa đi của người chơi trên máy này: xanh lá */
+.st.last.theirs::after{border-color:#e5322b}   /* nước vừa đi của đối thủ (AI hoặc người ở máy kia): đỏ */
+.st.win{box-shadow:0 0 0 3px #1fae4b,0 0 14px 4px rgba(31,174,75,.75);animation:winpulse 1s infinite}   /* 5 quân thắng: viền xanh lá */
+@keyframes winpulse{50%{box-shadow:0 0 0 3px #1fae4b,0 0 22px 8px rgba(31,174,75,.45)}}
+
+.side{width:300px;flex:none;display:flex;flex-direction:column;gap:10px}
+.panel{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:10px;row-gap:8px;padding:10px 12px;border-radius:12px;
+  background:var(--panel);border:2px solid var(--line);box-shadow:var(--tb-shadow);transition:border-color .2s,box-shadow .2s}
+.panel.active{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,201,40,.35)}
+.pdot{width:28px;height:28px;border-radius:50%;box-shadow:0 2px 3px rgba(0,0,0,.3)}
+.pdot.c1{background:var(--st-1)} .pdot.c2{background:var(--st-2);box-shadow:0 0 0 1px #d8d2c2,0 2px 3px rgba(0,0,0,.25)}
+.pinfo{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.pinfo b{font-size:15px}
+.pinfo span{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptime{font-family:var(--tb-font-brand);font-size:28px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--muted)}
+.panel.active .ptime{color:var(--text)}
+.ptime.low{color:#d9362b!important;animation:blink .5s infinite}
+.pbar{grid-column:1/-1;height:6px;border-radius:99px;background:var(--field);overflow:hidden}
+.pbar i{display:block;height:100%;width:100%;background:var(--tb-green);border-radius:99px;transform-origin:left;transition:background .3s}
+.pbar i.low{background:#e5453b}
+#info{padding:12px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);font-size:13.5px}
+#info dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
+#info dt{color:var(--muted)} #info dd{margin:0;font-weight:800;text-align:right}
+#tip{margin:10px 0 0;color:var(--gold-ink);font-weight:700;line-height:1.4}
+
+#gameover{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,25,40,.35);z-index:20;animation:fade .3s;border-radius:6px}
+.go-card{background:var(--panel);border:2px solid var(--gold);border-radius:16px;padding:22px 26px;text-align:center;max-width:90%;box-shadow:var(--tb-shadow-lg)}
+.go-card h2{margin:0 0 6px;font-family:var(--tb-font-brand);font-size:30px}
+.go-card p{margin:0 0 16px;color:var(--muted)}
+.go-card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#goNet{margin:-8px 0 14px}
+#goNet:empty{display:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.modal{position:fixed;inset:0;background:rgba(20,25,40,.5);display:grid;place-items:center;z-index:50;padding:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:20px 24px;box-shadow:var(--tb-shadow-lg);position:relative}
+.card h2{margin:0 0 10px;font-family:var(--tb-font-brand);font-size:26px;line-height:1.15}
+.card h3{margin:16px 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink)}
+.card p,.card li{font-size:14.5px;line-height:1.55}
+.card ul{margin:6px 0;padding-left:20px}
+.card .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;align-items:center}
+.note{color:var(--muted);font-size:12.5px}
+.credit{margin-right:auto}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:110px;background:var(--btn);color:var(--text);border:2px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-weight:800;cursor:pointer}
+.seg button:hover{background:var(--btn-hover)}
+.seg button.on{background:var(--gold);color:var(--tb-primary-ink);border-color:var(--gold)}
+.seg button:disabled{cursor:not-allowed;pointer-events:none}
+#segLevel button{min-width:0;padding:8px 2px;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+#segLevel button small{font-size:10px;font-weight:700;opacity:.75}
+#segLook button .sw{display:inline-flex;gap:3px;vertical-align:-3px;margin-right:8px}
+#segLook button .sw i{width:14px;height:14px;border-radius:50%;display:block}
+#segSide button[data-v="black"]{background:#141414;color:#f4f1ea;border-color:#5a5a5a;opacity:.82}
+#segSide button[data-v="white"]{background:#f4f1ea;color:#1b1b1b;border-color:#d9d3c2;opacity:.82}
+#segSide button.on{opacity:1;border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.off{opacity:.28;filter:grayscale(1)}
+.off .seg button.on{background:var(--btn);color:var(--text);border-color:var(--line);box-shadow:none}
+.trow{display:flex;align-items:center;gap:14px}
+.trow input[type=range]{flex:1;accent-color:#e3a300}
+.trow b{min-width:72px;text-align:right;font-size:16px}
+#levelNote,#lookNote{min-height:2.8em;line-height:1.4;margin:6px 0 0}
+.netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.netrow .seg{flex:2 1 240px}
+#joinCode{flex:1 1 140px;min-width:0;background:#fff;color:var(--text);border:2px solid var(--btn-line);border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;font-size:18px;letter-spacing:.2em;text-transform:uppercase;text-align:center}
+#joinCode::placeholder{letter-spacing:normal;font-weight:600;font-size:14px;color:var(--muted);text-transform:none}
+#joinCode:disabled{opacity:.35}
+#mNet .card{max-width:460px;text-align:center}
+#mNet .foot{justify-content:center}
+.netcode{font-family:var(--tb-font-brand);font-size:46px;font-weight:800;letter-spacing:.22em;padding-left:.22em;color:var(--gold-ink);margin:4px 0 12px;user-select:all}
+.netlink{display:flex;gap:8px}
+.netlink input{flex:1;min-width:0;background:var(--field);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px}
+#netMsg{color:var(--muted);margin:14px 0 0}
+
+body.portrait .brand{display:none}
+body.portrait .actions{width:100%} body.portrait #btnNew{margin-left:auto}
+body.portrait #status{font-size:13px;margin-bottom:8px;height:58px}
+body.portrait #stage{flex-direction:column;align-items:center;gap:10px}
+body.portrait .side{display:contents}
+body.portrait .panel{width:var(--S)}
+body.portrait .panel.top-p{order:1} body.portrait #boardWrap{order:2} body.portrait .panel.bot-p{order:3} body.portrait #info{order:4;width:var(--S)}
+body.portrait .ptime{font-size:22px}
+@media (max-width:600px){#segLevel button{flex:0 0 calc((100% - 24px) / 4)}#segLevel{justify-content:center}
+  #segLook button{min-width:0;padding:10px 4px;font-size:13.5px;white-space:nowrap}#segLook button .sw{display:none}}
+</style>
+</head>
+<body class="look-blind">
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "blind-gomoku" });</script>
+<div id="app">
+  <header class="top">
+    <div class="brand"><h1 data-i18n="brand">Cờ Ca-rô Mù</h1></div>
+    <div class="actions">
+      <button class="btn" id="btnRules" data-i18n="b_rules">Luật chơi</button>
+      <button class="btn primary" id="btnNew" data-i18n="b_new">Ván mới</button>
+    </div>
+  </header>
+  <div id="status"><span class="dot c1" id="stDot"></span><span id="statusText"></span></div>
+  <main id="stage">
+    <div id="boardWrap">
+      <div id="board"><svg id="grid" viewBox="0 0 15 15" aria-hidden="true"></svg><div id="stones"></div></div>
+      <div id="gameover" hidden>
+        <div class="go-card">
+          <h2 id="goTitle"></h2>
+          <p id="goSub"></p>
+          <p class="note" id="goNet"></p>
+          <div class="row">
+            <button class="btn primary" id="goNew" data-i18n="b_new">Ván mới</button>
+            <button class="btn" id="goView" data-i18n="b_view">Xem bàn cờ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="side">
+      <section class="panel" id="panel-1"><span class="pdot c1"></span><div class="pinfo"><b></b><span></span></div><div class="ptime"></div><div class="pbar"><i></i></div></section>
+      <section class="panel" id="panel-2"><span class="pdot c2"></span><div class="pinfo"><b></b><span></span></div><div class="ptime"></div><div class="pbar"><i></i></div></section>
+      <section id="info"><dl id="infoList"></dl><p id="tip"></p></section>
+    </aside>
+  </main>
+</div>
+
+<div class="modal" id="mRules" hidden>
+  <div class="card">
+    <h2 data-i18n="brand">Cờ Ca-rô Mù</h2>
+    <p data-i18n="r_intro"></p>
+    <h3 data-i18n="r_h_rules"></h3>
+    <ul><li data-i18n="r_turn"></li><li data-i18n="r_win"></li><li data-i18n="r_time"></li><li data-i18n="r_occ"></li><li data-i18n="r_draw"></li></ul>
+    <h3 data-i18n="r_h_look"></h3>
+    <ul><li data-i18n="r_classic"></li><li data-i18n="r_blind"></li><li data-i18n="r_reveal"></li></ul>
+    <h3 data-i18n="r_h_opp"></h3>
+    <ul><li data-i18n="r_ai"></li><li data-i18n="r_online"></li></ul>
+    <p class="note" data-i18n="r_inspired"></p>
+    <div class="foot"><span class="note credit" data-i18n="r_credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok"></button></div>
+  </div>
+</div>
+
+<div class="modal" id="mMode" hidden>
+  <div class="card">
+    <h2 data-i18n="m_title"></h2>
+    <h3 data-i18n="m_vs"></h3>
+    <div class="seg" id="segVs"><button data-v="bot" data-i18n="m_bot"></button><button data-v="online" data-i18n="m_online"></button></div>
+    <div id="netOpts">
+      <h3 data-i18n="m_net"></h3>
+      <div class="netrow">
+        <div class="seg" id="segNet"><button data-v="create" data-i18n="m_create"></button><button data-v="join" data-i18n="m_join"></button></div>
+        <input id="joinCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+      <p class="note" id="netNote"></p>
+    </div>
+    <div id="ruleOpts">
+      <h3 data-i18n="m_look"></h3>
+      <div class="seg" id="segLook">
+        <button data-v="classic"><span class="sw"><i style="background:var(--st-1)"></i><i style="background:var(--st-2);box-shadow:0 0 0 1px #ccc"></i></span><span data-i18n="look_classic"></span></button>
+        <button data-v="blind"><span class="sw"><i style="background:var(--blind)"></i><i style="background:var(--blind)"></i></span><span data-i18n="look_blind"></span></button>
+      </div>
+      <p class="note" id="lookNote"></p>
+      <h3 data-i18n="m_time"></h3>
+      <div class="trow"><input type="range" id="timeRange" min="0" max="9" step="1"><b id="timeVal"></b></div>
+      <h3 data-i18n="m_side"></h3>
+      <div class="seg" id="segSide"><button data-v="black" data-i18n="m_black"></button><button data-v="white" data-i18n="m_white"></button></div>
+    </div>
+    <div id="levelOpts">
+      <h3 data-i18n="m_level"></h3>
+      <div class="seg" id="segLevel"></div>
+      <p class="note" id="levelNote"></p>
+    </div>
+    <div class="foot">
+      <button class="btn" id="modeCancel" data-i18n="cancel"></button>
+      <button class="btn primary" id="modeStart" data-i18n="m_start"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mNet" hidden>
+  <div class="card">
+    <h2 id="netTitle"></h2>
+    <div id="netCodeBox" hidden>
+      <div class="netcode" id="netCode"></div>
+      <div class="netlink"><input id="netLink" readonly><button class="btn" id="netCopy" data-i18n="n_copy"></button></div>
+    </div>
+    <p id="netMsg"></p>
+    <div class="foot"><button class="btn" id="netCancel" data-i18n="cancel"></button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   CỜ CA-RÔ MÙ (BLIND GOMOKU)
+   Luật theo Devil's Gomoku: bàn 15x15, Đen đi trước, đúng 5 quân liền hàng thì thắng (6+ không tính),
+   mỗi lượt có giới hạn giờ (hết giờ là thua), 2 kiểu quân: Rõ ràng / Mù (bản gốc còn có Sương mù, chủ game bỏ).
+   Toạ độ: ô i = r*15 + c (r hàng 0-14 từ trên xuống, c cột 0-14 từ trái sang). Màu quân: 1 = Đen, 2 = Trắng.
+   ============================================================ */
+const $ = (s, root = document) => root.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const N = 15, NN = N * N;
+
+/* ---------- ĐA NGÔN NGỮ (vi / en) ---------- */
+const I18N = {
+vi: {
+  title: "Cờ Ca-rô Mù", brand: "Cờ Ca-rô Mù",
+  b_rules: "Luật chơi", b_new: "Ván mới", b_view: "Xem bàn cờ", cancel: "Huỷ",
+  r_intro: "Cờ ca-rô trên bàn 15x15, nhưng quân cờ có thể <b>trông giống hệt nhau</b>. Bạn phải tự nhớ quân nào của mình, quân nào của đối thủ.",
+  r_h_rules: "Luật chơi",
+  r_turn: "<b>Đen đi trước</b>. Hai bên lần lượt đặt 1 quân vào một giao điểm còn trống.",
+  r_win: "Ai có <b>đúng 5 quân</b> liền nhau trước (ngang, dọc hoặc chéo) thì thắng. Hàng 6 quân trở lên <b>không tính</b>.",
+  r_time: "Mỗi lượt có giới hạn thời gian. <b>Hết giờ là thua.</b>",
+  r_occ: "Bấm vào chỗ đã có quân thì không có gì xảy ra, bạn chọn chỗ khác là được.",
+  r_draw: "Bàn kín quân mà chưa ai thắng thì hoà.",
+  r_h_look: "Kiểu quân",
+  r_classic: "<b>Rõ ràng</b>: quân Đen và quân Trắng như cờ ca-rô thường.",
+  r_blind: "<b>Mù</b>: mọi quân giống hệt nhau. Chỉ có nước vừa đi được đánh dấu.",
+  r_reveal: "Hết ván, màu thật của mọi quân sẽ hiện ra.",
+  r_h_opp: "Đối thủ",
+  r_ai: "<b>AI</b> có 7 mức, từ IQ 40 đến IQ 160. Ở mức thấp, AI cũng hay nhớ nhầm quân giống người.",
+  r_online: "<b>Chơi online</b>: một người tạo phòng rồi gửi mã 5 ký tự hoặc link mời cho bạn. Chủ phòng chọn kiểu quân, thời gian và bên cầm quân. Chơi lại thì hai bên đổi màu.",
+  r_inspired: "Lấy cảm hứng từ trò Blind Omok trong The Devil's Plan.",
+  r_credit: "Game được làm bởi Gary Duc Nguyen", r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
+  m_title: "Ván mới", m_vs: "Đối thủ", m_bot: "Chơi với AI", m_online: "Chơi online",
+  m_net: "Phòng online", m_create: "Tạo phòng", m_join: "Vào phòng", m_code_ph: "Mã phòng",
+  m_net_create: "Kiểu quân, thời gian và bên cầm quân bạn chọn ở dưới sẽ áp dụng cho cả hai người.",
+  m_net_join: "Nhập mã phòng bạn bè gửi, hoặc mở thẳng link mời của họ. Chủ phòng chọn luật.",
+  m_look: "Kiểu quân", look_classic: "Rõ ràng", look_blind: "Mù",
+  lookn_classic: "Quân Đen và quân Trắng khác màu, như cờ ca-rô thường.",
+  lookn_blind: "Mọi quân giống hệt nhau. Bạn phải tự nhớ quân nào của ai.",
+  m_time: "Thời gian mỗi lượt", m_time_v: "{0} giây",
+  m_side: "Bạn cầm quân", m_black: "Đen (đi trước)", m_white: "Trắng (đi sau)",
+  m_level: "Độ khó của AI", m_start: "Bắt đầu ván mới", m_forfeit: "Bỏ ván này, chơi ván mới",
+  lv_40: "Mới chơi", lv_60: "Chơi vui", lv_80: "Chơi vui", lv_100: "Khá", lv_120: "Khá", lv_140: "Cao thủ", lv_160: "Ác quỷ",
+  lvn_40: "Đi khá ngẫu hứng, hay quên chặn và hay nhớ nhầm quân.",
+  lvn_60: "Biết tấn công nhưng thỉnh thoảng bỏ sót nước chặn, đôi khi nhớ nhầm quân.",
+  lvn_80: "Chặn được phần lớn đường nguy hiểm, thi thoảng vẫn nhớ nhầm quân.",
+  lvn_100: "Ít khi bỏ sót nước chặn, hiếm khi nhớ nhầm quân.",
+  lvn_120: "Tính trước nước đáp trả của bạn, gần như không nhớ nhầm.",
+  lvn_140: "Nhớ hết mọi quân, biết dồn ép bằng chuỗi nước 4 liên tiếp.",
+  lvn_160: "Nhớ hết mọi quân, tính sâu nhất. Thắng được một ván đã là rất giỏi.",
+  n_1: "Đen", n_2: "Trắng",
+  role_you: "BẠN", role_bot: "AI · IQ {0}", role_opp: "ĐỐI THỦ",
+  st_notstarted: "<b>Chưa bắt đầu</b> · Bấm <b>Ván mới</b> để chọn chế độ và bắt đầu chơi",
+  st_you: "<b>Lượt của bạn</b> ({0}) · Chọn một giao điểm còn trống",
+  st_bot: "<b>AI đang nghĩ…</b>",
+  st_remote: "<b>Lượt đối thủ</b> ({0}) · đang chờ đối thủ đi…",
+  st_win_you: "<b>Bạn thắng!</b> Đủ 5 quân liền hàng.", st_win_bot: "<b>AI thắng</b> với 5 quân liền hàng.", st_win_opp: "<b>Đối thủ thắng</b> với 5 quân liền hàng.",
+  st_to_you: "<b>Hết giờ!</b> Bạn không đặt quân kịp nên thua ván.", st_to_opp: "<b>Đối thủ hết giờ</b> · bạn thắng!",
+  st_draw: "<b>Hoà</b> · bàn đã kín quân.", st_left: "<b>Bạn thắng</b> · đối thủ đã rời phòng.",
+  st_aborted: "<b>Ván online đã dừng</b> · mất kết nối hoặc lệch trạng thái.",
+  go_you: "BẠN THẮNG!", go_bot: "AI THẮNG!", go_opp: "ĐỐI THỦ THẮNG!", go_draw: "HOÀ", go_timeout: "HẾT GIỜ!", go_aborted: "VÁN ĐÃ DỪNG",
+  gs_five: "5 quân liền hàng ở nước thứ {0}.", gs_to_you: "Bạn không đặt quân kịp trong thời gian cho phép.", gs_to_opp: "Đối thủ không đặt quân kịp trong thời gian cho phép.",
+  gs_draw: "Bàn đã kín quân mà chưa ai có 5 quân liền hàng.", gs_left: "Đối thủ đã rời phòng.", gs_aborted: "Ván online bị dừng giữa chừng.",
+  go_rematch: "Chơi lại", go_rm_wait: "Đã mời chơi lại, đang chờ đối thủ đồng ý…", go_rm_them: "Đối thủ muốn chơi lại! Bấm Chơi lại để bắt đầu (hai bên đổi màu quân).",
+  i_look: "Kiểu quân", i_time: "Thời gian", i_time_v: "{0} giây mỗi lượt", i_moves: "Số nước đã đi",
+  tip_classic: "Ai có đúng 5 quân liền hàng trước thì thắng. 6 quân liền không tính.",
+  tip_blind: "Mọi quân giống hệt nhau. Hãy nhớ quân nào là của bạn!",
+  n_title_host: "Phòng của bạn", n_title_join: "Vào phòng", n_title_err: "Không kết nối được",
+  n_connecting: "Đang kết nối…", n_wait: "Gửi mã hoặc link này cho bạn bè. Đang chờ đối thủ vào phòng…",
+  n_joining: "Đang vào phòng {0}…", n_copy: "Chép link", n_copied: "Đã chép!", n_close: "Đóng",
+  n_err_code: "Mã phòng gồm 5 ký tự, bạn kiểm tra lại nhé.",
+  n_err_nopeer: "Không tìm thấy phòng {0}. Mã có thể sai, hoặc chủ phòng đã đóng phòng.",
+  n_err_full: "Phòng này đã đủ 2 người.",
+  n_err_version: "Hai máy đang chạy hai phiên bản game khác nhau. Tải lại trang (Ctrl+F5) ở cả hai máy rồi thử lại.",
+  n_err_timeout: "Chờ quá lâu mà không nối được tới chủ phòng. Mạng của một trong hai bên có thể đang chặn kết nối.",
+  n_err_desync: "Hai máy bị lệch trạng thái ván cờ nên ván online đã dừng.",
+  n_err_net: "Lỗi kết nối ({0}). Thử lại sau ít phút.",
+  n_err_lib: "Không tải được thư viện kết nối PeerJS. Kiểm tra mạng rồi thử lại.",
+},
+en: {
+  title: "Blind Gomoku", brand: "Blind Gomoku",
+  b_rules: "Rules", b_new: "New game", b_view: "View board", cancel: "Cancel",
+  r_intro: "Gomoku on a 15x15 board, except the stones may <b>all look the same</b>. You have to remember which stones are yours and which are your opponent's.",
+  r_h_rules: "Rules",
+  r_turn: "<b>Black moves first</b>. Players take turns placing 1 stone on an empty intersection.",
+  r_win: "The first to get <b>exactly 5 stones</b> in a row (horizontal, vertical or diagonal) wins. Rows of 6 or more <b>do not count</b>.",
+  r_time: "Each turn has a time limit. <b>Run out of time and you lose.</b>",
+  r_occ: "Clicking a spot that already has a stone does nothing, just pick another spot.",
+  r_draw: "If the board fills up with no winner, the game is a draw.",
+  r_h_look: "Stone style",
+  r_classic: "<b>Classic</b>: black and white stones, like regular gomoku.",
+  r_blind: "<b>Blind</b>: all stones look exactly the same. Only the last move is marked.",
+  r_reveal: "When the game ends, the real color of every stone is revealed.",
+  r_h_opp: "Opponent",
+  r_ai: "The <b>AI</b> has 7 levels, from IQ 40 to IQ 160. At low levels it also mixes up stones, just like us.",
+  r_online: "<b>Online</b>: one player creates a room and sends the 5-letter code or invite link to a friend. The host picks the stone style, the time limit and the sides. In a rematch the colors are swapped.",
+  r_inspired: "Inspired by Blind Omok from The Devil's Plan.",
+  r_credit: "Game made by Gary Duc Nguyen", r_ok: "Got it", m_back: "Back to Rules",
+  m_title: "New Game", m_vs: "Opponent", m_bot: "Play vs AI", m_online: "Play online",
+  m_net: "Online room", m_create: "Create room", m_join: "Join room", m_code_ph: "Room code",
+  m_net_create: "The stone style, time limit and side you pick below apply to both players.",
+  m_net_join: "Enter the room code your friend sent you, or just open their invite link. The host picks the rules.",
+  m_look: "Stone style", look_classic: "Classic", look_blind: "Blind",
+  lookn_classic: "Black and white stones, like regular gomoku.",
+  lookn_blind: "All stones look exactly the same. You have to remember whose is whose.",
+  m_time: "Time per turn", m_time_v: "{0} s",
+  m_side: "You play", m_black: "Black (moves first)", m_white: "White (moves second)",
+  m_level: "AI difficulty", m_start: "Start new game", m_forfeit: "Abandon this game, start new",
+  lv_40: "Beginner", lv_60: "Casual", lv_80: "Casual", lv_100: "Skilled", lv_120: "Skilled", lv_140: "Expert", lv_160: "Devil",
+  lvn_40: "Plays on a whim, often forgets to block and mixes up stones.",
+  lvn_60: "Can attack but sometimes misses a block, and sometimes mixes up stones.",
+  lvn_80: "Blocks most dangerous lines, still mixes up stones now and then.",
+  lvn_100: "Rarely misses a block, rarely mixes up stones.",
+  lvn_120: "Looks ahead at your reply, almost never mixes up stones.",
+  lvn_140: "Remembers every stone and can force a win with a chain of fours.",
+  lvn_160: "Remembers every stone and searches the deepest. Even one win is an amazing feat.",
+  n_1: "Black", n_2: "White",
+  role_you: "YOU", role_bot: "AI · IQ {0}", role_opp: "OPPONENT",
+  st_notstarted: "<b>Not started</b> · Press <b>New game</b> to choose a mode and start playing",
+  st_you: "<b>Your turn</b> ({0}) · Pick an empty intersection",
+  st_bot: "<b>The AI is thinking…</b>",
+  st_remote: "<b>Opponent's turn</b> ({0}) · waiting for their move…",
+  st_win_you: "<b>You win!</b> Five in a row.", st_win_bot: "<b>The AI wins</b> with five in a row.", st_win_opp: "<b>Your opponent wins</b> with five in a row.",
+  st_to_you: "<b>Time's up!</b> You did not place a stone in time, so you lose.", st_to_opp: "<b>Your opponent ran out of time</b> · you win!",
+  st_draw: "<b>Draw</b> · the board is full.", st_left: "<b>You win</b> · your opponent left the room.",
+  st_aborted: "<b>Online game stopped</b> · connection lost or out of sync.",
+  go_you: "YOU WIN!", go_bot: "AI WINS!", go_opp: "OPPONENT WINS!", go_draw: "DRAW", go_timeout: "TIME'S UP!", go_aborted: "GAME STOPPED",
+  gs_five: "Five in a row on move {0}.", gs_to_you: "You did not place a stone within the time limit.", gs_to_opp: "Your opponent did not place a stone within the time limit.",
+  gs_draw: "The board is full and nobody got five in a row.", gs_left: "Your opponent left the room.", gs_aborted: "The online game was stopped midway.",
+  go_rematch: "Rematch", go_rm_wait: "Rematch requested, waiting for your opponent…", go_rm_them: "Your opponent wants a rematch! Press Rematch to start (colors are swapped).",
+  i_look: "Stone style", i_time: "Time", i_time_v: "{0} s per turn", i_moves: "Moves played",
+  tip_classic: "The first to get exactly 5 in a row wins. Six in a row does not count.",
+  tip_blind: "All stones look the same. Remember which ones are yours!",
+  n_title_host: "Your room", n_title_join: "Joining room", n_title_err: "Could not connect",
+  n_connecting: "Connecting…", n_wait: "Send this code or link to a friend. Waiting for an opponent to join…",
+  n_joining: "Joining room {0}…", n_copy: "Copy link", n_copied: "Copied!", n_close: "Close",
+  n_err_code: "Room codes have 5 characters, please check it again.",
+  n_err_nopeer: "Room {0} was not found. The code may be wrong, or the host has closed the room.",
+  n_err_full: "This room already has 2 players.",
+  n_err_version: "The two devices are running different versions of the game. Reload the page (Ctrl+F5) on both and try again.",
+  n_err_timeout: "Timed out connecting to the host. One of the networks may be blocking the connection.",
+  n_err_desync: "The two devices got out of sync, so the online game was stopped.",
+  n_err_net: "Connection error ({0}). Try again in a few minutes.",
+  n_err_lib: "Could not load the PeerJS connection library. Check your network and try again.",
+}
+};
+let LANG = "vi";
+try { const s = localStorage.getItem("lang"); LANG = (s === "vi" || s === "en") ? s : ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"); } catch (e) { LANG = (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"; }
+const tr = (key, ...a) => String((I18N[LANG][key] ?? I18N.vi[key] ?? key)).replace(/\{(\d)\}/g, (m, i) => a[i]);
+function applyI18n() {
+  document.documentElement.lang = LANG; document.title = tr("title") + " · Twistboard";
+  document.querySelectorAll("[data-i18n]").forEach(e => { e.innerHTML = tr(e.dataset.i18n); });
+}
+
+/* ---------- ÂM THANH (tổng hợp bằng Web Audio, không cần file) ---------- */
+let AC = null;
+try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+function tone(freq, start, dur, type = "sine", vol = .18) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
+  g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + .01); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.start(start); o.stop(start + dur + .02);
+}
+function sfx(name) {
+  if (!AC) return;
+  try {
+    if (AC.state !== "running") AC.resume().catch(() => {});
+    const t = AC.currentTime + .01;
+    if (name === "stone") {   // tiếng "cạch" của quân cờ: tiếng ồn ngắn lọc dải + tiếng trầm
+      const len = Math.floor(AC.sampleRate * .05), buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+      f.type = "bandpass"; f.frequency.value = 2200; f.Q.value = 1.2; g.gain.value = .55;
+      src.buffer = buf; src.connect(f); f.connect(g); g.connect(AC.destination); src.start(t);
+      tone(160, t, .09, "sine", .22);
+    } else if (name === "win") [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * .11, .3, "triangle", .2));
+    else if (name === "lose") [392, 330, 262, 196].forEach((f, i) => tone(f, t + i * .15, .35, "triangle", .18));
+    else if (name === "draw") [440, 440].forEach((f, i) => tone(f, t + i * .18, .25, "triangle", .16));
+    else if (name === "tick") tone(1100, t, .05, "square", .05);
+  } catch (e) {}
+}
+
+/* ---------- CHẾ ĐỘ, CÀI ĐẶT ---------- */
+const TIMES = [3, 5, 10, 15, 20, 30, 45, 60, 90, 120];   // giống thanh chọn của bản gốc: 3 tới 120 giây
+const LEVELS = ["40", "60", "80", "100", "120", "140", "160"];
+const LOOKS = ["classic", "blind"];
+const PREFS_KEY = "blindgomoku.prefs";
+const PREFS_DEFAULT = { vs: "bot", human: "black", level: "80", look: "blind", time: 90, net: "create", code: "" };
+let PREFS = clone(PREFS_DEFAULT);
+try { const s = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); if (s && typeof s === "object") for (const k of ["vs", "human", "level", "look", "time"]) if (s[k] !== undefined) PREFS[k] = s[k]; } catch (e) {}
+if (!LEVELS.includes(PREFS.level)) PREFS.level = "80";
+if (!LOOKS.includes(PREFS.look)) PREFS.look = "blind";
+if (!TIMES.includes(+PREFS.time)) PREFS.time = 90;
+if (PREFS.vs !== "online") PREFS.vs = "bot";
+if (PREFS.human !== "white") PREFS.human = "black";
+function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify({ vs: PREFS.vs, human: PREFS.human, level: PREFS.level, look: PREFS.look, time: PREFS.time })); } catch (e) {} }
+
+let MODE = clone(PREFS);   // chế độ của ván đang chơi (ván online của khách: kiểu quân và giờ lấy theo chủ phòng)
+const humanC = () => (MODE.human === "white" ? 2 : 1);
+const isBot = c => MODE.vs === "bot" && c !== humanC();
+const isRemote = c => MODE.vs === "online" && c !== humanC();
+const isLocal = c => !isBot(c) && !isRemote(c);
+
+/* ---------- TRẠNG THÁI ---------- */
+let bd = new Int8Array(NN), turn = 1, over = null, moves = [], started = false, gameId = 0, overDismissed = false;
+let aiMem = new Map();   // trí nhớ của AI: ô → { c: màu AI tin là đúng, t: số thứ tự nước đi }
+
+const DIRS = [[0, 1], [1, 0], [1, 1], [1, -1]];
+const inb = (r, c) => r >= 0 && r < N && c >= 0 && c < N;
+/* Trả về 5 ô nếu quân màu c ở ô i (đã đặt) tạo thành hàng ĐÚNG 5 quân, ngược lại null. Hàng 6+ không tính. */
+function runFive(b, i, c) {
+  const r = (i / N) | 0, cc = i % N;
+  for (const [dr, dc] of DIRS) {
+    const cells = [i];
+    let rr = r + dr, c2 = cc + dc;
+    while (inb(rr, c2) && b[rr * N + c2] === c) { cells.push(rr * N + c2); rr += dr; c2 += dc; }
+    rr = r - dr; c2 = cc - dc;
+    while (inb(rr, c2) && b[rr * N + c2] === c) { cells.push(rr * N + c2); rr -= dr; c2 -= dc; }
+    if (cells.length === 5) return cells;
+  }
+  return null;
+}
+function isFiveMove(b, i, c) { if (b[i]) return false; b[i] = c; const f = runFive(b, i, c); b[i] = 0; return !!f; }
+
+/* ---------- KHỞI TẠO VÁN ---------- */
+function newGame(blank) {
+  gameId++; clearTimeout(botTimer);
+  bd = new Int8Array(NN); turn = 1; over = null; moves = []; started = !blank; overDismissed = false; aiMem = new Map();
+  stoneEls.forEach(e => e.remove()); stoneEls.clear();
+  applyLook();
+  startClock();
+  render();
+  if (!blank) scheduleBot();
+}
+function applyLook() {
+  for (const l of LOOKS) document.body.classList.toggle("look-" + l, MODE.look === l);
+}
+
+/* ---------- HÀNH ĐỘNG ---------- */
+function place(i) {   // đặt quân cho bên đang tới lượt (mọi nước đi thật đều qua đây)
+  const c = turn;
+  bd[i] = c; moves.push(i); aiMem.set(i, { c, t: moves.length });
+  newStone = i; sfx("stone");
+  const line = runFive(bd, i, c);
+  if (line) over = { winner: c, line, move: moves.length };
+  else if (moves.length === NN) over = { winner: 0, move: moves.length };
+  else turn = 3 - c;
+  startClock(); render(); scheduleBot();
+}
+function timeUp(c) {   // bên c hết giờ: thua
+  if (over || !started) return;
+  over = { winner: 3 - c, timeout: c, move: moves.length };
+  startClock(); render();
+}
+function clickCell(i) {
+  if (!started || over || !isLocal(turn) || bd[i]) return;   // ô đã có quân: bỏ qua, không phạt (giống bản gốc)
+  place(i);
+  if (MODE.vs === "online") netSend({ t: "mv", i, h: stateHash() });
+}
+
+/* ---------- ĐỒNG HỒ MỖI LƯỢT ---------- */
+let deadline = 0, clockTimer = null, lastTick = 0, lastBeep = -1;
+function startClock() {
+  lastBeep = -1;
+  deadline = started && !over && !isBot(turn) ? performance.now() + MODE.time * 1000 : 0;   // AI không bị tính giờ (AI đi trong khoảng 1 giây)
+  lastTick = performance.now();
+  if (!clockTimer) clockTimer = setInterval(tickClock, 100);
+}
+function anyModal() { return [...document.querySelectorAll(".modal")].some(m => !m.hidden); }
+function tickClock() {
+  const now = performance.now(), dt = now - lastTick; lastTick = now;
+  if (!deadline || over || !started) return;
+  if (MODE.vs === "bot" && anyModal()) { deadline += dt; return; }   // chơi với AI: mở bảng Luật chơi / Ván mới thì đồng hồ tạm dừng
+  const left = deadline - now;
+  if (isLocal(turn)) {
+    const s = Math.ceil(left / 1000);
+    if (s <= 5 && s > 0 && s !== lastBeep) { lastBeep = s; sfx("tick"); }
+    if (left <= 0) {
+      timeUp(turn);
+      if (MODE.vs === "online") netSend({ t: "to", h: stateHash() });
+      return;
+    }
+  }
+  renderClocks();
+}
+const timeLeft = () => Math.max(0, deadline - performance.now());
+
+/* ============================================================
+   AI
+   AI đánh trên "bàn trong trí nhớ" của nó: vị trí quân luôn đúng (ai cũng thấy chỗ nào có quân),
+   còn màu quân thì ở chế độ Mù, AI mức thấp có thể nhớ nhầm (giống bản gốc: "they can even forget which stones are black or white").
+   Đánh giá nước đi theo mẫu hàng (đúng 5 mới thắng), chặn/tấn công, mức cao thì tính trước nước đáp trả và tìm chuỗi nước 4 liên tiếp (VCF).
+   ============================================================ */
+const AI = {
+  // forget: tỉ lệ nhớ nhầm màu mỗi quân mỗi lượt (chỉ ở chế độ Mù); missWin/missBlock: tỉ lệ không thấy nước thắng/nước phải chặn;
+  // top: chọn ngẫu nhiên trong bao nhiêu nước tốt nhất; depth/K/ms: tìm kiếm (độ sâu, số nước xét mỗi nút, giới hạn thời gian); vcf/nodes: tìm chuỗi nước 4
+  "40":  { forget: .012, missWin: .3,  missBlock: .6,  top: 9, defW: .5, depth: 0, K: 0,  ms: 0,   vcf: 0,  nodes: 0 },
+  "60":  { forget: .007, missWin: .12, missBlock: .35, top: 5, defW: .7, depth: 0, K: 0,  ms: 0,   vcf: 0,  nodes: 0 },
+  "80":  { forget: .004, missWin: .03, missBlock: .15, top: 3, defW: .85, depth: 0, K: 0,  ms: 0,   vcf: 0,  nodes: 0 },
+  "100": { forget: .002, missWin: 0,   missBlock: .05, top: 2, defW: .9,  depth: 0, K: 0,  ms: 0,   vcf: 0,  nodes: 0 },
+  "120": { forget: .001, missWin: 0,   missBlock: 0,   top: 1, defW: .95, depth: 2, K: 10, ms: 300, vcf: 0,  nodes: 0 },
+  "140": { forget: 0,    missWin: 0,   missBlock: 0,   top: 1, defW: 1,   depth: 3, K: 10, ms: 600, vcf: 6,  nodes: 1500 },
+  "160": { forget: 0,    missWin: 0,   missBlock: 0,   top: 1, defW: 1,   depth: 6, K: 12, ms: 1200, vcf: 10, nodes: 4000 },
+};
+const LOOK_FORGET = { classic: 0, blind: 1 };   // Rõ ràng: AI nhìn thấy màu nên không thể nhớ nhầm
+
+/* Mức của 1 hàng (13 ô quanh ô đang xét, ô giữa = quân mình vừa đặt). 0 trống, 1 quân mình, 2 quân địch hoặc ngoài bàn.
+   6 = đúng 5 (thắng), 5 = bốn mở (2 chỗ thắng), 4 = bốn (1 chỗ thắng), 3 = ba mở, 2 = ba bịt, 1 = hai mở, 0.5 = hai bịt. */
+const LCACHE = new Int8Array(1594323).fill(-1), LA = new Int8Array(13);   // 3^13 kiểu hàng, lưu mức x2 (0..12)
+function fiveAtLine(a, e) {
+  let l = e, r = e;
+  while (l > 0 && a[l - 1] === 1) l--;
+  while (r < 12 && a[r + 1] === 1) r++;
+  return r - l + 1 === 5 && l <= 6 && r >= 6;
+}
+function winPtsLine(a) {
+  let n = 0;
+  for (let e = 1; e <= 11; e++) if (a[e] === 0) { a[e] = 1; if (fiveAtLine(a, e)) n++; a[e] = 0; }
+  return n;
+}
+function calcLevel(a) {
+  if (fiveAtLine(a, 6)) return 6;
+  const w = winPtsLine(a);
+  if (w >= 2) return 5;
+  if (w === 1) return 4;
+  let best = 0;
+  for (let e = 1; e <= 11; e++) if (a[e] === 0) {
+    a[e] = 1; const w2 = winPtsLine(a); a[e] = 0;
+    if (w2 >= 2) return 3;
+    if (w2 === 1) best = 2;
+  }
+  if (best) return best;
+  for (let e = 1; e <= 11; e++) if (a[e] === 0) {
+    a[e] = 1;
+    for (let f = e + 1; f <= 11; f++) if (a[f] === 0) {
+      a[f] = 1; const w3 = winPtsLine(a); a[f] = 0;
+      if (w3 >= 2) { a[e] = 0; return 1; }
+      if (w3 === 1) best = .5;
+    }
+    a[e] = 0;
+  }
+  return best;
+}
+function lineLevel(b, i, c, d) {
+  const [dr, dc] = DIRS[d], r = (i / N) | 0, cc = i % N;
+  let key = 0;
+  for (let k = -6; k <= 6; k++) {
+    const rr = r + k * dr, c2 = cc + k * dc;
+    let v;
+    if (k === 0) v = 1;
+    else if (!inb(rr, c2)) v = 2;
+    else { const x = b[rr * N + c2]; v = x === 0 ? 0 : x === c ? 1 : 2; }
+    LA[k + 6] = v; key = key * 3 + v;
+  }
+  let lv = LCACHE[key];
+  if (lv < 0) { lv = calcLevel(LA.slice()) * 2; LCACHE[key] = lv; }
+  return lv / 2;
+}
+const LV_SCORE = { 0: 0, .5: 20, 1: 100, 2: 350, 3: 3000, 4: 4000 };
+/* Giá trị nếu màu c đặt vào ô trống i */
+function moveVal(b, i, c) {
+  let n5 = 0, n4 = 0, n3 = 0, s = 0;
+  for (let d = 0; d < 4; d++) {
+    const L = lineLevel(b, i, c, d);
+    if (L === 6) return 1e9;
+    if (L === 5) n5++; else if (L === 4) n4++; else if (L === 3) n3++;
+    s += LV_SCORE[L];
+  }
+  if (n5 || n4 >= 2) return 2e7;
+  if (n4 && n3) return 1e7;
+  if (n3 >= 2) return 2e6;
+  return s;
+}
+function candidates(b) {
+  const out = [], mark = new Uint8Array(NN);
+  for (let i = 0; i < NN; i++) if (b[i]) {
+    const r = (i / N) | 0, c = i % N;
+    for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+      const rr = r + dr, c2 = c + dc;
+      if (!inb(rr, c2)) continue;
+      const j = rr * N + c2;
+      if (!b[j] && !mark[j]) { mark[j] = 1; out.push(j); }
+    }
+  }
+  return out;
+}
+function winPointsAround(b, p, c) {   // các ô trống trên 4 đường qua p mà màu c đặt vào thì thắng
+  const out = [], r = (p / N) | 0, cc = p % N;
+  for (const [dr, dc] of DIRS) for (let k = -5; k <= 5; k++) {
+    if (!k) continue;
+    const rr = r + k * dr, c2 = cc + k * dc;
+    if (!inb(rr, c2)) continue;
+    const j = rr * N + c2;
+    if (!b[j] && !out.includes(j) && isFiveMove(b, j, c)) out.push(j);
+  }
+  return out;
+}
+/* Tìm chuỗi nước 4 liên tiếp ép thắng (VCF). Trả về ô đi đầu tiên, hoặc -1. */
+function vcf(b, me, depth, limit) {
+  const op = 3 - me; let nodes = 0;
+  const makesFour = p => { for (let d = 0; d < 4; d++) if (lineLevel(b, p, me, d) >= 4) return true; return false; };
+  function rec(d) {
+    if (++nodes > limit) return false;
+    for (const p of candidates(b)) {
+      if (!makesFour(p)) continue;
+      b[p] = me;
+      let ok = false;
+      if (runFive(b, p, me)) ok = true;
+      else {
+        const W = winPointsAround(b, p, me);
+        if (W.length >= 2) ok = true;
+        else if (W.length === 1 && d > 1) {
+          const q = W[0]; b[q] = op;   // đối thủ buộc phải chặn
+          if (!runFive(b, q, op) && !winPointsAround(b, q, op).length) ok = rec(d - 1);
+          b[q] = 0;
+        }
+      }
+      b[p] = 0;
+      if (ok) return true;
+      if (nodes > limit) return false;
+    }
+    return false;
+  }
+  for (const p of candidates(b)) {
+    if (!makesFour(p)) continue;
+    b[p] = me;
+    let ok = false;
+    const W = winPointsAround(b, p, me);
+    if (W.length >= 2) ok = true;
+    else if (W.length === 1) {
+      const q = W[0]; b[q] = op;
+      if (!runFive(b, q, op) && !winPointsAround(b, q, op).length) ok = rec(depth - 1);
+      b[q] = 0;
+    }
+    b[p] = 0;
+    if (ok) return p;
+    if (nodes > limit) break;
+  }
+  return -1;
+}
+/* Đánh giá tĩnh cả bàn: mỗi "cửa sổ" 5 ô liên tiếp chỉ có quân một màu thì cộng điểm cho màu đó. */
+const WINDOWS = (() => {
+  const w = [];
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) for (const [dr, dc] of DIRS) {
+    const r4 = r + 4 * dr, c4 = c + 4 * dc;
+    if (!inb(r4, c4)) continue;
+    for (let k = 0; k < 5; k++) w.push((r + k * dr) * N + c + k * dc);
+  }
+  return Int16Array.from(w);
+})();
+const WSCORE = [0, 2, 12, 80, 500, 0];
+function evalBoard(b, me) {
+  let s1 = 0, s2 = 0;
+  for (let w = 0; w < WINDOWS.length; w += 5) {
+    let n1 = 0, n2 = 0;
+    for (let k = 0; k < 5; k++) { const x = b[WINDOWS[w + k]]; if (x === 1) n1++; else if (x === 2) n2++; }
+    if (n1 && !n2) s1 += WSCORE[n1]; else if (n2 && !n1) s2 += WSCORE[n2];
+  }
+  return me === 1 ? s1 * 1.1 - s2 : s2 * 1.1 - s1;   // bên tới lượt có lợi thế đi trước
+}
+/* Negamax + alpha-beta: tính trước vài nước, mỗi nút chỉ xét K nước tốt nhất. Nước buộc phải chặn thì đi tiếp không tính độ sâu. */
+const WINV = 1e9;
+function negamax(b, me, depth, alpha, beta, ply, ctx) {
+  if ((++ctx.nodes & 63) === 0 && performance.now() > ctx.deadline) ctx.abort = true;
+  if (ctx.abort) return 0;
+  const op = 3 - me, C = candidates(b);
+  if (!C.length) return 0;
+  const S = [], must = [];
+  for (const i of C) {
+    const a = moveVal(b, i, me);
+    if (a >= 1e9) return WINV - ply;
+    const d = moveVal(b, i, op);
+    if (d >= 1e9) must.push(i);
+    S.push({ i, a, d });
+  }
+  if (must.length >= 2) return -(WINV - ply - 1);   // đối thủ có 2 chỗ thắng: không chặn kịp
+  let list;
+  if (must.length === 1) list = [S.find(x => x.i === must[0])];
+  else {
+    if (S.some(x => x.a >= 1e7)) return WINV - ply - 2;   // mình tạo được thế thắng chắc (bốn mở, 4-4, 4-3)
+    if (depth <= 0) return evalBoard(b, me);
+    S.sort((x, y) => (y.a + y.d) - (x.a + x.d));
+    list = S.slice(0, ctx.K);
+  }
+  let best = -Infinity;
+  for (const x of list) {
+    b[x.i] = me;
+    const v = -negamax(b, op, depth - 1, -beta, -alpha, ply + 1, ctx);
+    b[x.i] = 0;
+    if (ctx.abort) return 0;
+    if (v > best) best = v;
+    if (v > alpha) alpha = v;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+/* Gốc tìm kiếm: tăng dần độ sâu tới khi hết giờ, giữ nước tốt nhất của lần tìm trọn vẹn gần nhất */
+function searchRoot(b, me, list, cfg) {
+  const ctx = { deadline: performance.now() + cfg.ms, abort: false, nodes: 0, K: cfg.K };
+  let bestMove = list[0].i;
+  for (let depth = 1; depth <= cfg.depth; depth++) {
+    let alpha = -Infinity, cur = -1, curV = -Infinity;
+    for (const x of list) {
+      b[x.i] = me;
+      const v = -negamax(b, 3 - me, depth - 1, -Infinity, -alpha, 1, ctx) + Math.random() * 4;   // chút ngẫu nhiên: ván sau không lặp y hệt ván trước
+      b[x.i] = 0;
+      if (ctx.abort) break;
+      if (v > curV) { curV = v; cur = x.i; }
+      if (v > alpha) alpha = v;
+    }
+    if (ctx.abort) break;
+    bestMove = cur;
+    if (curV >= WINV / 2) break;   // đã thấy đường thắng
+    list.sort((x, y) => (y.i === cur) - (x.i === cur));   // lần sau xét nước tốt nhất trước
+  }
+  return bestMove;
+}
+function aiChoose(b, me, cfg) {
+  const op = 3 - me, C = candidates(b);
+  if (!C.length) {   // bàn trống: đi gần giữa
+    const r = 7 + (cfg.top > 2 ? Math.floor(Math.random() * 3) - 1 : 0), c = 7 + (cfg.top > 2 ? Math.floor(Math.random() * 3) - 1 : 0);
+    return r * N + c;
+  }
+  const S = C.map(i => ({ i, a: moveVal(b, i, me), d: moveVal(b, i, op) }));
+  const byA = (x, y) => y.a - x.a;
+  const win = S.filter(x => x.a >= 1e9);
+  if (win.length && Math.random() >= cfg.missWin) return win[0].i;
+  const sees = Math.random() >= cfg.missBlock;
+  const must = S.filter(x => x.d >= 1e9);
+  if (must.length && sees) return must.sort(byA)[0].i;
+  if (!must.length) {
+    const strong = S.filter(x => x.a >= 1e7);
+    if (strong.length) return strong.sort(byA)[0].i;
+    if (cfg.vcf) { const v = vcf(b, me, cfg.vcf, cfg.nodes); if (v >= 0) return v; }
+  }
+  const defW = sees ? cfg.defW : cfg.defW * .3;
+  for (const x of S) {
+    const r = (x.i / N) | 0, c = x.i % N;
+    x.s = x.a + x.d * defW + (14 - Math.abs(r - 7) - Math.abs(c - 7)) * .5;
+  }
+  S.sort((x, y) => y.s - x.s);
+  if (cfg.depth) {
+    if (must.length) return must.sort(byA)[0].i;   // (chỉ tới đây khi AI mức thấp "không thấy", mức có tìm kiếm luôn thấy)
+    return searchRoot(b, me, S.slice(0, cfg.K + 4), cfg);
+  }
+  if (cfg.top > 1 && S[0].s < 1e6) {   // mức thấp: chọn ngẫu nhiên trong vài nước tốt nhất (nước rất quan trọng thì không đùa)
+    const k = Math.min(cfg.top, S.length), w = Array.from({ length: k }, (_, j) => Math.pow(.6, j)), sum = w.reduce((p, q) => p + q, 0);
+    let x = Math.random() * sum;
+    for (let j = 0; j < k; j++) { x -= w[j]; if (x <= 0) return S[j].i; }
+  }
+  return S[0].i;
+}
+function aiBelief(cfg) {   // dựng bàn trong trí nhớ của AI, đồng thời cho AI quên/nhớ lại vài quân
+  const rate = cfg.forget * (LOOK_FORGET[MODE.look] || 0);
+  const b = new Int8Array(NN);
+  for (const [i, m] of aiMem) {
+    if (rate && moves.length - m.t >= 4) {
+      if (m.c === bd[i] && Math.random() < rate) m.c = 3 - m.c;        // nhớ nhầm màu
+      else if (m.c !== bd[i] && Math.random() < .12) m.c = bd[i];      // thỉnh thoảng nhớ ra
+    }
+    b[i] = m.c;
+  }
+  return b;
+}
+let botTimer = null;
+function scheduleBot() {
+  clearTimeout(botTimer);
+  if (!started || over || !isBot(turn)) return;
+  const gid = gameId;
+  botTimer = setTimeout(() => {
+    if (gid !== gameId || over || !isBot(turn)) return;
+    if (anyModal()) return scheduleBot();   // đang mở bảng: chờ người chơi đóng rồi mới đi
+    const cfg = AI[MODE.level] || AI["80"];
+    let i = aiChoose(aiBelief(cfg), turn, cfg);
+    if (bd[i]) i = candidates(bd)[0] ?? bd.findIndex(v => !v);   // an toàn: không bao giờ đặt vào ô đã có quân
+    place(i);
+  }, 450 + Math.random() * 450);
+}
+
+/* ============================================================
+   CHƠI ONLINE (PeerJS: WebRTC nối thẳng hai trình duyệt, không cần game server). Cùng kiểu với Cờ Vua Triệu Hồi.
+   Chủ phòng gửi tin start (màu quân của khách, kiểu quân, giờ mỗi lượt). Mỗi lượt gửi mv (ô) kèm stateHash.
+   Hết giờ: chỉ máy của bên đang tới lượt quyết định, rồi gửi tin "to" cho máy kia.
+   Tin nhắn: hello, start, mv, to, rematch, bye, err.
+   ============================================================ */
+const NET_PROTO = 2;   // tăng số này mỗi khi đổi luật/giao thức
+const PEER_SRC = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+const PEER_SRI = "sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR";
+const PEER_PREFIX = "blindgomoku-";
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", CODE_LEN = 5;
+const NET = { peer: null, conn: null, role: null, code: "", playing: false, hostColor: "black", rm: { me: false, them: false }, gen: 0 };
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
+const newCode = () => Array.from({ length: CODE_LEN }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+const netOpen = () => !!(NET.conn && NET.conn.open);
+const netSend = d => { if (netOpen()) NET.conn.send(d); };
+const stateHash = () => moves.join(",") + "|" + turn + "|" + (over ? over.winner : "-");
+const inviteLink = code => location.href.split("#")[0] + "#room=" + code;
+
+let peerLoading = null;
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  return peerLoading || (peerLoading = new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = PEER_SRC; s.integrity = PEER_SRI; s.crossOrigin = "anonymous";
+    s.onload = () => (window.Peer ? ok() : fail());
+    s.onerror = () => { peerLoading = null; s.remove(); fail(); };
+    document.head.appendChild(s);
+  }));
+}
+function showNet(title, msg, opt = {}) {
+  $("#netTitle").textContent = title; $("#netMsg").textContent = msg;
+  $("#netCodeBox").hidden = !opt.code;
+  if (opt.code) { $("#netCode").textContent = opt.code; $("#netLink").value = inviteLink(opt.code); }
+  $("#netCancel").textContent = tr(opt.done ? "n_close" : "cancel");
+  $("#mNet").hidden = false;
+}
+function startOnline() {
+  netClose(true);
+  MODE = clone(modeDraft); $("#mMode").hidden = true; $("#mRules").hidden = true;
+  newGame(true);
+  if (MODE.net === "join") netJoin(MODE.code); else netHost();
+}
+async function netHost(tries = 0) {
+  const gen = ++NET.gen;
+  NET.role = "host"; NET.hostColor = MODE.human;
+  showNet(tr("n_title_host"), tr("n_connecting"));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const code = newCode(), peer = new Peer(PEER_PREFIX + code);
+  NET.peer = peer; NET.code = code;
+  peer.on("open", () => { if (gen === NET.gen) showNet(tr("n_title_host"), tr("n_wait"), { code }); });
+  peer.on("connection", conn => {
+    if (gen !== NET.gen || NET.conn) { conn.on("open", () => { conn.send({ t: "err", code: "full" }); setTimeout(() => conn.close(), 500); }); return; }
+    NET.conn = conn; bindConn(conn, gen);
+  });
+  peer.on("disconnected", () => {
+    if (gen === NET.gen && !NET.playing && !peer.destroyed) setTimeout(() => { if (gen === NET.gen && !peer.destroyed) peer.reconnect(); }, 1500);
+  });
+  peer.on("error", e => {
+    if (gen !== NET.gen) return;
+    if (e.type === "unavailable-id" && tries < 3) { peer.destroy(); NET.peer = null; netHost(tries + 1); return; }
+    netError(e);
+  });
+}
+async function netJoin(code) {
+  const gen = ++NET.gen;
+  NET.role = "guest"; NET.code = code;
+  showNet(tr("n_title_join"), tr("n_joining", code));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const peer = new Peer(); NET.peer = peer;
+  peer.on("open", () => {
+    if (gen !== NET.gen) return;
+    const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+    NET.conn = conn; bindConn(conn, gen);
+    setTimeout(() => { if (gen === NET.gen && !NET.playing) netFail("n_err_timeout"); }, 25000);
+  });
+  peer.on("error", e => { if (gen === NET.gen) netError(e); });
+}
+function bindConn(conn, gen) {
+  conn.on("open", () => { if (gen === NET.gen && NET.role === "guest") conn.send({ t: "hello", v: NET_PROTO }); });
+  conn.on("data", d => { if (gen === NET.gen) onNetData(d); });
+  conn.on("close", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+  conn.on("error", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+}
+function beginOnlineGame() {
+  NET.playing = true; NET.rm = { me: false, them: false };
+  for (const id of ["#mNet", "#mMode", "#mRules"]) $(id).hidden = true;
+}
+function hostStartGame(color) {
+  NET.hostColor = color;
+  netSend({ t: "start", v: NET_PROTO, color: color === "black" ? "white" : "black", look: MODE.look, time: MODE.time });
+  MODE.human = color; beginOnlineGame(); newGame(false);
+}
+function onNetData(d) {
+  if (!d || typeof d !== "object") return;
+  switch (d.t) {
+    case "hello":
+      if (NET.role !== "host" || NET.playing) return;
+      if (d.v !== NET_PROTO) { netSend({ t: "err", code: "version" }); const c = NET.conn; NET.conn = null; setTimeout(() => c.close(), 500); return; }
+      return hostStartGame(NET.hostColor);
+    case "start":
+      if (NET.role !== "guest") return;
+      if (d.v !== NET_PROTO) return netFail("n_err_version");
+      MODE.human = d.color === "white" ? "white" : "black";
+      MODE.look = LOOKS.includes(d.look) ? d.look : "blind";
+      MODE.time = TIMES.includes(+d.time) ? +d.time : 90;
+      beginOnlineGame(); newGame(false);
+      return;
+    case "mv": {
+      const i = d.i;
+      if (!started || over || !isRemote(turn) || !Number.isInteger(i) || i < 0 || i >= NN || bd[i]) return netDesync();
+      place(i);
+      if (d.h !== stateHash()) netDesync();
+      return;
+    }
+    case "to":
+      if (!started || over || !isRemote(turn)) return;
+      timeUp(turn);
+      if (d.h !== stateHash()) netDesync();
+      return;
+    case "rematch":
+      if (!over || NET.rm.them) return;
+      NET.rm.them = true;
+      if (NET.role === "host" && NET.rm.me) return hostStartGame(NET.hostColor === "black" ? "white" : "black");
+      overDismissed = false; render();
+      return;
+    case "bye": return onNetLost();
+    case "err": return netFail(d.code === "full" ? "n_err_full" : d.code === "version" ? "n_err_version" : "n_err_desync");
+  }
+}
+function requestRematch() {
+  if (NET.rm.me) return;
+  NET.rm.me = true; netSend({ t: "rematch" });
+  if (NET.role === "host" && NET.rm.them) return hostStartGame(NET.hostColor === "black" ? "white" : "black");   // đổi màu quân mỗi ván
+  renderOver();
+}
+function netDesync() { netSend({ t: "err", code: "desync" }); netFail("n_err_desync"); }
+function netError(e) {
+  const type = (e && e.type) || "";
+  if (netOpen()) { console.warn("PeerJS:", type, e); return; }
+  if (type === "peer-unavailable") return netFail("n_err_nopeer", NET.code);
+  netFail("n_err_net", type || String(e));
+}
+function netFail(key, arg) {
+  const midGame = NET.playing && started && !over;
+  netClose(false);
+  if (midGame) { over = { winner: null, aborted: true, move: moves.length }; render(); }
+  showNet(tr("n_title_err"), tr(key, arg), { done: true });
+}
+function onNetLost() {
+  if (NET.role === "host" && !NET.playing) { NET.conn = null; return; }
+  netClose(false);
+  if (started && !over) over = { winner: humanC(), left: true, move: moves.length };
+  render();
+}
+function netClose(bye) {
+  NET.gen++;
+  if (bye) try { netSend({ t: "bye" }); } catch (e) {}
+  const peer = NET.peer, conn = NET.conn;
+  NET.peer = NET.conn = null; NET.playing = false; NET.rm = { me: false, them: false };
+  if (peer || conn) setTimeout(() => { try { if (conn) conn.close(); } catch (e) {} try { if (peer) peer.destroy(); } catch (e) {} }, bye ? 400 : 0);
+}
+
+/* ---------- RENDER ---------- */
+const boardEl = $("#board"), stonesEl = $("#stones");
+const stoneEls = new Map();
+let newStone = -1, hoverCell = -1;
+const ghostEl = document.createElement("div"); ghostEl.className = "st ghost"; ghostEl.hidden = true; stonesEl.appendChild(ghostEl);
+(function buildGrid() {
+  let s = "";
+  for (let k = 0; k < N; k++) {
+    s += `<line x1="0.5" y1="${k + .5}" x2="14.5" y2="${k + .5}"/><line x1="${k + .5}" y1="0.5" x2="${k + .5}" y2="14.5"/>`;
+  }
+  for (const r of [3, 7, 11]) for (const c of [3, 7, 11]) s += `<circle cx="${c + .5}" cy="${r + .5}" r=".11" fill="var(--grid)"/>`;
+  $("#grid").innerHTML = `<g stroke="var(--grid)" stroke-width=".045" stroke-linecap="square">${s}</g>`;
+})();
+const sideName = c => tr("n_" + c);
+function renderBoard() {
+  const last = moves.length ? moves[moves.length - 1] : -1, win = over && over.line ? over.line : [];
+  document.body.classList.toggle("reveal", !!over);
+  for (const i of moves) {
+    let e = stoneEls.get(i);
+    if (!e) {
+      e = document.createElement("div");
+      e.style.setProperty("--r", (i / N) | 0); e.style.setProperty("--c", i % N);
+      stonesEl.appendChild(e); stoneEls.set(i, e);
+    }
+    e.className = "st k" + bd[i] + (i === last ? " last " + (bd[i] === humanC() ? "mine" : "theirs") : "") + (win.includes(i) ? " win" : "") + (i === newStone ? " new" : "");
+  }
+  newStone = -1;
+  const showGhost = hoverCell >= 0 && started && !over && isLocal(turn) && !bd[hoverCell];
+  ghostEl.hidden = !showGhost;
+  if (showGhost) {
+    ghostEl.className = "st ghost k" + turn;
+    ghostEl.style.setProperty("--r", (hoverCell / N) | 0); ghostEl.style.setProperty("--c", hoverCell % N);
+  }
+  boardEl.style.cursor = showGhost ? "pointer" : "default";
+}
+function roleOf(c) {
+  if (isBot(c)) return tr("role_bot", MODE.level);
+  if (isRemote(c)) return tr("role_opp");
+  return tr("role_you");
+}
+function renderClocks() {
+  for (const c of [1, 2]) {
+    const p = $("#panel-" + c), t = p.querySelector(".ptime"), bar = p.querySelector(".pbar i");
+    const active = started && !over && turn === c;
+    p.classList.toggle("active", active);
+    if (isBot(c)) { t.textContent = ""; t.classList.remove("low"); bar.style.transform = "scaleX(1)"; bar.classList.remove("low"); continue; }
+    const left = active && deadline ? timeLeft() : MODE.time * 1000;
+    const s = Math.ceil(left / 1000);
+    t.textContent = s + "s";
+    t.classList.toggle("low", active && s <= 5);
+    bar.style.transform = `scaleX(${Math.max(0, Math.min(1, left / (MODE.time * 1000)))})`;
+    bar.classList.toggle("low", active && s <= 5);
+  }
+}
+function renderPanels() {
+  // màn dọc: đối thủ ở trên, mình ở dưới bàn cờ
+  for (const c of [1, 2]) {
+    const p = $("#panel-" + c);
+    p.querySelector(".pinfo b").textContent = sideName(c);
+    p.querySelector(".pinfo span").textContent = started ? roleOf(c) : "";
+    p.classList.toggle("top-p", c !== humanC()); p.classList.toggle("bot-p", c === humanC());
+  }
+  const side = $(".side");   // màn ngang: đối thủ ở trên, mình ở dưới
+  if (humanC() === 1) side.insertBefore($("#panel-2"), $("#panel-1")); else side.insertBefore($("#panel-1"), $("#panel-2"));
+  renderClocks();
+}
+function renderStatus() {
+  const dot = $("#stDot"); let h;
+  dot.className = "dot c" + (over ? (over.winner || 0) : turn);
+  if (!started) h = tr("st_notstarted");
+  else if (over) {
+    const me = humanC();
+    if (over.aborted) h = tr("st_aborted");
+    else if (over.left) h = tr("st_left");
+    else if (over.winner === 0) h = tr("st_draw");
+    else if (over.timeout) h = over.timeout === me ? tr("st_to_you") : tr("st_to_opp");
+    else h = over.winner === me ? tr("st_win_you") : MODE.vs === "bot" ? tr("st_win_bot") : tr("st_win_opp");
+  }
+  else if (isBot(turn)) { h = tr("st_bot"); dot.classList.add("think"); }
+  else if (isRemote(turn)) h = tr("st_remote", sideName(turn));
+  else h = tr("st_you", sideName(turn));
+  $("#statusText").innerHTML = h;
+}
+function renderInfo() {
+  $("#infoList").innerHTML = `<dt>${tr("i_look")}</dt><dd>${tr("look_" + MODE.look)}</dd><dt>${tr("i_time")}</dt><dd>${tr("i_time_v", MODE.time)}</dd><dt>${tr("i_moves")}</dt><dd>${moves.length}</dd>`;
+  $("#tip").textContent = tr("tip_" + MODE.look);
+}
+function renderOver() {
+  const go = $("#gameover");
+  if (!over || overDismissed) { go.hidden = true; return; }
+  const me = humanC();
+  if (go.hidden) sfx(over.aborted ? "draw" : over.winner === 0 ? "draw" : over.winner === me ? "win" : "lose");
+  go.hidden = false;
+  $("#goTitle").textContent = over.aborted ? tr("go_aborted") : over.winner === 0 ? tr("go_draw") : over.timeout === me ? tr("go_timeout")
+    : over.winner === me ? tr("go_you") : MODE.vs === "bot" ? tr("go_bot") : tr("go_opp");
+  $("#goSub").textContent = over.aborted ? tr("gs_aborted") : over.left ? tr("gs_left") : over.winner === 0 ? tr("gs_draw")
+    : over.timeout ? (over.timeout === me ? tr("gs_to_you") : tr("gs_to_opp")) : tr("gs_five", over.move);
+  const rematch = MODE.vs === "online" && netOpen();
+  $("#goNew").textContent = tr(rematch ? "go_rematch" : "b_new");
+  $("#goNew").disabled = rematch && NET.rm.me;
+  $("#goNet").textContent = !rematch ? "" : NET.rm.me ? tr("go_rm_wait") : NET.rm.them ? tr("go_rm_them") : "";
+}
+function render() { renderBoard(); renderPanels(); renderStatus(); renderInfo(); renderOver(); }
+
+/* ---------- KÍCH THƯỚC ---------- */
+function fit() {
+  const vw = document.documentElement.clientWidth, vh = window.innerHeight - ((document.getElementById("tb-header") || {}).offsetHeight || 0);
+  const portrait = vw < 860;
+  document.body.classList.toggle("portrait", portrait);
+  let S = portrait ? vw - 16 - 14 : Math.min(vw - 24 - 300 - 20 - 14, vh - 150);
+  S = Math.max(300, Math.min(S, 720));
+  const cell = Math.floor(S / N); S = cell * N;
+  document.documentElement.style.setProperty("--S", S + "px");
+  document.documentElement.style.setProperty("--cell", cell + "px");
+}
+
+/* ---------- BẢNG CHỌN CHẾ ĐỘ ---------- */
+let modeDraft = null;
+$("#segLevel").innerHTML = LEVELS.map(l => `<button data-v="${l}"><span>IQ ${l}</span><small data-i18n="lv_${l}"></small></button>`).join("");
+const MODE_SEGS = [["#segVs", "vs"], ["#segNet", "net"], ["#segLook", "look"], ["#segSide", "human"], ["#segLevel", "level"]];
+function syncMode() {
+  for (const [id, key] of MODE_SEGS) document.querySelectorAll(id + " button").forEach(b => b.classList.toggle("on", b.dataset.v === modeDraft[key]));
+  const online = modeDraft.vs === "online", join = online && modeDraft.net === "join";
+  $("#netOpts").classList.toggle("off", !online);
+  $("#segNet").querySelectorAll("button").forEach(b => { b.disabled = !online; });
+  $("#joinCode").disabled = !join; $("#joinCode").placeholder = tr("m_code_ph");
+  if (!$("#joinCode").value && modeDraft.code) $("#joinCode").value = modeDraft.code;
+  $("#netNote").textContent = tr(join ? "m_net_join" : "m_net_create");
+  $("#ruleOpts").classList.toggle("off", join);   // vào phòng người khác: chủ phòng chọn luật
+  $("#ruleOpts").querySelectorAll("button,input").forEach(b => { b.disabled = join; });
+  $("#levelOpts").classList.toggle("off", online);
+  $("#segLevel").querySelectorAll("button").forEach(b => { b.disabled = online; });
+  $("#lookNote").textContent = tr("lookn_" + modeDraft.look);
+  $("#levelNote").textContent = "IQ " + modeDraft.level + " · " + tr("lv_" + modeDraft.level) + ": " + tr("lvn_" + modeDraft.level);
+  $("#timeRange").value = TIMES.indexOf(+modeDraft.time);
+  $("#timeVal").textContent = tr("m_time_v", modeDraft.time);
+  $("#modeStart").textContent = online ? tr(join ? "m_join" : "m_create") : started && !over ? tr("m_forfeit") : tr("m_start");
+  if (!started) { MODE.look = modeDraft.look; applyLook(); }
+}
+function openMode() {
+  modeDraft = clone(PREFS); modeDraft.net = MODE.net || "create"; modeDraft.code = "";
+  syncMode();
+  $("#modeCancel").textContent = started ? tr("cancel") : tr("m_back");
+  $("#mMode").hidden = false;
+}
+let returnToMode = true;
+function openRules() { $("#mRules").hidden = false; }
+
+/* ---------- NGÔN NGỮ ---------- */
+function setLang(l) {
+  LANG = l; try { localStorage.setItem("lang", l); } catch (e) {}
+  if (window.TB) TB.setLang(l);
+  applyI18n(); if (modeDraft && !$("#mMode").hidden) syncMode();
+  render();
+}
+if (window.TB) TB.onLang(l => { if (l !== LANG) setLang(l); });
+
+/* ---------- SỰ KIỆN ---------- */
+for (const [id, key] of MODE_SEGS)
+  document.querySelectorAll(id + " button").forEach(b => b.addEventListener("click", () => {
+    modeDraft[key] = b.dataset.v; syncMode();
+    if (modeDraft.vs === "online" && modeDraft.net === "join" && (key === "net" || key === "vs")) $("#joinCode").focus();
+  }));
+$("#timeRange").addEventListener("input", e => { modeDraft.time = TIMES[+e.target.value] || 90; syncMode(); });
+$("#joinCode").addEventListener("input", e => { const v = normCode(e.target.value); if (e.target.value !== v) e.target.value = v; });
+$("#joinCode").addEventListener("keydown", e => { if (e.key === "Enter") $("#modeStart").click(); });
+$("#netCancel").addEventListener("click", () => { netClose(true); $("#mNet").hidden = true; if (!started) openMode(); });
+$("#netCopy").addEventListener("click", () => {
+  const inp = $("#netLink"), btn = $("#netCopy");
+  const done = () => { btn.textContent = tr("n_copied"); setTimeout(() => { btn.textContent = tr("n_copy"); }, 1500); };
+  const legacy = () => { inp.select(); try { document.execCommand("copy"); done(); } catch (e) {} };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done, legacy); else legacy();
+});
+window.addEventListener("pagehide", () => { if (netOpen()) try { NET.conn.send({ t: "bye" }); } catch (e) {} });
+$("#modeCancel").addEventListener("click", () => {
+  $("#mMode").hidden = true;
+  if (!started) { MODE.look = PREFS.look; applyLook(); returnToMode = true; openRules(); }
+});
+$("#modeStart").addEventListener("click", () => {
+  for (const k of ["vs", "human", "level", "look", "time"]) if (!(modeDraft.vs === "online" && modeDraft.net === "join" && k !== "vs")) PREFS[k] = modeDraft[k];
+  savePrefs();
+  if (modeDraft.vs === "online") {
+    if (modeDraft.net === "join") {
+      modeDraft.code = normCode($("#joinCode").value);
+      if (modeDraft.code.length !== CODE_LEN) { $("#netNote").textContent = tr("n_err_code"); $("#joinCode").focus(); return; }
+    }
+    return startOnline();
+  }
+  netClose(true);
+  MODE = clone(modeDraft); $("#mMode").hidden = true; newGame(false);
+});
+function cellFromEvent(e) {
+  const rect = boardEl.getBoundingClientRect(), cw = rect.width / N;
+  const c = Math.floor((e.clientX - rect.left) / cw), r = Math.floor((e.clientY - rect.top) / cw);
+  return inb(r, c) ? r * N + c : -1;
+}
+boardEl.addEventListener("click", e => { const i = cellFromEvent(e); if (i >= 0) clickCell(i); });
+boardEl.addEventListener("mousemove", e => { const i = cellFromEvent(e); if (i !== hoverCell) { hoverCell = i; renderBoard(); } });
+boardEl.addEventListener("mouseleave", () => { hoverCell = -1; renderBoard(); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("#mNet").hidden) $("#netCancel").click();
+  else if (!$("#mRules").hidden) $("#rulesOk").click();
+  else if (!$("#mMode").hidden) { if (started) $("#mMode").hidden = true; }
+});
+$("#btnNew").addEventListener("click", () => {
+  if (MODE.vs === "online" && netOpen() && over) { overDismissed = false; return renderOver(); }
+  openMode();
+});
+$("#goNew").addEventListener("click", () => { if (MODE.vs === "online" && netOpen()) return requestRematch(); openMode(); });
+$("#goView").addEventListener("click", () => { overDismissed = true; renderOver(); });
+$("#btnRules").addEventListener("click", () => { returnToMode = false; openRules(); });
+$("#rulesOk").addEventListener("click", () => { $("#mRules").hidden = true; if (returnToMode) { returnToMode = false; openMode(); } });
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("mousedown", e => {
+  if (e.target !== m || m.id === "mNet" || (m.id === "mMode" && !started)) return;
+  if (m.id === "mRules") return $("#rulesOk").click();
+  m.hidden = true;
+}));
+window.addEventListener("resize", fit);
+
+/* ---------- KHỞI ĐỘNG ---------- */
+(function init() {
+  applyI18n(); fit(); newGame(true);
+  const room = normCode((location.hash.match(/room=([A-Za-z0-9]+)/) || [])[1]);
+  if (room.length === CODE_LEN) {   // mở từ link mời: vào phòng luôn
+    try { history.replaceState(null, "", location.href.split("#")[0]); } catch (e) {}
+    modeDraft = { ...clone(PREFS), vs: "online", net: "join", code: room };
+    startOnline();
+  } else openRules();
+  window.game = {   // tiện debug ở console
+    get mode() { return MODE; }, get state() { return { bd, turn, over, moves, aiMem }; },
+    clickCell, place, aiChoose, AI, runFive, moveVal, vcf, candidates, stateHash,
+  };
+})();
+</script>
+</body>
+</html>

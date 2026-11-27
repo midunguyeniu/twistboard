@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cờ Ca-rô Cược Điểm · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<script src="../../assets/platform.js"></script>
+<style>
+:root{
+  --S:600px; --cell:40px;
+  --bg:var(--tb-bg); --panel:var(--tb-surface); --line:var(--tb-border); --text:var(--tb-text); --muted:var(--tb-muted);
+  --btn:#fff; --btn-hover:var(--tb-hover); --btn-line:var(--tb-border-strong); --field:var(--tb-surface-2); --gold:#ffc928; --gold-ink:var(--tb-gold-ink);
+  --wood:#efc27a; --wood-2:#e3ab58; --grid:#5b3f22;
+  --st-1:radial-gradient(circle at 34% 30%,#61656f,#17191e 62%);
+  --st-2:radial-gradient(circle at 34% 30%,#fff,#e6e1d3 72%);
+  --mine:#1fae4b; --theirs:#e5322b; --pick:#ff7a1a;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--tb-font);min-height:100vh;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;transition:transform .12s ease-out,background-color .15s,filter .15s,opacity .15s}
+button:active:not(:disabled){transform:scale(.92)}
+#app{width:fit-content;margin:0 auto;padding:14px 12px 28px}
+body.portrait #app{width:100%;padding:8px 8px 24px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.brand h1{margin:0;font-family:var(--tb-font-brand);font-size:26px;line-height:1.1}
+.actions{display:flex;gap:8px}
+.btn{background:var(--btn);color:var(--text);border:1.5px solid var(--btn-line);border-radius:10px;padding:8px 15px;font-size:14px;font-weight:800;cursor:pointer}
+.btn:hover{background:var(--btn-hover)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.primary{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:transparent}
+.btn.primary:hover{background:var(--tb-primary-hover)}
+
+#status{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);margin-bottom:12px;font-size:14px;min-height:46px}
+#statusText{flex:1}
+#timer{flex:none;font-family:var(--tb-font-brand);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;padding:2px 10px;border-radius:9px;background:var(--field);border:1px solid var(--line)}
+#timer.low{color:#d9362b;animation:blink .5s infinite}
+#timer:empty{display:none}
+@keyframes blink{50%{opacity:.25}}
+
+#stage{display:flex;gap:20px;align-items:flex-start;justify-content:center}
+#boardWrap{position:relative;flex:none}
+#board{position:relative;width:var(--S);height:var(--S);background:linear-gradient(135deg,var(--wood),var(--wood-2));border-radius:6px;
+  box-shadow:0 0 0 6px #fff,0 0 0 7px var(--tb-border),0 14px 34px rgba(20,30,60,.22);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#grid{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#stones{position:absolute;inset:0;pointer-events:none}
+.st,.ring,.hint{position:absolute;left:calc((var(--c) + .5) * var(--cell));top:calc((var(--r) + .5) * var(--cell));
+  width:calc(var(--cell) * .86);height:calc(var(--cell) * .86);margin:calc(var(--cell) * -.43) 0 0 calc(var(--cell) * -.43);border-radius:50%}
+.st{box-shadow:0 2px 3px rgba(0,0,0,.35)}
+.st.k1{background:var(--st-1)} .st.k2{background:var(--st-2)}
+.st.new{animation:drop .25s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes drop{0%{transform:scale(1.35);opacity:0}100%{transform:none;opacity:1}}
+.st.last::after{content:"";position:absolute;inset:-14%;border:2.5px solid var(--pick);border-radius:5px}
+.st.last.mine::after{border-color:var(--mine)} .st.last.theirs::after{border-color:var(--theirs)}
+.st.win{box-shadow:0 0 0 3px var(--mine),0 0 14px 4px rgba(31,174,75,.75);animation:winpulse 1s infinite}
+@keyframes winpulse{50%{box-shadow:0 0 0 3px var(--mine),0 0 22px 8px rgba(31,174,75,.45)}}
+.ring{border:3px solid var(--pick);background:rgba(255,238,215,.92);display:grid;place-items:center;font-weight:900;color:#a64a00;font-size:calc(var(--cell) * .42);animation:ringin .2s ease-out}
+@keyframes ringin{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.hint{border:2px dashed rgba(166,74,0,.55)}
+.ghost{position:absolute;left:calc((var(--c) + .5) * var(--cell));top:calc((var(--r) + .5) * var(--cell));width:calc(var(--cell) * .5);height:calc(var(--cell) * .5);
+  margin:calc(var(--cell) * -.25) 0 0 calc(var(--cell) * -.25);border-radius:50%;background:rgba(255,122,26,.35)}
+
+.side{width:330px;flex:none;display:flex;flex-direction:column;gap:10px}
+.card2{padding:12px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow)}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.panel{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:8px;padding:8px 10px;border-radius:12px;background:var(--panel);border:2px solid var(--line);box-shadow:var(--tb-shadow);min-width:0}
+.panel.active{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,201,40,.35)}
+.pdot{width:26px;height:26px;border-radius:50%;box-shadow:0 2px 3px rgba(0,0,0,.3)}
+.pdot.c1{background:var(--st-1)} .pdot.c2{background:var(--st-2);box-shadow:0 0 0 1px #d8d2c2,0 2px 3px rgba(0,0,0,.25)}
+.pinfo{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.pinfo b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pinfo span{font-size:11px;font-weight:700;color:var(--muted)}
+.pinfo em{font-style:normal;font-family:var(--tb-font-brand);font-weight:800;font-size:18px;color:var(--gold-ink)}
+.h3{margin:0 0 8px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink);font-weight:800;display:flex;justify-content:space-between;gap:8px}
+.h3 span{color:var(--muted);letter-spacing:0;text-transform:none}
+#action p{margin:0 0 10px;font-size:13.5px;line-height:1.45;color:var(--muted)}
+.row2{display:flex;gap:8px;flex-wrap:wrap}
+.row2 .btn{flex:1;padding:8px 10px}
+.bank{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.bank b{font-family:var(--tb-font-brand);font-size:30px;line-height:1}
+.bank span{font-size:12.5px;color:var(--muted);font-weight:700}
+.bank .carry{color:var(--tb-green,#1fae4b)}
+.segbar{display:flex;gap:2px;margin:0 0 10px}
+.segbar i{flex:1;height:7px;border-radius:2px;background:var(--field);border:1px solid var(--line)}
+.segbar i.on{background:var(--pick);border-color:var(--pick)}
+.bidrow{display:grid;grid-template-columns:34px 38px 1fr 38px auto;gap:6px;align-items:center;margin-bottom:6px}
+.bidrow .num{width:30px;height:30px;border-radius:50%;border:3px solid var(--pick);display:grid;place-items:center;font-weight:900;color:#a64a00}
+.bidrow .v{text-align:center;font-family:var(--tb-font-brand);font-size:24px;font-weight:800;line-height:1}
+.bidrow button{height:36px;border-radius:9px;border:1.5px solid var(--btn-line);background:var(--btn);font-weight:900;font-size:18px;cursor:pointer;color:var(--text)}
+.bidrow button:hover{background:var(--btn-hover)}
+.bidrow button.all{font-size:12px;padding:0 10px}
+.bidrow button:disabled{opacity:.3;cursor:not-allowed}
+.note{color:var(--muted);font-size:12.5px}
+#result .pts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#result .pt{border-radius:10px;border:2px solid var(--line);padding:8px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
+#result .pt.mine{border-color:var(--mine);color:#137a33} #result .pt.theirs{border-color:var(--theirs);color:#b3241e}
+#result .pt i{display:block;width:24px;height:24px;margin:0 auto 4px;border-radius:50%}
+#result .pt i.c1{background:var(--st-1)} #result .pt i.c2{background:var(--st-2);box-shadow:0 0 0 1px #d8d2c2}
+#result .pt small{display:block;color:var(--muted);font-weight:600}
+#history ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;max-height:220px;overflow:auto;font-size:12.5px}
+#history li{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:7px;background:var(--field)}
+#history li .rn{font-weight:800;color:var(--muted);min-width:2.2em}
+#history li .ms{display:inline-flex;gap:2px}
+#history li .ms i{width:11px;height:11px;border-radius:50%}
+#history li .ms i.c1{background:#1b1b1b} #history li .ms i.c2{background:#fff;box-shadow:0 0 0 1px #bbb}
+#history li .who{flex:1;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#history li .bd{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+#history li .bd s{text-decoration:none;color:var(--theirs)}
+#history .empty{color:var(--muted);font-size:12.5px;margin:0}
+
+#gameover{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,25,40,.35);z-index:20;animation:fade .3s;border-radius:6px}
+.go-card{background:var(--panel);border:2px solid var(--gold);border-radius:16px;padding:22px 26px;text-align:center;max-width:90%;box-shadow:var(--tb-shadow-lg)}
+.go-card h2{margin:0 0 6px;font-family:var(--tb-font-brand);font-size:30px}
+.go-card p{margin:0 0 14px;color:var(--muted)}
+.go-card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#goNet{margin:-6px 0 14px}
+#goNet:empty{display:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.modal{position:fixed;inset:0;background:rgba(20,25,40,.5);display:grid;place-items:center;z-index:50;padding:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:20px 24px;box-shadow:var(--tb-shadow-lg);position:relative}
+.card h2{margin:0 0 10px;font-family:var(--tb-font-brand);font-size:26px;line-height:1.15}
+.card h3{margin:16px 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink)}
+.card p,.card li{font-size:14.5px;line-height:1.55}
+.card ul{margin:6px 0;padding-left:20px}
+.card .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;align-items:center}
+.credit{margin-right:auto}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:110px;background:var(--btn);color:var(--text);border:2px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-weight:800;cursor:pointer}
+.seg button:hover{background:var(--btn-hover)}
+.seg button.on{background:var(--gold);color:var(--tb-primary-ink);border-color:var(--gold)}
+.seg button:disabled{cursor:not-allowed;pointer-events:none}
+#segLevel button{min-width:0;padding:8px 2px;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+#segLevel button small{font-size:10px;font-weight:700;opacity:.75}
+.off{opacity:.28;filter:grayscale(1)}
+.off .seg button.on{background:var(--btn);color:var(--text);border-color:var(--line)}
+#levelNote{min-height:2.8em;line-height:1.4;margin:6px 0 0}
+.netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.netrow .seg{flex:2 1 240px}
+#joinCode{flex:1 1 140px;min-width:0;background:#fff;color:var(--text);border:2px solid var(--btn-line);border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;font-size:18px;letter-spacing:.2em;text-transform:uppercase;text-align:center}
+#joinCode::placeholder{letter-spacing:normal;font-weight:600;font-size:14px;color:var(--muted);text-transform:none}
+#joinCode:disabled{opacity:.35}
+#mNet .card{max-width:460px;text-align:center}
+#mNet .foot{justify-content:center}
+.netcode{font-family:var(--tb-font-brand);font-size:46px;font-weight:800;letter-spacing:.22em;padding-left:.22em;color:var(--gold-ink);margin:4px 0 12px;user-select:all}
+.netlink{display:flex;gap:8px}
+.netlink input{flex:1;min-width:0;background:var(--field);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px}
+#netMsg{color:var(--muted);margin:14px 0 0}
+
+body.portrait .brand{display:none}
+body.portrait .actions{width:100%} body.portrait #btnNew{margin-left:auto}
+body.portrait #status{font-size:13px;margin-bottom:8px;min-height:58px}
+body.portrait #stage{flex-direction:column;align-items:center;gap:10px}
+body.portrait .side{width:var(--S)}
+@media (max-width:600px){#segLevel button{flex:0 0 calc((100% - 24px) / 4)}#segLevel{justify-content:center}}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "point-gomoku" });</script>
+<div id="app">
+  <header class="top">
+    <div class="brand"><h1 data-i18n="brand">Cờ Ca-rô Cược Điểm</h1></div>
+    <div class="actions">
+      <button class="btn" id="btnRules" data-i18n="b_rules">Luật chơi</button>
+      <button class="btn primary" id="btnNew" data-i18n="b_new">Ván mới</button>
+    </div>
+  </header>
+  <div id="status"><span id="statusText"></span><span id="timer"></span></div>
+  <main id="stage">
+    <div id="boardWrap">
+      <div id="board"><svg id="grid" viewBox="0 0 15 15" aria-hidden="true"></svg><div id="stones"></div></div>
+      <div id="gameover" hidden>
+        <div class="go-card">
+          <h2 id="goTitle"></h2>
+          <p id="goSub"></p>
+          <p class="note" id="goNet"></p>
+          <div class="row">
+            <button class="btn primary" id="goNew" data-i18n="b_new">Ván mới</button>
+            <button class="btn" id="goView" data-i18n="b_view">Xem bàn cờ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="side">
+      <div class="players">
+        <section class="panel" id="panel-1"><span class="pdot c1"></span><div class="pinfo"><b></b><span class="role"></span><span class="pts"></span></div></section>
+        <section class="panel" id="panel-2"><span class="pdot c2"></span><div class="pinfo"><b></b><span class="role"></span><span class="pts"></span></div></section>
+      </div>
+      <section class="card2" id="action" hidden></section>
+      <section class="card2" id="result" hidden></section>
+      <section class="card2" id="history" hidden></section>
+    </aside>
+  </main>
+</div>
+
+<div class="modal" id="mRules" hidden>
+  <div class="card">
+    <h2 data-i18n="brand">Cờ Ca-rô Cược Điểm</h2>
+    <p data-i18n="r_intro"></p>
+    <h3 data-i18n="r_h_round"></h3>
+    <ul><li data-i18n="r_choose"></li><li data-i18n="r_bid"></li><li data-i18n="r_place"></li></ul>
+    <h3 data-i18n="r_h_points"></h3>
+    <ul><li data-i18n="r_grant"></li><li data-i18n="r_carry"></li><li data-i18n="r_hidden"></li></ul>
+    <h3 data-i18n="r_h_win"></h3>
+    <ul><li data-i18n="r_five"></li><li data-i18n="r_both"></li><li data-i18n="r_draw"></li><li data-i18n="r_time"></li></ul>
+    <h3 data-i18n="r_h_opp"></h3>
+    <ul><li data-i18n="r_ai"></li><li data-i18n="r_online"></li></ul>
+    <p class="note" data-i18n="r_inspired"></p>
+    <div class="foot"><span class="note credit" data-i18n="r_credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok"></button></div>
+  </div>
+</div>
+
+<div class="modal" id="mMode" hidden>
+  <div class="card">
+    <h2 data-i18n="m_title"></h2>
+    <h3 data-i18n="m_vs"></h3>
+    <div class="seg" id="segVs"><button data-v="bot" data-i18n="m_bot"></button><button data-v="online" data-i18n="m_online"></button></div>
+    <div id="netOpts">
+      <h3 data-i18n="m_net"></h3>
+      <div class="netrow">
+        <div class="seg" id="segNet"><button data-v="create" data-i18n="m_create"></button><button data-v="join" data-i18n="m_join"></button></div>
+        <input id="joinCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+      <p class="note" id="netNote"></p>
+    </div>
+    <div id="levelOpts">
+      <h3 data-i18n="m_level"></h3>
+      <div class="seg" id="segLevel"></div>
+      <p class="note" id="levelNote"></p>
+    </div>
+    <div class="foot">
+      <button class="btn" id="modeCancel" data-i18n="cancel"></button>
+      <button class="btn primary" id="modeStart" data-i18n="m_start"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mNet" hidden>
+  <div class="card">
+    <h2 id="netTitle"></h2>
+    <div id="netCodeBox" hidden>
+      <div class="netcode" id="netCode"></div>
+      <div class="netlink"><input id="netLink" readonly><button class="btn" id="netCopy" data-i18n="n_copy"></button></div>
+    </div>
+    <p id="netMsg"></p>
+    <div class="foot"><button class="btn" id="netCancel" data-i18n="cancel"></button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   CỜ CA-RÔ CƯỢC ĐIỂM (POINT GOMOKU)
+   Luật theo Point Omok (puzzlthink.com): mỗi vòng = chọn 3 ô liền hàng, hai bên cược kín, ô nào ai cược cao hơn thì được quân ở ô đó
+   (hoà điểm: người KHÔNG chọn ô thắng). Mỗi vòng +10 điểm, cộng nửa số điểm chưa tiêu vòng trước (làm tròn xuống).
+   Đúng 5 quân liền hàng mới tính (6+ không tính). Hết vòng có hàng 5 thì hết ván: nhiều hàng 5 hơn thắng, bằng nhau hoà.
+   Toạ độ: ô i = r*15 + c. Màu: 1 = Đen, 2 = Trắng.
+   ============================================================ */
+const $ = (s, root = document) => root.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------- ĐA NGÔN NGỮ (vi / en) ---------- */
+const I18N = {
+vi: {
+  title: "Cờ Ca-rô Cược Điểm", brand: "Cờ Ca-rô Cược Điểm",
+  b_rules: "Luật chơi", b_new: "Ván mới", b_view: "Xem bàn cờ", cancel: "Huỷ",
+  r_intro: "Cờ ca-rô 15x15, nhưng không ai tự đặt quân. Mỗi vòng, hai bên <b>cược điểm kín</b> để giành từng ô.",
+  r_h_round: "Mỗi vòng có 3 bước",
+  r_choose: "<b>Chọn</b>: người chọn (vòng đầu bốc thăm, sau đó hai bên thay phiên) đánh dấu <b>3 ô trống liền nhau trên một đường</b>: ngang, dọc hoặc chéo. Không được cách quãng hay gãy khúc.",
+  r_bid: "<b>Cược</b>: mỗi người chia điểm của mình lên 3 ô, <b>ô nào cũng ít nhất 1 điểm</b>. Cược kín, đối thủ không thấy.",
+  r_place: "<b>Đặt quân</b>: ô nào ai cược cao hơn thì người đó được quân ở ô đó. <b>Hoà điểm thì người không chọn ô thắng.</b> Cả 3 quân đặt cùng lúc.",
+  r_h_points: "Điểm",
+  r_grant: "Mỗi vòng mỗi người được cộng <b>10 điểm</b>.",
+  r_carry: "Điểm không tiêu thì chuyển <b>một nửa</b> (làm tròn xuống) sang vòng sau. Ví dụ có 10, cược 3-1-1, còn 5 thì vòng sau có 10 + 2 = 12 điểm.",
+  r_hidden: "Số điểm còn lại và cược của đối thủ đều ẩn. Mỗi vòng bạn chỉ biết ô nào về tay ai. Hết ván mới lộ toàn bộ cược.",
+  r_h_win: "Thắng thua",
+  r_five: "Ai có <b>đúng 5 quân</b> liền hàng thì thắng. Hàng 6 quân trở lên không tính.",
+  r_both: "Hết vòng mà có hàng 5 thì hết ván. Nếu cả hai cùng có, ai <b>nhiều hàng 5 hơn</b> thắng, bằng nhau thì hoà.",
+  r_draw: "Bàn không còn 3 ô trống liền nhau thì hoà.",
+  r_time: "Chọn ô có 90 giây, cược có 90 giây. Hết giờ thì máy tự chọn 3 ô cạnh các quân, hoặc khoá cược bạn đang để. <b>Quá giờ 3 vòng liên tiếp thì thua.</b>",
+  r_h_opp: "Đối thủ",
+  r_ai: "<b>AI</b> có 7 mức, từ IQ 40 đến IQ 160. AI chỉ thấy bàn cờ, kết quả các vòng và cược của chính nó, không thấy cược hay số điểm của bạn.",
+  r_online: "<b>Chơi online</b>: một người tạo phòng rồi gửi mã 5 ký tự hoặc link mời. Cược được niêm phong trên cả hai máy rồi mới gửi số thật, nên không ai nhìn trộm được.",
+  r_inspired: "Lấy cảm hứng từ trò Point Gomoku trong The Devil's Plan.",
+  r_credit: "Game được làm bởi Gary Duc Nguyen", r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
+  m_title: "Ván mới", m_vs: "Đối thủ", m_bot: "Chơi với AI", m_online: "Chơi online",
+  m_net: "Phòng online", m_create: "Tạo phòng", m_join: "Vào phòng", m_code_ph: "Mã phòng",
+  m_net_create: "Bạn cầm quân Đen, khách cầm quân Trắng. Người chọn ô vòng đầu được bốc thăm.",
+  m_net_join: "Nhập mã phòng bạn bè gửi, hoặc mở thẳng link mời của họ.",
+  m_level: "Độ khó của AI", m_start: "Bắt đầu ván mới", m_forfeit: "Bỏ ván này, chơi ván mới",
+  lv_40: "Mới chơi", lv_60: "Chơi vui", lv_80: "Chơi vui", lv_100: "Khá", lv_120: "Khá", lv_140: "Cao thủ", lv_160: "Ác quỷ",
+  lvn_40: "Chọn ô và chia điểm gần như ngẫu nhiên.",
+  lvn_60: "Biết ô nào quan trọng nhưng chia điểm còn cảm tính.",
+  lvn_80: "Chia điểm theo giá trị từng ô, dồn hết điểm khi có hàng 5.",
+  lvn_100: "Đoán vài chục cách bạn có thể cược rồi mới chia điểm.",
+  lvn_120: "Thử hàng trăm cách cược của bạn để chọn cách chia lợi nhất. Mỗi ván có một kiểu cược riêng.",
+  lvn_140: "Như trên, còn suy ra số điểm bạn còn từ kết quả các vòng trước.",
+  lvn_160: "Tính kỹ nhất, cả lúc chọn ô lẫn lúc cược.",
+  n_1: "Đen", n_2: "Trắng", you: "Bạn", ai: "AI · IQ {0}", opp: "Đối thủ",
+  r_chooser: "Người chọn", r_bidding: "đang cược", r_locked: "đã khoá cược", r_picking: "đang chọn ô",
+  pts_hidden: "điểm ẩn",
+  st_notstarted: "<b>Chưa bắt đầu</b> · Bấm <b>Ván mới</b> để chọn chế độ và bắt đầu chơi",
+  st_round: "<b>Vòng {0}</b> · ",
+  st_choose_you: "Chọn 3 ô trống liền nhau", st_choose_opp: "{0} đang chọn 3 ô…",
+  st_bid: "Chia điểm cho 3 ô", st_bid_wait: "Đã khoá cược, chờ {0}…", st_result: "Kết quả vòng {0}",
+  st_win_you: "<b>Bạn thắng!</b>", st_win_opp: "<b>{0} thắng.</b>", st_draw: "<b>Hoà.</b>",
+  st_left: "<b>Bạn thắng</b> · đối thủ đã rời phòng.", st_aborted: "<b>Ván online đã dừng</b> · mất kết nối hoặc lệch trạng thái.",
+  a_choose_h: "Chọn 3 ô", a_choose_p: "Bấm 3 ô trống liền nhau (ngang, dọc hoặc chéo). Vòng tròn nét đứt là những ô có thể chọn tiếp.",
+  a_clear: "Chọn lại", a_put: "Đưa 3 ô ra cược",
+  a_wait_choose: "{0} đang chọn 3 ô. Bạn chuẩn bị cược nhé.",
+  a_bid_h: "Điểm của bạn", a_bid_line: "Cược {0} · còn {1} · sang vòng sau", a_all: "Tất tay",
+  a_min: "1-1-1", a_even: "Chia đều", a_lock: "Khoá cược",
+  a_bid_note: "Mỗi ô ít nhất 1 điểm. Nửa số điểm còn lại (làm tròn xuống) được chuyển sang vòng sau.",
+  a_locked: "Đã khoá cược {0}. Chờ {1} khoá cược…",
+  a_resolving: "Đang lật cược…",
+  res_h: "Kết quả vòng {0}", res_mine: "Của bạn", res_theirs: "Của đối thủ", res_bid: "Bạn cược {0}", res_both: "{0} đấu {1}",
+  his_h: "Các vòng", his_note: "Số đen là cược của bạn. Cược của đối thủ (số đỏ) hiện khi hết ván.", his_empty: "Chưa có vòng nào.",
+  his_you: "Bạn chọn", his_opp: "{0} chọn",
+  go_you: "BẠN THẮNG!", go_opp: "{0} THẮNG!", go_draw: "HOÀ", go_aborted: "VÁN ĐÃ DỪNG",
+  gs_five: "Hàng 5 ở vòng {0}.", gs_fives: "Số hàng 5: bạn {0}, {1} {2}.", gs_draw_full: "Bàn không còn 3 ô trống liền nhau.",
+  gs_timeout_you: "Bạn quá giờ 3 vòng liên tiếp.", gs_timeout_opp: "{0} quá giờ 3 vòng liên tiếp.",
+  gs_left: "Đối thủ đã rời phòng.", gs_aborted: "Ván online bị dừng giữa chừng.",
+  go_style: "Kiểu cược của AI ván này: {0}.",
+  sty_balanced: "Cân bằng", sty_saver: "Tiết kiệm", sty_aggressive: "Tấn công", sty_sniper: "Bắn tỉa", sty_spread: "Rải đều", sty_bluffer: "Hù doạ",
+  late: "quá giờ",
+  go_rematch: "Chơi lại", go_rm_wait: "Đã mời chơi lại, đang chờ đối thủ đồng ý…", go_rm_them: "Đối thủ muốn chơi lại! Bấm Chơi lại để bắt đầu.",
+  n_title_host: "Phòng của bạn", n_title_join: "Vào phòng", n_title_err: "Không kết nối được",
+  n_connecting: "Đang kết nối…", n_wait: "Gửi mã hoặc link này cho bạn bè. Đang chờ đối thủ vào phòng…",
+  n_joining: "Đang vào phòng {0}…", n_copy: "Chép link", n_copied: "Đã chép!", n_close: "Đóng",
+  n_err_code: "Mã phòng gồm 5 ký tự, bạn kiểm tra lại nhé.",
+  n_err_nopeer: "Không tìm thấy phòng {0}. Mã có thể sai, hoặc chủ phòng đã đóng phòng.",
+  n_err_full: "Phòng này đã đủ 2 người.",
+  n_err_version: "Hai máy đang chạy hai phiên bản game khác nhau. Tải lại trang (Ctrl+F5) ở cả hai máy rồi thử lại.",
+  n_err_timeout: "Chờ quá lâu mà không nối được tới chủ phòng. Mạng của một trong hai bên có thể đang chặn kết nối.",
+  n_err_desync: "Hai máy bị lệch trạng thái ván cờ nên ván online đã dừng.",
+  n_err_net: "Lỗi kết nối ({0}). Thử lại sau ít phút.",
+  n_err_lib: "Không tải được thư viện kết nối PeerJS. Kiểm tra mạng rồi thử lại.",
+},
+en: {
+  title: "Point Gomoku", brand: "Point Gomoku",
+  b_rules: "Rules", b_new: "New game", b_view: "View board", cancel: "Cancel",
+  r_intro: "Gomoku on a 15x15 board, but nobody places stones directly. Every round both players make <b>secret bids</b> for each point.",
+  r_h_round: "Each round has 3 steps",
+  r_choose: "<b>Choose</b>: the chooser (drawn at random in round 1, then players alternate) marks <b>3 empty points next to each other in one line</b>: across, down or diagonal. No gaps or bends.",
+  r_bid: "<b>Bid</b>: each player splits their points over the 3 points, <b>at least 1 on each</b>. Bids are secret.",
+  r_place: "<b>Place</b>: each point gets the stone of whoever bid more. <b>A tie goes to the player who did not choose.</b> All 3 stones land together.",
+  r_h_points: "Points",
+  r_grant: "Both players get <b>10 points</b> every round.",
+  r_carry: "<b>Half</b> of what you do not spend (rounded down) carries over. Have 10, bid 3-1-1, keep 5, and next round you have 10 + 2 = 12.",
+  r_hidden: "Your opponent's points and bids are hidden. Each round you only learn who got which point. All bids are revealed when the game ends.",
+  r_h_win: "Winning",
+  r_five: "Get <b>exactly 5</b> in a row to win. Six or more does not count.",
+  r_both: "If there is a five at the end of a round, the game ends. If both have one, <b>more fives</b> wins; the same number is a draw.",
+  r_draw: "If no three empty points in a row remain, it is a draw.",
+  r_time: "90 seconds to choose, 90 seconds to bid. On timeout three points next to the stones are picked for you, or your current bid is locked. <b>Three rounds in a row on the clock lose the match.</b>",
+  r_h_opp: "Opponent",
+  r_ai: "The <b>AI</b> has 7 levels, from IQ 40 to IQ 160. It sees the board, past results and its own bids, never your bids or points.",
+  r_online: "<b>Online</b>: one player creates a room and sends the 5-letter code or invite link. Bids are sealed on both devices before the real numbers are sent, so nobody can peek.",
+  r_inspired: "Inspired by Point Gomoku from The Devil's Plan.",
+  r_credit: "Game made by Gary Duc Nguyen", r_ok: "Got it", m_back: "Back to Rules",
+  m_title: "New Game", m_vs: "Opponent", m_bot: "Play vs AI", m_online: "Play online",
+  m_net: "Online room", m_create: "Create room", m_join: "Join room", m_code_ph: "Room code",
+  m_net_create: "You play Black, your guest plays White. The first chooser is drawn at random.",
+  m_net_join: "Enter the room code your friend sent you, or just open their invite link.",
+  m_level: "AI difficulty", m_start: "Start new game", m_forfeit: "Abandon this game, start new",
+  lv_40: "Beginner", lv_60: "Casual", lv_80: "Casual", lv_100: "Skilled", lv_120: "Skilled", lv_140: "Expert", lv_160: "Devil",
+  lvn_40: "Picks points and splits bids almost at random.",
+  lvn_60: "Knows which points matter but splits its bids by feel.",
+  lvn_80: "Splits its bid by what each point is worth and goes all in when a five is at stake.",
+  lvn_100: "Considers a few dozen bids you might make before splitting its points.",
+  lvn_120: "Tries hundreds of bids you might make and plays the best split. Each game has its own bidding style.",
+  lvn_140: "As above, and works out how many points you have left from past rounds.",
+  lvn_160: "Thinks hardest, both when choosing and when bidding.",
+  n_1: "Black", n_2: "White", you: "You", ai: "AI · IQ {0}", opp: "Opponent",
+  r_chooser: "Chooser", r_bidding: "bidding", r_locked: "bid locked", r_picking: "choosing",
+  pts_hidden: "points hidden",
+  st_notstarted: "<b>Not started</b> · Press <b>New game</b> to choose a mode and start playing",
+  st_round: "<b>Round {0}</b> · ",
+  st_choose_you: "Pick three empty points in a row", st_choose_opp: "{0} is picking three points…",
+  st_bid: "Split your points over the three points", st_bid_wait: "Bid locked, waiting for {0}…", st_result: "Round {0} result",
+  st_win_you: "<b>You win!</b>", st_win_opp: "<b>{0} wins.</b>", st_draw: "<b>Draw.</b>",
+  st_left: "<b>You win</b> · your opponent left the room.", st_aborted: "<b>Online game stopped</b> · connection lost or out of sync.",
+  a_choose_h: "Pick three points", a_choose_p: "Tap three empty points in a row (across, down or diagonal). Dashed circles show the points you can pick next.",
+  a_clear: "Clear", a_put: "Put them up",
+  a_wait_choose: "{0} is picking three points. Get ready to bid.",
+  a_bid_h: "Your points", a_bid_line: "Bid {0} · left {1} · carry", a_all: "All in",
+  a_min: "1-1-1", a_even: "Split evenly", a_lock: "Lock bid",
+  a_bid_note: "At least 1 per point. Half of what you keep (rounded down) carries over.",
+  a_locked: "Bid {0} locked. Waiting for {1} to lock…",
+  a_resolving: "Revealing bids…",
+  res_h: "Round {0} result", res_mine: "Yours", res_theirs: "Theirs", res_bid: "You bid {0}", res_both: "{0} vs {1}",
+  his_h: "Rounds", his_note: "Black numbers are your bids. Your opponent's bids (red) are shown when the game ends.", his_empty: "No rounds yet.",
+  his_you: "You chose", his_opp: "{0} chose",
+  go_you: "YOU WIN!", go_opp: "{0} WINS!", go_draw: "DRAW", go_aborted: "GAME STOPPED",
+  gs_five: "Five in a row in round {0}.", gs_fives: "Fives: you {0}, {1} {2}.", gs_draw_full: "No three empty points in a row remain.",
+  gs_timeout_you: "You ran out of time three rounds in a row.", gs_timeout_opp: "{0} ran out of time three rounds in a row.",
+  gs_left: "Your opponent left the room.", gs_aborted: "The online game was stopped midway.",
+  go_style: "AI bidding style this game: {0}.",
+  sty_balanced: "Balanced", sty_saver: "Saver", sty_aggressive: "Aggressive", sty_sniper: "Sniper", sty_spread: "Spread", sty_bluffer: "Bluffer",
+  late: "timed out",
+  go_rematch: "Rematch", go_rm_wait: "Rematch requested, waiting for your opponent…", go_rm_them: "Your opponent wants a rematch! Press Rematch to start.",
+  n_title_host: "Your room", n_title_join: "Joining room", n_title_err: "Could not connect",
+  n_connecting: "Connecting…", n_wait: "Send this code or link to a friend. Waiting for an opponent to join…",
+  n_joining: "Joining room {0}…", n_copy: "Copy link", n_copied: "Copied!", n_close: "Close",
+  n_err_code: "Room codes have 5 characters, please check it again.",
+  n_err_nopeer: "Room {0} was not found. The code may be wrong, or the host has closed the room.",
+  n_err_full: "This room already has 2 players.",
+  n_err_version: "The two devices are running different versions of the game. Reload the page (Ctrl+F5) on both and try again.",
+  n_err_timeout: "Timed out connecting to the host. One of the networks may be blocking the connection.",
+  n_err_desync: "The two devices got out of sync, so the online game was stopped.",
+  n_err_net: "Connection error ({0}). Try again in a few minutes.",
+  n_err_lib: "Could not load the PeerJS connection library. Check your network and try again.",
+}
+};
+let LANG = "vi";
+try { const s = localStorage.getItem("lang"); LANG = (s === "vi" || s === "en") ? s : ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"); } catch (e) { LANG = (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"; }
+const tr = (key, ...a) => String((I18N[LANG][key] ?? I18N.vi[key] ?? key)).replace(/\{(\d)\}/g, (m, i) => a[i]);
+function applyI18n() {
+  document.documentElement.lang = LANG; document.title = tr("title") + " · Twistboard";
+  document.querySelectorAll("[data-i18n]").forEach(e => { e.innerHTML = tr(e.dataset.i18n); });
+}
+
+/* ---------- ÂM THANH (tổng hợp bằng Web Audio) ---------- */
+let AC = null;
+try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+function tone(freq, start, dur, type = "sine", vol = .18) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
+  g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + .01); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.start(start); o.stop(start + dur + .02);
+}
+function sfx(name) {
+  if (!AC) return;
+  try {
+    if (AC.state !== "running") AC.resume().catch(() => {});
+    const t = AC.currentTime + .01;
+    if (name === "stone") {
+      for (let k = 0; k < 3; k++) {
+        const len = Math.floor(AC.sampleRate * .05), buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+        const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+        f.type = "bandpass"; f.frequency.value = 2200; f.Q.value = 1.2; g.gain.value = .5;
+        src.buffer = buf; src.connect(f); f.connect(g); g.connect(AC.destination); src.start(t + k * .09);
+        tone(160, t + k * .09, .09, "sine", .2);
+      }
+    } else if (name === "lock") tone(660, t, .08, "triangle", .12);
+    else if (name === "win") [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * .11, .3, "triangle", .2));
+    else if (name === "lose") [392, 330, 262, 196].forEach((f, i) => tone(f, t + i * .15, .35, "triangle", .18));
+    else if (name === "draw") [440, 440].forEach((f, i) => tone(f, t + i * .18, .25, "triangle", .16));
+    else if (name === "tick") tone(1100, t, .05, "square", .05);
+  } catch (e) {}
+}
+
+/* ============================================================
+   LUẬT + AI (phần thuần, không đụng DOM: có thể cắt ra chạy thử bằng Node)
+   ============================================================ */
+/* RULES-AI-START */
+const N = 15, NN = N * N, GRANT = 10, PHASE_MS = 90000;
+const DIRS = [[0, 1], [1, 0], [1, 1], [1, -1]];
+const inb = (r, c) => r >= 0 && r < N && c >= 0 && c < N;
+const TRIPLES = (() => {   // mọi bộ 3 ô liền nhau trên một đường
+  const out = [];
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) for (const [dr, dc] of DIRS) {
+    if (!inb(r + 2 * dr, c + 2 * dc)) continue;
+    out.push([r * N + c, (r + dr) * N + c + dc, (r + 2 * dr) * N + c + 2 * dc].sort((a, b) => a - b));
+  }
+  return out;
+})();
+const legalTriples = b => TRIPLES.filter(t => !b[t[0]] && !b[t[1]] && !b[t[2]]);
+const sameTriple = (a, b) => a && b && a.length === 3 && [...a].sort((x, y) => x - y).join() === [...b].sort((x, y) => x - y).join();
+const isLegalTriple = (b, t) => Array.isArray(t) && t.length === 3 && legalTriples(b).some(x => sameTriple(x, t));
+/* Các hàng ĐÚNG 5 quân của màu c (mỗi hàng là 5 ô). Hàng 6+ không tính. */
+function fives(b, c) {
+  const lines = [];
+  for (const [dr, dc] of DIRS) for (let r = 0; r < N; r++) for (let cc = 0; cc < N; cc++) {
+    if (b[r * N + cc] !== c) continue;
+    if (inb(r - dr, cc - dc) && b[(r - dr) * N + cc - dc] === c) continue;   // chỉ đếm từ đầu hàng
+    const cells = []; let rr = r, c2 = cc;
+    while (inb(rr, c2) && b[rr * N + c2] === c) { cells.push(rr * N + c2); rr += dr; c2 += dc; }
+    if (cells.length === 5) lines.push(cells);
+  }
+  return lines;
+}
+/* Điểm: mỗi vòng +10, cộng nửa số điểm chưa tiêu (làm tròn xuống) */
+const nextBank = (bank, spent) => GRANT + Math.floor((bank - spent) / 2);
+const validBid = (bid, bank) => Array.isArray(bid) && bid.length === 3 && bid.every(x => Number.isInteger(x) && x >= 1) && bid[0] + bid[1] + bid[2] <= bank;
+/* Ai được ô: cược cao hơn; hoà thì người không chọn ô */
+const pointWinner = (b1, b2, chooser) => b1 > b2 ? 1 : b2 > b1 ? 2 : 3 - chooser;
+
+/* --- Đánh giá thế cờ: cửa sổ 5 ô chỉ có quân một màu thì cộng điểm cho màu đó --- */
+const WINDOWS = (() => {
+  const w = [];
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) for (const [dr, dc] of DIRS) {
+    if (!inb(r + 4 * dr, c + 4 * dc)) continue;
+    for (let k = 0; k < 5; k++) w.push((r + k * dr) * N + c + k * dc);
+  }
+  return Int16Array.from(w);
+})();
+const WSCORE = [0, 1, 6, 40, 260, 0];
+function evalFor(b, me, ws = WSCORE) {
+  let s1 = 0, s2 = 0;
+  for (let w = 0; w < WINDOWS.length; w += 5) {
+    let n1 = 0, n2 = 0;
+    for (let k = 0; k < 5; k++) { const x = b[WINDOWS[w + k]]; if (x === 1) n1++; else if (x === 2) n2++; }
+    if (n1 && !n2) s1 += ws[n1]; else if (n2 && !n1) s2 += ws[n2];
+  }
+  return me === 1 ? s1 - s2 : s2 - s1;
+}
+/* Giá trị 8 kết cục của 1 bộ 3 ô (bit k = mình được ô k), nhìn từ phía "me". Có hàng 5 = ±1000. */
+const DECIDE = 1000;
+function outcomeValues(b, t, me, ws) {
+  const op = 3 - me, V = new Float64Array(8);
+  for (let m = 0; m < 8; m++) {
+    for (let k = 0; k < 3; k++) b[t[k]] = (m >> k) & 1 ? me : op;
+    const fa = fives(b, me).length, fo = fives(b, op).length;
+    V[m] = (fa || fo) ? (fa > fo ? DECIDE : fa < fo ? -DECIDE : 0) : evalFor(b, me, ws) / 40;
+    for (let k = 0; k < 3; k++) b[t[k]] = 0;
+  }
+  return V;
+}
+function marginals(V) {   // giá trị trung bình của việc giành được ô k
+  const m = [0, 0, 0];
+  for (let k = 0; k < 3; k++) { let s = 0; for (let x = 0; x < 8; x++) if ((x >> k) & 1) s += V[x] - V[x & ~(1 << k)]; m[k] = s / 4; }
+  return m;
+}
+const isDecider = V => V.some(v => Math.abs(v) >= DECIDE);
+const SPLITS = [];   // SPLITS[bank] = mọi cách chia (a,b,c >= 1, tổng <= bank)
+for (let bank = 0; bank <= 40; bank++) {
+  const l = [];
+  for (let a = 1; a <= bank; a++) for (let b2 = 1; a + b2 < bank; b2++) for (let c = 1; a + b2 + c <= bank; c++) l.push([a, b2, c]);
+  SPLITS[bank] = l;
+}
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+function spreadPoints(total, w) {   // chia "total" điểm theo trọng số w (phần dư lớn nhất), trả về mảng số nguyên
+  const s = w.reduce((p, q) => p + q, 0) || 1, raw = w.map(x => total * x / s), out = raw.map(Math.floor);
+  let left = total - out.reduce((p, q) => p + q, 0);
+  const order = raw.map((x, i) => [x - Math.floor(x), i]).sort((p, q) => q[0] - p[0]);
+  for (let j = 0; left > 0; j = (j + 1) % 3, left--) out[order[j][1]]++;
+  return out;
+}
+function randomBid(bank) {
+  const spend = rnd(3, bank), w = [Math.random() + .1, Math.random() + .1, Math.random() + .1];
+  return spreadPoints(spend - 3, w).map(x => x + 1);
+}
+function allIn(m, bank) { const top = m.indexOf(Math.max(...m)); const bid = [1, 1, 1]; bid[top] = bank - 2; return bid; }
+function proportionalBid(V, bank, frac, alpha, noise) {
+  const m = marginals(V);
+  if (isDecider(V)) return allIn(m, bank);   // có hàng 5 trong cuộc: dồn hết điểm vào ô quyết định
+  const spend = Math.max(3, Math.min(bank, Math.round(bank * frac)));
+  const w = m.map(x => Math.pow(Math.max(x, 0) + .3, alpha) * (1 + noise * (Math.random() - .5)));
+  return spreadPoints(spend - 3, w).map(x => x + 1);
+}
+/* Mô hình cược của đối thủ (dùng để thử hàng trăm khả năng) */
+function sampleOpp(V, lo, hi, n) {
+  const mm = marginals(V), vabs = mm.map(Math.abs), dec = isDecider(V), out = [];
+  for (let s = 0; s < n; s++) {
+    const bank = rnd(lo, hi);
+    if (Math.random() < .2) { out.push(randomBid(bank)); continue; }
+    if (dec && Math.random() < .8) { out.push(allIn(vabs, bank)); continue; }
+    const frac = .45 + Math.random() * .55, spend = Math.max(3, Math.min(bank, Math.round(bank * frac)));
+    const w = vabs.map(x => Math.pow(x + .3, 1.1) * (.6 + Math.random() * .8));
+    out.push(spreadPoints(spend - 3, w).map(x => x + 1));
+  }
+  return out;
+}
+/* Kiểu cược (mức 120 trở lên, giống bản gốc: mỗi ván bốc 1 kiểu, thỉnh thoảng pha kiểu khác 1 vòng) */
+const STYLES = ["balanced", "saver", "aggressive", "sniper", "spread", "bluffer"];
+function styleRule(style, V) {
+  const m = marginals(V);
+  switch (style) {
+    case "saver": return { kappa: .9, ok: null };
+    case "aggressive": return { kappa: .02, ok: null };
+    case "sniper": return { kappa: .35, ok: s => s.filter(x => x === 1).length >= 2 };
+    case "spread": return { kappa: .3, ok: s => Math.max(...s) - Math.min(...s) <= 2 };
+    case "bluffer": {
+      if (Math.random() < .65) return { kappa: .35, ok: null };
+      const low = m.indexOf(Math.min(...m));
+      return { kappa: .35, ok: s => s[low] === Math.max(...s) && s[low] >= 3 };
+    }
+    default: return { kappa: .35, ok: null };
+  }
+}
+/* Chọn cách chia điểm có giá trị kỳ vọng cao nhất trước các mẫu cược của đối thủ. kappa = giá trị của 1 điểm chuyển sang vòng sau. */
+function bestSplit(V, bank, samples, meIsChooser, kappa, ok) {
+  let best = null, bestEv = -Infinity;
+  for (const s of SPLITS[bank]) {
+    if (ok && !ok(s)) continue;
+    let ev = 0;
+    for (const o of samples) {
+      let mask = 0;
+      for (let k = 0; k < 3; k++) if (s[k] > o[k] || (s[k] === o[k] && !meIsChooser)) mask |= 1 << k;
+      ev += V[mask];
+    }
+    ev = ev / samples.length + kappa * Math.floor((bank - s[0] - s[1] - s[2]) / 2) + Math.random() * 1e-6;
+    if (ev > bestEv) { bestEv = ev; best = s; }
+  }
+  return { bid: best ? best.slice() : [1, 1, 1], ev: bestEv };
+}
+/* Mức AI. choose: cách chọn 3 ô; bid: cách cược; samples: số cách cược của đối thủ đem ra thử; infer: suy ra điểm đối thủ; style: có kiểu cược */
+const AIL = {
+  "40":  { choose: "random",          bid: "random" },
+  "60":  { choose: "top", top: 12,    bid: "prop", frac: [.4, 1],   alpha: 1,   noise: 2 },
+  "80":  { choose: "top", top: 4,     bid: "prop", frac: [.4, .75], alpha: 1.3, noise: .4 },
+  "100": { choose: "top", top: 2,     bid: "mc", samples: 60,  infer: false, style: false },
+  "120": { choose: "top", top: 3,     bid: "mc", samples: 100, infer: false, style: true, styleRate: 1 },
+  "140": { choose: "mc",  triples: 6, bid: "mc", samples: 250, infer: true,  style: true, styleRate: .7 },
+  "160": { choose: "mc",  triples: 14, bid: "mc", samples: 500, infer: true, style: true, styleRate: .4 },
+};
+/* Trí nhớ AI trong 1 ván: khoảng điểm đối thủ có thể đang có, kiểu cược */
+function aiNew(level) {
+  const L = AIL[level] || AIL["80"];
+  return { level: AIL[level] ? level : "80", style: L.style ? STYLES[Math.floor(Math.random() * STYLES.length)] : null, lo: GRANT, hi: GRANT, round: 0 };
+}
+function oppRange(ai) {
+  if (AIL[ai.level].infer) return [ai.lo, Math.max(ai.lo, ai.hi)];
+  return ai.round < 1 ? [GRANT, GRANT] : [GRANT, 16];   // 16 là mức tối đa có thể có
+}
+/* Sau mỗi vòng: thu hẹp khoảng điểm của đối thủ từ cược của mình và kết quả từng ô */
+function aiObserve(ai, me, myBid, winners, chooser) {
+  const op = 3 - me, oppChooses = chooser === op;
+  let sMin = 0, sMax = 0;
+  for (let k = 0; k < 3; k++) {
+    if (winners[k] === op) { sMin += oppChooses ? myBid[k] + 1 : myBid[k]; sMax += 40; }
+    else { sMin += 1; sMax += oppChooses ? myBid[k] : myBid[k] - 1; }
+  }
+  sMin = Math.max(3, sMin); sMax = Math.min(ai.hi, Math.max(sMax, sMin));
+  const lo = nextBank(ai.lo, Math.min(ai.lo, sMax)), hi = nextBank(ai.hi, Math.min(ai.hi, sMin));
+  ai.lo = Math.min(lo, hi); ai.hi = Math.max(lo, hi);
+  ai.round++;
+}
+function nearStones(b) {
+  const mark = new Uint8Array(NN); let any = false;
+  for (let i = 0; i < NN; i++) if (b[i]) {
+    any = true; const r = (i / N) | 0, c = i % N;
+    for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) if (inb(r + dr, c + dc)) mark[(r + dr) * N + c + dc] = 1;
+  }
+  if (!any) for (let r = 5; r <= 9; r++) for (let c = 5; c <= 9; c++) mark[r * N + c] = 1;   // bàn trống: quanh giữa bàn
+  return mark;
+}
+function candidateTriples(b) {
+  const L = legalTriples(b), mark = nearStones(b);
+  const near = L.filter(t => mark[t[0]] || mark[t[1]] || mark[t[2]]);
+  return near.length ? near : L;
+}
+/* AI chọn 3 ô (người chọn thua khi hoà điểm) */
+function aiChooseTriple(b, me, bank, ai) {
+  const L = AIL[ai.level], C = candidateTriples(b);
+  if (!C.length) return null;
+  if (L.choose === "random") return C[Math.floor(Math.random() * C.length)];
+  const scored = C.map(t => { const V = outcomeValues(b, t, me, L.ws); const m = marginals(V); return { t, V, s: V.reduce((p, q) => p + q, 0) / 8 - .15 * m.reduce((p, q) => p + Math.abs(q), 0) + Math.random() * 1e-3 }; });
+  scored.sort((x, y) => y.s - x.s);
+  if (L.choose === "top") return scored[Math.floor(Math.random() * Math.min(L.top, scored.length))].t;
+  const [lo, hi] = oppRange(ai);
+  let best = scored[0], bestEv = -Infinity;
+  for (const x of scored.slice(0, L.triples)) {
+    const samples = sampleOpp(x.V, lo, hi, Math.round(L.samples / 2));
+    const { ev } = bestSplit(x.V, bank, samples, true, .35, null);
+    if (ev > bestEv) { bestEv = ev; best = x; }
+  }
+  return best.t;
+}
+/* AI cược cho bộ 3 ô t */
+function aiBid(b, t, me, bank, chooser, ai) {
+  const L = AIL[ai.level], V = outcomeValues(b, t, me, L.ws);
+  if (L.bid === "random") {
+    if (isDecider(V) && Math.random() < .5) return allIn(marginals(V), bank);
+    return randomBid(bank);
+  }
+  if (L.bid === "prop") return proportionalBid(V, bank, L.frac[0] + Math.random() * (L.frac[1] - L.frac[0]), L.alpha, L.noise);
+  const [lo, hi] = oppRange(ai), samples = sampleOpp(V, lo, hi, L.samples);
+  let style = ai.style;
+  if (style && Math.random() < 1 / 7) style = STYLES[Math.floor(Math.random() * STYLES.length)];   // khoảng 1/7 số vòng pha kiểu khác
+  if (style && Math.random() >= (L.styleRate ?? 1)) style = null;   // mức càng cao càng ít bị kiểu cược bó tay
+  const rule = isDecider(V) || !style ? { kappa: isDecider(V) ? 0 : .35, ok: null } : styleRule(style, V);   // vòng quyết định: kiểu nào cũng cược để thắng
+  return bestSplit(V, bank, samples, chooser === me, rule.kappa, rule.ok).bid;
+}
+/* Hết giờ chọn ô: tự chọn 3 ô cạnh các quân (bàn trống thì quanh giữa bàn) */
+function autoTriple(b) {
+  const C = candidateTriples(b);
+  return C.length ? C[Math.floor(Math.random() * C.length)] : null;
+}
+/* RULES-AI-END */
+
+/* ---------- CHẾ ĐỘ ---------- */
+const LEVELS = ["40", "60", "80", "100", "120", "140", "160"];
+const PREFS_KEY = "pointgomoku.prefs";
+let PREFS = { vs: "bot", level: "80", net: "create", code: "", preset: "min" };
+try { const s = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); if (s && typeof s === "object") { if (s.vs === "online") PREFS.vs = "online"; if (LEVELS.includes(s.level)) PREFS.level = s.level; if (s.preset === "even") PREFS.preset = "even"; } } catch (e) {}
+function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify({ vs: PREFS.vs, level: PREFS.level, preset: PREFS.preset })); } catch (e) {} }
+let MODE = { ...clone(PREFS), human: 1 };
+const isBot = c => MODE.vs === "bot" && c !== MODE.human;
+const isRemote = c => MODE.vs === "online" && c !== MODE.human;
+const isLocal = c => !isBot(c) && !isRemote(c);
+const me = () => MODE.human, them = () => 3 - MODE.human;
+/* Cược để sẵn mỗi vòng: 1-1-1, hoặc chia đều nếu lần gần nhất người chơi bấm "Chia đều" */
+function defaultDraft() { if (PREFS.preset !== "even") return [1, 1, 1]; const x = Math.floor(G.bank[me()] / 3); return [x, x, x]; }
+const oppName = () => MODE.vs === "bot" ? tr("ai", MODE.level) : tr("opp");
+
+/* ---------- TRẠNG THÁI ---------- */
+const stoneEls = new Map();
+let bd = new Int8Array(NN), G = null, started = false, gameId = 0, overDismissed = false, AIS = null, newStones = new Set();
+/* G: round, chooser, phase ("idle" | "choose" | "bid" | "over"), bank {1,2}, triple, sel, draft, bids {1,2}, commit {1,2} (online), history[],
+   streak {1,2} (số vòng quá giờ liên tiếp), late {1,2}, last {triple, winners, round}, over, showUntil (hết lúc hiện kết quả vòng trước), deadline, moves[] */
+function newGame(blank, firstChooser) {
+  gameId++; clearTimeout(botTimer);
+  bd = new Int8Array(NN); started = !blank; overDismissed = false;
+  G = { round: 0, chooser: firstChooser || (Math.random() < .5 ? 1 : 2), phase: blank ? "idle" : "choose", bank: { 1: GRANT, 2: GRANT }, triple: null, sel: [], draft: [1, 1, 1],
+        bids: { 1: null, 2: null }, commit: { 1: null, 2: null }, history: [], streak: { 1: 0, 2: 0 }, late: { 1: false, 2: false },
+        last: null, over: null, showUntil: 0, deadline: 0, moves: [] };
+  AIS = MODE.vs === "bot" ? aiNew(MODE.level) : null;
+  stoneEls.forEach(e => e.remove()); stoneEls.clear();
+  if (!blank) startRound(G.chooser, true);
+  else render();
+}
+function startRound(chooser, first) {
+  G.round++; G.chooser = chooser; G.phase = "choose"; G.triple = null; G.sel = []; G.draft = [1, 1, 1];
+  G.bids = { 1: null, 2: null }; G.commit = { 1: null, 2: null }; G.late = { 1: false, 2: false };
+  G.myReveal = null; G.sentReveal = false; G.revealedOpp = false; G.oppBid = null; G.revealed = false; G.locking = false; G.botLockAt = 0;
+  if (!legalTriples(bd).length) { G.round--; return endGame({ winner: 0, full: true }); }
+  G.showUntil = first ? 0 : performance.now() + 1800;   // giữ kết quả vòng trước trên màn một lúc
+  setDeadline();
+  render();
+  if (isBot(chooser)) scheduleBot();
+}
+function setDeadline() { G.deadline = Math.max(performance.now(), G.showUntil) + PHASE_MS; lastBeep = -1; }
+
+/* Người chọn đưa ra 3 ô */
+function applyTriple(t, late) {
+  if (!G || G.phase !== "choose") return;
+  G.late[G.chooser] = G.late[G.chooser] || !!late;
+  G.triple = [...t].sort((a, b) => a - b); G.sel = []; G.phase = "bid"; G.draft = defaultDraft();
+  setDeadline();
+  if (MODE.vs === "bot") {   // AI cược ngay (kín), người chơi không thấy
+    G.bids[them()] = aiBid(bd, G.triple, them(), G.bank[them()], G.chooser, AIS);
+    G.botLockAt = performance.now() + 700 + Math.random() * 1100;
+  }
+  render();
+}
+function confirmSelection(late) {
+  if (!G || G.phase !== "choose" || !isLocal(G.chooser)) return;
+  let t = G.sel.length === 3 && isLegalTriple(bd, G.sel) ? G.sel : null;
+  if (!t) { if (!late) return; t = autoTriple(bd); if (!t) return endGame({ winner: 0, full: true }); }
+  const h = stateHash();
+  applyTriple(t, late);
+  if (MODE.vs === "online") netSend({ t: "ch", cells: G.triple, late: !!late, r: G.round, h });
+}
+/* Khoá cược của mình */
+async function lockBid(late) {
+  if (!G || G.phase !== "bid" || G.bids[me()] || G.locking) return;
+  const bid = G.draft.slice();
+  if (!validBid(bid, G.bank[me()])) return;
+  G.late[me()] = G.late[me()] || !!late;
+  sfx("lock");
+  if (MODE.vs === "bot") { G.bids[me()] = bid; render(); return maybeResolve(); }
+  // online: gửi mã niêm phong (băm) trước, chỉ gửi số thật khi cả hai đã khoá
+  G.locking = true;
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(12)), x => x.toString(16).padStart(2, "0")).join("");
+  const round = G.round, g = G;
+  const h = await sha(JSON.stringify([bid, salt]));
+  if (G !== g || G.round !== round || G.phase !== "bid") return;
+  G.locking = false;
+  G.bids[me()] = bid; G.commit[me()] = h; G.myReveal = { bid, salt };
+  netSend({ t: "bc", h, late: !!late, r: G.round });
+  render(); tryReveal();
+}
+function maybeResolve() {
+  if (!G || G.phase !== "bid" || !G.bids[1] || !G.bids[2]) return;
+  if (MODE.vs === "bot" && G.botLockAt) return;   // chờ AI "khoá cược" cho tự nhiên
+  if (MODE.vs === "online" && !G.revealed) return;
+  resolveRound();
+}
+function resolveRound() {
+  const t = G.triple, b1 = G.bids[1], b2 = G.bids[2], winners = [];
+  for (let k = 0; k < 3; k++) { const w = pointWinner(b1[k], b2[k], G.chooser); winners.push(w); bd[t[k]] = w; G.moves.push(t[k]); }
+  G.history.push({ round: G.round, chooser: G.chooser, triple: t.slice(), bids: { 1: b1.slice(), 2: b2.slice() }, winners: winners.slice(), late: { ...G.late } });
+  if (AIS) aiObserve(AIS, them(), G.bids[them()], winners, G.chooser);
+  for (const p of [1, 2]) { G.bank[p] = nextBank(G.bank[p], G.bids[p][0] + G.bids[p][1] + G.bids[p][2]); G.streak[p] = G.late[p] ? G.streak[p] + 1 : 0; }
+  G.last = { triple: t.slice(), winners, round: G.round };
+  newStones = new Set(t);
+  sfx("stone");
+  const f1 = fives(bd, 1), f2 = fives(bd, 2);
+  if (f1.length || f2.length) return endGame({ winner: f1.length > f2.length ? 1 : f2.length > f1.length ? 2 : 0, lines: [...f1, ...f2].flat(), fives: { 1: f1.length, 2: f2.length } });
+  const s1 = G.streak[1] >= 3, s2 = G.streak[2] >= 3;
+  if (s1 || s2) return endGame({ winner: s1 && s2 ? 0 : s1 ? 2 : 1, timeout: s1 && s2 ? 3 : s1 ? 1 : 2 });
+  startRound(3 - G.chooser, false);
+}
+function endGame(o) {
+  G.phase = "over"; G.over = { ...o, round: G.round }; clearTimeout(botTimer);
+  render();
+}
+
+/* ---------- ĐỒNG HỒ ---------- */
+let lastTick = performance.now(), lastBeep = -1, wasShowing = false;
+setInterval(() => {
+  const now = performance.now(), dt = now - lastTick; lastTick = now;
+  if (!started || !G || G.phase === "over" || G.phase === "idle") return renderTimer();
+  if (MODE.vs === "bot" && anyModal()) { G.deadline += dt; if (G.showUntil > now) G.showUntil += dt; if (G.botLockAt) G.botLockAt += dt; return; }   // chơi với AI: mở bảng thì đồng hồ dừng
+  if (G.showUntil > now) { wasShowing = true; return renderTimer(); }
+  if (wasShowing) { wasShowing = false; render(); }
+  if (G.botLockAt && now >= G.botLockAt) { G.botLockAt = 0; render(); maybeResolve(); if (!G || G.phase === "over") return; }
+  const left = G.deadline - now;
+  const myTurn = (G.phase === "choose" && isLocal(G.chooser)) || (G.phase === "bid" && !G.bids[me()]);
+  if (myTurn) {
+    const s = Math.ceil(left / 1000);
+    if (s <= 5 && s > 0 && s !== lastBeep) { lastBeep = s; sfx("tick"); }
+    if (left <= 0) { if (G.phase === "choose") confirmSelection(true); else lockBid(true); return; }
+  }
+  renderTimer();
+}, 100);
+const anyModal = () => [...document.querySelectorAll(".modal")].some(m => !m.hidden);
+
+/* ---------- AI ĐI ---------- */
+let botTimer = null;
+function scheduleBot() {
+  clearTimeout(botTimer);
+  const gid = gameId;
+  const wait = Math.max(0, G.showUntil - performance.now()) + 800 + Math.random() * 900;
+  botTimer = setTimeout(() => {
+    if (gid !== gameId || !G || G.phase !== "choose" || !isBot(G.chooser)) return;
+    if (anyModal() || G.showUntil > performance.now()) return scheduleBot();
+    const t = aiChooseTriple(bd, G.chooser, G.bank[G.chooser], AIS) || autoTriple(bd);
+    if (!t) return endGame({ winner: 0, full: true });
+    applyTriple(t, false);
+  }, wait);
+}
+
+/* ============================================================
+   CHƠI ONLINE (PeerJS, cùng kiểu Cờ Ca-rô Mù). Cược kín kiểu "niêm phong rồi mới lật":
+   bc = mã băm SHA-256 của [cược, muối]; khi cả hai đã gửi bc thì mới gửi br = cược thật + muối, máy kia kiểm lại mã băm.
+   Tin nhắn: hello, start (first: người chọn vòng 1), ch (3 ô), bc, br, rematch, bye, err. Chủ phòng cầm Đen.
+   Tin nhắn đến được xử lý lần lượt (hàng đợi) vì bước kiểm mã băm chạy bất đồng bộ.
+   ============================================================ */
+const NET_PROTO = 1;
+const PEER_SRC = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+const PEER_SRI = "sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR";
+const PEER_PREFIX = "pointgomoku-";
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", CODE_LEN = 5;
+const NET = { peer: null, conn: null, role: null, code: "", playing: false, rm: { me: false, them: false }, gen: 0, q: Promise.resolve() };
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
+const newCode = () => Array.from({ length: CODE_LEN }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+const netOpen = () => !!(NET.conn && NET.conn.open);
+const netSend = d => { if (netOpen()) NET.conn.send(d); };
+const stateHash = () => G ? G.moves.join(",") + "|" + G.round + "|" + G.bank[1] + "," + G.bank[2] + "|" + G.chooser : "";
+const inviteLink = code => location.href.split("#")[0] + "#room=" + code;
+async function sha(s) {
+  if (window.crypto && crypto.subtle) {
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(d), x => x.toString(16).padStart(2, "0")).join("");
+  }
+  let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return "f" + (h >>> 0).toString(16);   // dự phòng khi trang không chạy trên https
+}
+let peerLoading = null;
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  return peerLoading || (peerLoading = new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = PEER_SRC; s.integrity = PEER_SRI; s.crossOrigin = "anonymous";
+    s.onload = () => (window.Peer ? ok() : fail());
+    s.onerror = () => { peerLoading = null; s.remove(); fail(); };
+    document.head.appendChild(s);
+  }));
+}
+function showNet(title, msg, opt = {}) {
+  $("#netTitle").textContent = title; $("#netMsg").textContent = msg;
+  $("#netCodeBox").hidden = !opt.code;
+  if (opt.code) { $("#netCode").textContent = opt.code; $("#netLink").value = inviteLink(opt.code); }
+  $("#netCancel").textContent = tr(opt.done ? "n_close" : "cancel");
+  $("#mNet").hidden = false;
+}
+function startOnline() {
+  netClose(true);
+  MODE = { ...clone(modeDraft), human: modeDraft.net === "join" ? 2 : 1 }; $("#mMode").hidden = true; $("#mRules").hidden = true;
+  newGame(true);
+  if (MODE.net === "join") netJoin(MODE.code); else netHost();
+}
+async function netHost(tries = 0) {
+  const gen = ++NET.gen;
+  NET.role = "host";
+  showNet(tr("n_title_host"), tr("n_connecting"));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const code = newCode(), peer = new Peer(PEER_PREFIX + code);
+  NET.peer = peer; NET.code = code;
+  peer.on("open", () => { if (gen === NET.gen) showNet(tr("n_title_host"), tr("n_wait"), { code }); });
+  peer.on("connection", conn => {
+    if (gen !== NET.gen || NET.conn) { conn.on("open", () => { conn.send({ t: "err", code: "full" }); setTimeout(() => conn.close(), 500); }); return; }
+    NET.conn = conn; bindConn(conn, gen);
+  });
+  peer.on("disconnected", () => {
+    if (gen === NET.gen && !NET.playing && !peer.destroyed) setTimeout(() => { if (gen === NET.gen && !peer.destroyed) peer.reconnect(); }, 1500);
+  });
+  peer.on("error", e => {
+    if (gen !== NET.gen) return;
+    if (e.type === "unavailable-id" && tries < 3) { peer.destroy(); NET.peer = null; netHost(tries + 1); return; }
+    netError(e);
+  });
+}
+async function netJoin(code) {
+  const gen = ++NET.gen;
+  NET.role = "guest"; NET.code = code;
+  showNet(tr("n_title_join"), tr("n_joining", code));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const peer = new Peer(); NET.peer = peer;
+  peer.on("open", () => {
+    if (gen !== NET.gen) return;
+    const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+    NET.conn = conn; bindConn(conn, gen);
+    setTimeout(() => { if (gen === NET.gen && !NET.playing) netFail("n_err_timeout"); }, 25000);
+  });
+  peer.on("error", e => { if (gen === NET.gen) netError(e); });
+}
+function bindConn(conn, gen) {
+  conn.on("open", () => { if (gen === NET.gen && NET.role === "guest") conn.send({ t: "hello", v: NET_PROTO }); });
+  conn.on("data", d => { if (gen === NET.gen) NET.q = NET.q.then(() => gen === NET.gen ? onNetData(d) : null).catch(e => console.warn(e)); });
+  conn.on("close", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+  conn.on("error", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+}
+function beginOnlineGame() {
+  NET.playing = true; NET.rm = { me: false, them: false };
+  for (const id of ["#mNet", "#mMode", "#mRules"]) $(id).hidden = true;
+}
+function hostStartGame() {
+  const first = Math.random() < .5 ? 1 : 2;
+  netSend({ t: "start", v: NET_PROTO, first });
+  MODE.human = 1; beginOnlineGame(); newGame(false, first);
+}
+function tryReveal() {
+  if (!G || G.phase !== "bid" || G.sentReveal || !G.commit[1] || !G.commit[2] || !G.myReveal) return;
+  G.sentReveal = true;
+  netSend({ t: "br", bid: G.myReveal.bid, salt: G.myReveal.salt, r: G.round });
+  finishReveal();
+}
+async function onReveal(d) {
+  const op = them();
+  if (!G || G.phase !== "bid" || d.r !== G.round || !G.commit[op] || G.revealedOpp) return netDesync();
+  const g = G, h = await sha(JSON.stringify([d.bid, d.salt]));
+  if (G !== g || G.phase !== "bid" || d.r !== G.round) return;
+  if (h !== G.commit[op] || !validBid(d.bid, G.bank[op])) return netDesync();
+  G.revealedOpp = true; G.oppBid = d.bid.slice();
+  finishReveal();
+}
+function finishReveal() {
+  if (!G.revealedOpp || !G.sentReveal) return;
+  G.bids[them()] = G.oppBid; G.revealed = true;
+  maybeResolve();
+}
+function onNetData(d) {
+  if (!d || typeof d !== "object") return;
+  switch (d.t) {
+    case "hello":
+      if (NET.role !== "host" || NET.playing) return;
+      if (d.v !== NET_PROTO) { netSend({ t: "err", code: "version" }); const c = NET.conn; NET.conn = null; setTimeout(() => c.close(), 500); return; }
+      return hostStartGame();
+    case "start":
+      if (NET.role !== "guest") return;
+      if (d.v !== NET_PROTO) return netFail("n_err_version");
+      MODE.human = 2; beginOnlineGame(); newGame(false, d.first === 2 ? 2 : 1);
+      return;
+    case "ch":
+      if (!G || G.phase !== "choose" || !isRemote(G.chooser) || d.r !== G.round || d.h !== stateHash() || !isLegalTriple(bd, d.cells)) return netDesync();
+      return applyTriple(d.cells, d.late);
+    case "bc":
+      if (!G || G.phase !== "bid" || d.r !== G.round || G.commit[them()] || typeof d.h !== "string") return netDesync();
+      G.commit[them()] = d.h; G.late[them()] = G.late[them()] || !!d.late;
+      render(); tryReveal();
+      return;
+    case "br": return onReveal(d);
+    case "rematch":
+      if (!G || !G.over || NET.rm.them) return;
+      NET.rm.them = true;
+      if (NET.role === "host" && NET.rm.me) return hostStartGame();
+      overDismissed = false; render();
+      return;
+    case "bye": return onNetLost();
+    case "err": return netFail(d.code === "full" ? "n_err_full" : d.code === "version" ? "n_err_version" : "n_err_desync");
+  }
+}
+function requestRematch() {
+  if (NET.rm.me) return;
+  NET.rm.me = true; netSend({ t: "rematch" });
+  if (NET.role === "host" && NET.rm.them) return hostStartGame();
+  renderOver();
+}
+function netDesync() { netSend({ t: "err", code: "desync" }); netFail("n_err_desync"); }
+function netError(e) {
+  const type = (e && e.type) || "";
+  if (netOpen()) { console.warn("PeerJS:", type, e); return; }
+  if (type === "peer-unavailable") return netFail("n_err_nopeer", NET.code);
+  netFail("n_err_net", type || String(e));
+}
+function netFail(key, arg) {
+  const midGame = NET.playing && started && G && !G.over;
+  netClose(false);
+  if (midGame) endGame({ winner: null, aborted: true });
+  showNet(tr("n_title_err"), tr(key, arg), { done: true });
+}
+function onNetLost() {
+  if (NET.role === "host" && !NET.playing) { NET.conn = null; return; }
+  netClose(false);
+  if (started && G && !G.over) endGame({ winner: me(), left: true });
+  else render();
+}
+function netClose(bye) {
+  NET.gen++;
+  if (bye) try { netSend({ t: "bye" }); } catch (e) {}
+  const peer = NET.peer, conn = NET.conn;
+  NET.peer = NET.conn = null; NET.playing = false; NET.rm = { me: false, them: false }; NET.q = Promise.resolve();
+  if (peer || conn) setTimeout(() => { try { if (conn) conn.close(); } catch (e) {} try { if (peer) peer.destroy(); } catch (e) {} }, bye ? 400 : 0);
+}
+
+/* ---------- RENDER ---------- */
+const boardEl = $("#board"), stonesEl = $("#stones");
+let hoverCell = -1, overlayEls = [];
+(function buildGrid() {
+  let s = "";
+  for (let k = 0; k < N; k++) s += `<line x1="0.5" y1="${k + .5}" x2="14.5" y2="${k + .5}"/><line x1="${k + .5}" y1="0.5" x2="${k + .5}" y2="14.5"/>`;
+  for (const r of [3, 7, 11]) for (const c of [3, 7, 11]) s += `<circle cx="${c + .5}" cy="${r + .5}" r=".11" fill="var(--grid)"/>`;
+  $("#grid").innerHTML = `<g stroke="var(--grid)" stroke-width=".045" stroke-linecap="square">${s}</g>`;
+})();
+const pos = (el, i) => { el.style.setProperty("--r", (i / N) | 0); el.style.setProperty("--c", i % N); return el; };
+const div = (cls, html) => { const e = document.createElement("div"); e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
+const canChoose = () => !!(G && G.phase === "choose" && isLocal(G.chooser) && performance.now() >= G.showUntil);
+function hintCells() {   // các ô có thể chọn tiếp để vẫn thành 3 ô liền hàng
+  if (!canChoose() || !G.sel.length || G.sel.length >= 3) return [];
+  const out = new Set();
+  for (const t of legalTriples(bd)) if (G.sel.every(x => t.includes(x))) for (const x of t) if (!G.sel.includes(x)) out.add(x);
+  return [...out];
+}
+function renderBoard() {
+  const win = G && G.over && G.over.lines ? G.over.lines : [], last = G && G.last ? G.last : null;
+  for (let i = 0; i < NN; i++) {
+    if (!bd[i]) continue;
+    let e = stoneEls.get(i);
+    if (!e) { e = pos(div("st"), i); stonesEl.appendChild(e); stoneEls.set(i, e); }
+    const isLast = last && last.triple.includes(i);
+    e.className = "st k" + bd[i] + (isLast ? " last " + (bd[i] === me() ? "mine" : "theirs") : "") + (win.includes(i) ? " win" : "") + (newStones.has(i) ? " new" : "");
+  }
+  newStones = new Set();
+  overlayEls.forEach(e => e.remove()); overlayEls = [];
+  if (!G) return;
+  const ringCells = G.phase === "bid" ? G.triple : (G.phase === "choose" ? G.sel : null);
+  if (ringCells) ringCells.forEach((i, k) => { const e = pos(div("ring", G.phase === "bid" || G.sel.length === 3 ? String(k + 1) : ""), i); stonesEl.appendChild(e); overlayEls.push(e); });
+  for (const i of hintCells()) { const e = pos(div("hint"), i); stonesEl.appendChild(e); overlayEls.push(e); }
+  if (canChoose() && hoverCell >= 0 && !bd[hoverCell] && !G.sel.includes(hoverCell)) { const e = pos(div("ghost"), hoverCell); stonesEl.appendChild(e); overlayEls.push(e); }
+  boardEl.style.cursor = canChoose() ? "pointer" : "default";
+}
+const oppLocked = () => MODE.vs === "bot" ? !!(G.bids[them()] && !G.botLockAt) : !!G.commit[them()];
+function roleText(c) {
+  if (!started || !G || G.phase === "over") return "";
+  const parts = [];
+  if (G.chooser === c) parts.push(tr("r_chooser"));
+  if (G.phase === "choose" && G.chooser === c && performance.now() >= G.showUntil) parts.push(tr("r_picking"));
+  if (G.phase === "bid") parts.push(tr((c === me() ? !!G.bids[me()] : oppLocked()) ? "r_locked" : "r_bidding"));
+  return parts.join(" · ");
+}
+function renderPanels() {
+  for (const c of [1, 2]) {
+    const p = $("#panel-" + c);
+    p.querySelector("b").textContent = c === me() ? tr("you") : oppName();
+    p.title = tr("n_" + c);
+    p.querySelector(".role").textContent = roleText(c);
+    p.querySelector(".pts").innerHTML = !started ? "" : c === me() ? `<em>${G.bank[c]}</em> P` : tr("pts_hidden");
+    const act = started && G && performance.now() >= G.showUntil && ((G.phase === "choose" && G.chooser === c) || (G.phase === "bid" && !(c === me() ? G.bids[me()] : oppLocked())));
+    p.classList.toggle("active", !!act);
+  }
+}
+function renderStatus() {
+  let h;
+  if (!started || !G) h = tr("st_notstarted");
+  else if (G.over) {
+    const o = G.over;
+    h = o.aborted ? tr("st_aborted") : o.left ? tr("st_left") : o.winner === 0 ? tr("st_draw") : o.winner === me() ? tr("st_win_you") : tr("st_win_opp", oppName());
+  } else {
+    h = tr("st_round", G.round);
+    if (performance.now() < G.showUntil && G.last) h = "<b>" + tr("st_result", G.last.round) + "</b>";
+    else if (G.phase === "choose") h += isLocal(G.chooser) ? tr("st_choose_you") : tr("st_choose_opp", oppName());
+    else h += G.bids[me()] ? tr("st_bid_wait", oppName()) : tr("st_bid");
+  }
+  $("#statusText").innerHTML = h;
+  renderTimer();
+}
+function renderTimer() {
+  const el = $("#timer");
+  if (!started || !G || G.over || G.phase === "idle" || performance.now() < G.showUntil) { el.textContent = ""; el.classList.remove("low"); return; }
+  const s = Math.max(0, Math.ceil((G.deadline - performance.now()) / 1000));
+  el.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  const myTurn = (G.phase === "choose" && isLocal(G.chooser)) || (G.phase === "bid" && !G.bids[me()]);
+  el.classList.toggle("low", myTurn && s <= 10);
+}
+function renderAction() {
+  const A = $("#action");
+  if (!started || !G || G.over || G.phase === "idle") { A.hidden = true; return; }
+  A.hidden = false;
+  if (G.phase === "choose") {
+    if (isLocal(G.chooser)) {
+      const ready = G.sel.length === 3 && isLegalTriple(bd, G.sel);
+      A.innerHTML = `<div class="h3">${tr("a_choose_h")}<span>${G.sel.length}/3</span></div><p>${tr("a_choose_p")}</p>
+        <div class="row2"><button class="btn" id="aClear" ${G.sel.length ? "" : "disabled"}>${tr("a_clear")}</button><button class="btn primary" id="aPut" ${ready && canChoose() ? "" : "disabled"}>${tr("a_put")}</button></div>`;
+      $("#aClear").onclick = () => { G.sel = []; render(); };
+      $("#aPut").onclick = () => confirmSelection(false);
+    } else A.innerHTML = `<div class="h3">${tr("a_choose_h")}</div><p style="margin:0">${tr("a_wait_choose", oppName())}</p>`;
+    return;
+  }
+  const bank = G.bank[me()];
+  if (G.bids[me()]) {
+    const msg = MODE.vs === "online" && G.commit[them()] ? tr("a_resolving") : tr("a_locked", G.bids[me()].join("-"), oppName());
+    A.innerHTML = `<div class="h3">${tr("a_bid_h")}</div><p style="margin:0">${msg}</p>`;
+    return;
+  }
+  const d = G.draft, sum = d[0] + d[1] + d[2], left = bank - sum, carry = Math.floor(left / 2);
+  A.innerHTML = `<div class="bank"><b>${bank}</b><span>P · ${tr("a_bid_line", sum, left)} <span class="carry">+${carry}</span></span></div>
+    <div class="segbar">${Array.from({ length: bank }, (_, i) => `<i class="${i < sum ? "on" : ""}"></i>`).join("")}</div>
+    ${[0, 1, 2].map(k => `<div class="bidrow"><span class="num">${k + 1}</span><button data-k="${k}" data-d="-1" ${d[k] <= 1 ? "disabled" : ""}>−</button><span class="v">${d[k]}</span><button data-k="${k}" data-d="1" ${left <= 0 ? "disabled" : ""}>+</button><button class="all" data-k="${k}" data-all="1">${tr("a_all")}</button></div>`).join("")}
+    <div class="row2" style="margin-top:4px"><button class="btn" id="aMin">${tr("a_min")}</button><button class="btn" id="aEven">${tr("a_even")}</button><button class="btn primary" id="aLock">${tr("a_lock")}</button></div>
+    <p class="note" style="margin:8px 0 0">${tr("a_bid_note")}</p>`;
+  A.querySelectorAll(".bidrow button").forEach(b => b.onclick = () => {
+    const k = +b.dataset.k;
+    if (b.dataset.all) { G.draft = [1, 1, 1]; G.draft[k] = bank - 2; }
+    else { const v = G.draft[k] + +b.dataset.d; if (v >= 1 && G.draft.reduce((p, q) => p + q, 0) - G.draft[k] + v <= bank) G.draft[k] = v; }
+    renderAction();
+  });
+  $("#aMin").onclick = () => { G.draft = [1, 1, 1]; PREFS.preset = "min"; savePrefs(); renderAction(); };
+  $("#aEven").onclick = () => { const x = Math.floor(bank / 3); G.draft = [x, x, x]; PREFS.preset = "even"; savePrefs(); renderAction(); };
+  $("#aLock").onclick = () => lockBid(false);
+}
+function renderResult() {
+  const R = $("#result"), L = G && G.last;
+  if (!started || !L) { R.hidden = true; return; }
+  R.hidden = false;
+  const h = G.history[G.history.length - 1];
+  R.innerHTML = `<div class="h3">${tr("res_h", L.round)}</div><div class="pts">${[0, 1, 2].map(k => {
+    const w = L.winners[k], mine = w === me();
+    const bidTxt = G.over ? tr("res_both", h.bids[me()][k], h.bids[them()][k]) : tr("res_bid", h.bids[me()][k]);
+    return `<div class="pt ${mine ? "mine" : "theirs"}"><i class="c${w}"></i>${k + 1}. ${mine ? tr("res_mine") : tr("res_theirs")}<small>${bidTxt}</small></div>`;
+  }).join("")}</div>`;
+}
+function renderHistory() {
+  const H = $("#history");
+  if (!started || !G) { H.hidden = true; return; }
+  H.hidden = false;
+  const rows = G.history.slice().reverse().map(h => `<li><span class="rn">R${h.round}</span><span class="ms">${h.winners.map(w => `<i class="c${w}"></i>`).join("")}</span>
+    <span class="who">${h.chooser === me() ? tr("his_you") : tr("his_opp", oppName())}${h.late[me()] ? " · " + tr("late") : ""}</span>
+    <span class="bd">${h.bids[me()].join("·")}${G.over ? ` <s>${h.bids[them()].join("·")}</s>` : ""}</span></li>`).join("");
+  H.innerHTML = `<div class="h3">${tr("his_h")}</div>${rows ? `<ol>${rows}</ol>` : `<p class="empty">${tr("his_empty")}</p>`}<p class="note" style="margin:8px 0 0">${tr("his_note")}</p>`;
+}
+function renderOver() {
+  const go = $("#gameover");
+  if (!G || !G.over || overDismissed) { go.hidden = true; return; }
+  const o = G.over;
+  if (go.hidden && !renderOver.shown) sfx(o.aborted || o.winner === 0 ? "draw" : o.winner === me() ? "win" : "lose");
+  renderOver.shown = G;
+  go.hidden = false;
+  $("#goTitle").textContent = o.aborted ? tr("go_aborted") : o.winner === 0 ? tr("go_draw") : o.winner === me() ? tr("go_you") : tr("go_opp", oppName().toUpperCase());
+  let sub = o.aborted ? tr("gs_aborted") : o.left ? tr("gs_left") : o.full ? tr("gs_draw_full")
+    : o.timeout ? (o.timeout === me() ? tr("gs_timeout_you") : o.timeout === them() ? tr("gs_timeout_opp", oppName()) : tr("gs_timeout_you"))
+    : o.fives && o.fives[1] && o.fives[2] ? tr("gs_fives", o.fives[me()], oppName(), o.fives[them()]) : tr("gs_five", o.round);
+  if (AIS && AIS.style && !o.aborted) sub += " " + tr("go_style", tr("sty_" + AIS.style));
+  $("#goSub").textContent = sub;
+  const rematch = MODE.vs === "online" && netOpen();
+  $("#goNew").textContent = tr(rematch ? "go_rematch" : "b_new");
+  $("#goNew").disabled = rematch && NET.rm.me;
+  $("#goNet").textContent = !rematch ? "" : NET.rm.me ? tr("go_rm_wait") : NET.rm.them ? tr("go_rm_them") : "";
+}
+function render() {
+  if (renderOver.shown && renderOver.shown !== G) renderOver.shown = null;
+  renderBoard(); renderPanels(); renderStatus(); renderAction(); renderResult(); renderHistory(); renderOver();
+}
+
+/* ---------- KÍCH THƯỚC ---------- */
+function fit() {
+  const vw = document.documentElement.clientWidth, vh = window.innerHeight - ((document.getElementById("tb-header") || {}).offsetHeight || 0);
+  const portrait = vw < 880;
+  document.body.classList.toggle("portrait", portrait);
+  let S = portrait ? vw - 16 - 14 : Math.min(vw - 24 - 330 - 20 - 14, vh - 150);
+  S = Math.max(300, Math.min(S, 720));
+  const cell = Math.floor(S / N); S = cell * N;
+  document.documentElement.style.setProperty("--S", S + "px");
+  document.documentElement.style.setProperty("--cell", cell + "px");
+}
+
+/* ---------- BẢNG CHỌN CHẾ ĐỘ ---------- */
+let modeDraft = null;
+$("#segLevel").innerHTML = LEVELS.map(l => `<button data-v="${l}"><span>IQ ${l}</span><small data-i18n="lv_${l}"></small></button>`).join("");
+const MODE_SEGS = [["#segVs", "vs"], ["#segNet", "net"], ["#segLevel", "level"]];
+function syncMode() {
+  for (const [id, key] of MODE_SEGS) document.querySelectorAll(id + " button").forEach(b => b.classList.toggle("on", b.dataset.v === modeDraft[key]));
+  const online = modeDraft.vs === "online", join = online && modeDraft.net === "join";
+  $("#netOpts").classList.toggle("off", !online);
+  $("#segNet").querySelectorAll("button").forEach(b => { b.disabled = !online; });
+  $("#joinCode").disabled = !join; $("#joinCode").placeholder = tr("m_code_ph");
+  if (!$("#joinCode").value && modeDraft.code) $("#joinCode").value = modeDraft.code;
+  $("#netNote").textContent = tr(join ? "m_net_join" : "m_net_create");
+  $("#levelOpts").classList.toggle("off", online);
+  $("#segLevel").querySelectorAll("button").forEach(b => { b.disabled = online; });
+  $("#levelNote").textContent = "IQ " + modeDraft.level + " · " + tr("lv_" + modeDraft.level) + ": " + tr("lvn_" + modeDraft.level);
+  $("#modeStart").textContent = online ? tr(join ? "m_join" : "m_create") : started && G && !G.over ? tr("m_forfeit") : tr("m_start");
+}
+function openMode() {
+  modeDraft = clone(PREFS); modeDraft.net = MODE.net || "create"; modeDraft.code = "";
+  syncMode();
+  $("#modeCancel").textContent = started ? tr("cancel") : tr("m_back");
+  $("#mMode").hidden = false;
+}
+let returnToMode = true;
+function openRules() { $("#mRules").hidden = false; }
+
+/* ---------- NGÔN NGỮ ---------- */
+function setLang(l) {
+  LANG = l; try { localStorage.setItem("lang", l); } catch (e) {}
+  if (window.TB) TB.setLang(l);
+  applyI18n(); if (modeDraft && !$("#mMode").hidden) syncMode();
+  render();
+}
+if (window.TB) TB.onLang(l => { if (l !== LANG) setLang(l); });
+
+/* ---------- SỰ KIỆN ---------- */
+for (const [id, key] of MODE_SEGS)
+  document.querySelectorAll(id + " button").forEach(b => b.addEventListener("click", () => {
+    modeDraft[key] = b.dataset.v; syncMode();
+    if (modeDraft.vs === "online" && modeDraft.net === "join" && (key === "net" || key === "vs")) $("#joinCode").focus();
+  }));
+$("#joinCode").addEventListener("input", e => { const v = normCode(e.target.value); if (e.target.value !== v) e.target.value = v; });
+$("#joinCode").addEventListener("keydown", e => { if (e.key === "Enter") $("#modeStart").click(); });
+$("#netCancel").addEventListener("click", () => { netClose(true); $("#mNet").hidden = true; if (!started) openMode(); });
+$("#netCopy").addEventListener("click", () => {
+  const inp = $("#netLink"), btn = $("#netCopy");
+  const done = () => { btn.textContent = tr("n_copied"); setTimeout(() => { btn.textContent = tr("n_copy"); }, 1500); };
+  const legacy = () => { inp.select(); try { document.execCommand("copy"); done(); } catch (e) {} };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done, legacy); else legacy();
+});
+window.addEventListener("pagehide", () => { if (netOpen()) try { NET.conn.send({ t: "bye" }); } catch (e) {} });
+$("#modeCancel").addEventListener("click", () => { $("#mMode").hidden = true; if (!started) { returnToMode = true; openRules(); } });
+$("#modeStart").addEventListener("click", () => {
+  PREFS.vs = modeDraft.vs; if (modeDraft.vs === "bot") PREFS.level = modeDraft.level; savePrefs();
+  if (modeDraft.vs === "online") {
+    if (modeDraft.net === "join") {
+      modeDraft.code = normCode($("#joinCode").value);
+      if (modeDraft.code.length !== CODE_LEN) { $("#netNote").textContent = tr("n_err_code"); $("#joinCode").focus(); return; }
+    }
+    return startOnline();
+  }
+  netClose(true);
+  MODE = { ...clone(modeDraft), human: 1 }; $("#mMode").hidden = true; newGame(false);
+});
+function cellFromEvent(e) {
+  const rect = boardEl.getBoundingClientRect(), cw = rect.width / N;
+  const c = Math.floor((e.clientX - rect.left) / cw), r = Math.floor((e.clientY - rect.top) / cw);
+  return inb(r, c) ? r * N + c : -1;
+}
+function clickCell(i) {
+  if (!canChoose() || i < 0 || bd[i]) return;
+  if (G.sel.includes(i)) G.sel = G.sel.filter(x => x !== i);
+  else {
+    const L = legalTriples(bd), cand = G.sel.length >= 3 ? [i] : [...G.sel, i];
+    if (L.some(t => cand.every(x => t.includes(x)))) G.sel = cand;
+    else if (L.some(t => t.includes(i))) G.sel = [i];
+  }
+  G.sel.sort((a, b) => a - b);
+  render();
+}
+boardEl.addEventListener("click", e => clickCell(cellFromEvent(e)));
+boardEl.addEventListener("mousemove", e => { const i = cellFromEvent(e); if (i !== hoverCell) { hoverCell = i; renderBoard(); } });
+boardEl.addEventListener("mouseleave", () => { hoverCell = -1; renderBoard(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && canChoose() && G.sel.length === 3 && anyModal() === false) return confirmSelection(false);
+  if (e.key !== "Escape") return;
+  if (!$("#mNet").hidden) $("#netCancel").click();
+  else if (!$("#mRules").hidden) $("#rulesOk").click();
+  else if (!$("#mMode").hidden) { if (started) $("#mMode").hidden = true; }
+});
+$("#btnNew").addEventListener("click", () => {
+  if (MODE.vs === "online" && netOpen() && G && G.over) { overDismissed = false; return renderOver(); }
+  openMode();
+});
+$("#goNew").addEventListener("click", () => { if (MODE.vs === "online" && netOpen()) return requestRematch(); openMode(); });
+$("#goView").addEventListener("click", () => { overDismissed = true; renderOver(); });
+$("#btnRules").addEventListener("click", () => { returnToMode = false; openRules(); });
+$("#rulesOk").addEventListener("click", () => { $("#mRules").hidden = true; if (returnToMode) { returnToMode = false; openMode(); } });
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("mousedown", e => {
+  if (e.target !== m || m.id === "mNet" || (m.id === "mMode" && !started)) return;
+  if (m.id === "mRules") return $("#rulesOk").click();
+  m.hidden = true;
+}));
+window.addEventListener("resize", fit);
+
+/* ---------- KHỞI ĐỘNG ---------- */
+(function init() {
+  applyI18n(); fit(); newGame(true);
+  const room = normCode((location.hash.match(/room=([A-Za-z0-9]+)/) || [])[1]);
+  if (room.length === CODE_LEN) {
+    try { history.replaceState(null, "", location.href.split("#")[0]); } catch (e) {}
+    modeDraft = { ...clone(PREFS), vs: "online", net: "join", code: room };
+    startOnline();
+  } else openRules();
+  window.game = {   // tiện debug ở console
+    get mode() { return MODE; }, get G() { return G; }, get bd() { return bd; }, get ai() { return AIS; },
+    clickCell, confirmSelection, lockBid, applyTriple, stateHash, fives, aiBid, aiChooseTriple, legalTriples,
+    setDraft(d) { if (G) { G.draft = d.slice(); renderAction(); } },
+  };
+})();
+</script>
+</body>
+</html>

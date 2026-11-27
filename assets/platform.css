@@ -1,0 +1,145 @@
+/* ============================================================
+   TWISTBOARD: giao diện dùng chung cho trang chủ và mọi game
+   Màu, chữ, header, nút, thẻ game. Game nào cũng nạp file này và dùng các biến --tb-*.
+   ============================================================ */
+:root{
+  --tb-bg:#f2f4f8; --tb-surface:#fff; --tb-surface-2:#f6f7fb; --tb-hover:#eef1f7;
+  --tb-border:#e2e6ee; --tb-border-strong:#cdd3df;
+  --tb-text:#1d2330; --tb-muted:#687085; --tb-faint:#9aa1b2;
+  --tb-primary:#ffc928; --tb-primary-hover:#ffd75a; --tb-primary-ink:#3a2a00; --tb-gold-ink:#a66f00;
+  --tb-blue:#4a6fd8; --tb-red:#e8473e; --tb-green:#2ea65a; --tb-yellow:#f5b818; --tb-pink:#ef3f5a; --tb-orange:#ff9418;
+  --tb-shadow:0 2px 10px rgba(20,30,60,.07); --tb-shadow-lg:0 14px 36px rgba(20,30,60,.18);
+  --tb-radius:14px;
+  --tb-font:"Nunito","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --tb-font-brand:"Baloo 2","Nunito","Segoe UI",system-ui,sans-serif;
+  --tb-header-h:64px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--tb-bg);color:var(--tb-text);font-family:var(--tb-font);-webkit-tap-highlight-color:transparent;min-height:100vh}
+a{color:inherit}
+button{font-family:inherit}
+
+/* ---------- header ---------- */
+.tb-header{position:sticky;top:0;z-index:40;background:var(--tb-surface);box-shadow:0 1px 0 var(--tb-border),0 2px 12px rgba(20,30,60,.05)}
+.tb-header-in{max-width:1240px;margin:0 auto;height:var(--tb-header-h);padding:0 16px;display:flex;align-items:center;gap:18px}
+.tb-logo{display:flex;align-items:center;gap:9px;text-decoration:none;flex:none}
+.tb-mark{width:36px;height:36px;flex:none;transition:transform .35s cubic-bezier(.3,1.6,.4,1)}
+.tb-logo:hover .tb-mark{transform:rotate(-18deg) scale(1.06)}
+.tb-word{font-family:var(--tb-font-brand);font-weight:800;font-size:27px;line-height:1;letter-spacing:-.01em;white-space:nowrap}
+.tb-word .a{color:var(--tb-pink)} .tb-word .b{color:var(--tb-orange)}
+.tb-word i{font-style:normal;display:inline-block}
+.tb-word i:nth-child(odd){transform:rotate(-5deg)} .tb-word i:nth-child(even){transform:rotate(4deg) translateY(1px)}
+.tb-search{flex:1;max-width:440px;margin:0 auto;display:flex;align-items:center;background:var(--tb-surface-2);border:1.5px solid var(--tb-border-strong);border-radius:99px;padding:0 6px 0 18px;height:42px;transition:border-color .15s,box-shadow .15s}
+.tb-search:focus-within{border-color:var(--tb-blue);box-shadow:0 0 0 4px rgba(74,111,216,.15);background:#fff}
+.tb-search input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:15px;color:var(--tb-text);outline:none;height:100%}
+.tb-search input::placeholder{color:var(--tb-faint)}
+.tb-search input::-webkit-search-cancel-button{cursor:pointer}
+.tb-search button{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--tb-muted);display:grid;place-items:center;cursor:pointer}
+.tb-search button:hover{background:var(--tb-hover);color:var(--tb-text)}
+.tb-search svg{width:20px;height:20px}
+.tb-right{display:flex;align-items:center;gap:10px;flex:none}
+.tb-lang{display:flex;gap:4px;background:var(--tb-surface-2);border:1px solid var(--tb-border);border-radius:99px;padding:3px}
+.tb-lang button{display:flex;align-items:center;gap:6px;border:0;background:transparent;border-radius:99px;padding:4px 10px 4px 5px;font-size:12.5px;font-weight:800;color:var(--tb-muted);cursor:pointer}
+.tb-lang button:hover{color:var(--tb-text)}
+.tb-lang button.on{background:#fff;color:var(--tb-text);box-shadow:0 1px 4px rgba(20,30,60,.15)}
+.tb-lang svg{width:20px;height:20px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+
+/* ---------- khung trang ---------- */
+.tb-main{max-width:1240px;margin:0 auto;padding:16px 16px 28px}
+.tb-card{background:var(--tb-surface);border:1px solid var(--tb-border);border-radius:var(--tb-radius);box-shadow:var(--tb-shadow)}
+.tb-footer{max-width:1240px;margin:0 auto;padding:6px 16px 26px;color:var(--tb-faint);font-size:13px;text-align:center}
+
+/* ---------- trang chủ: tông giấy kem ấm (chỉ áp cho body.tb-home, game giữ màu cũ) ---------- */
+body.tb-home{
+  --tb-bg:#efe6d7; --tb-surface:#fbf7f0; --tb-surface-2:#f5eee2; --tb-hover:#f1e8da;
+  --tb-border:#e2d6c3; --tb-border-strong:#d3c4ad;
+  --tb-text:#1f1a14; --tb-muted:#6e6152; --tb-faint:#a3957f;
+  --tb-shadow:0 1px 2px rgba(70,50,20,.06),0 2px 8px rgba(70,50,20,.06);
+  --tb-font-display:"Anton","Oswald","Arial Narrow",Impact,sans-serif;
+}
+body.tb-home .tb-header{box-shadow:0 1px 0 var(--tb-border)}
+body.tb-home .tb-search:focus-within{background:#fff}
+
+/* ---------- danh mục ---------- */
+.tb-cats{display:flex;flex-wrap:wrap;gap:8px;padding:12px}
+.tb-chip{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 11px;border-radius:99px;border:1px solid var(--tb-border);background:var(--tb-surface);
+  color:var(--tb-text);font:inherit;font-size:14.5px;font-weight:700;cursor:pointer;transition:transform .12s,box-shadow .15s,background-color .15s,border-color .15s,color .15s}
+.tb-chip:hover{border-color:var(--tb-border-strong);background:var(--tb-hover)}
+.tb-chip:active{transform:scale(.96)}
+.tb-chip:focus-visible{outline:2px solid var(--tb-text);outline-offset:2px}
+.tb-chip .ic{display:contents}
+.tb-chip svg{width:20px;height:20px;flex:none;color:var(--tb-muted)}
+.tb-chip .n{font-size:12px;font-weight:800;color:var(--tb-faint);margin-left:-1px}
+.tb-chip.on{background:var(--tb-text);border-color:var(--tb-text);color:var(--tb-surface)}
+.tb-chip.on svg,.tb-chip.on .n{color:inherit;opacity:.8}
+.tb-chip .ic-red svg{color:#c0473f} .tb-chip .ic-yellow svg{color:#c08a1e} .tb-chip .ic-green svg{color:#3d8a5a} .tb-chip .ic-pink svg{color:#b84a5c} .tb-chip .ic-blue svg{color:#4f6d9a} .tb-chip .ic-orange svg{color:#c8641e}
+
+/* ---------- lưới game: thẻ ảnh trên, tên + mô tả dưới ---------- */
+.tb-section{margin-top:26px}
+.tb-head{display:flex;align-items:baseline;gap:12px;margin:0 2px 14px}
+.tb-head h2{margin:0;font-family:var(--tb-font-display);font-weight:400;font-size:30px;line-height:1.1;letter-spacing:.005em;color:var(--tb-text)}
+.tb-head .cnt{color:var(--tb-muted);font-size:14px;font-weight:700}
+.tb-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}   /* 5 game một hàng (chủ game chọn), màn hẹp giảm dần */
+@media (max-width:1100px){.tb-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:900px){.tb-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tb-gcard{display:flex;flex-direction:column;background:var(--tb-surface);border:1px solid var(--tb-border);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--tb-text);
+  box-shadow:var(--tb-shadow);transition:transform .2s cubic-bezier(.3,.8,.3,1),box-shadow .2s,border-color .2s}
+.tb-gcard .art{display:block;aspect-ratio:4/3;overflow:hidden;background:var(--tb-surface-2);border-bottom:1px solid var(--tb-border)}
+.tb-gcard img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .35s cubic-bezier(.3,.8,.3,1)}
+.tb-gcard .txt{display:flex;flex-direction:column;gap:6px;padding:14px 16px 18px;flex:1}
+.tb-gcard b{font-family:var(--tb-font-display);font-weight:400;font-size:20px;line-height:1.4;margin:-3px 0;letter-spacing:.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* tên game: 1 dòng (dòng cao để không cắt dấu tiếng Việt) */
+.tb-gcard .txt>span{font-size:14px;line-height:1.45;color:var(--tb-muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}   /* mô tả: tối đa 2 dòng, dài hơn thì hiện … */
+.tb-gcard:hover{transform:translateY(-3px);border-color:var(--tb-border-strong);box-shadow:0 10px 24px rgba(70,50,20,.14)}
+.tb-gcard:hover img{transform:scale(1.04)}
+.tb-gcard:focus-visible{outline:3px solid var(--tb-text);outline-offset:3px}
+.tb-empty{color:var(--tb-muted);font-size:15px;padding:30px 0;text-align:center}
+
+/* ---------- nút ---------- */
+.tb-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#fff;color:var(--tb-text);border:1.5px solid var(--tb-border-strong);border-radius:10px;
+  padding:9px 16px;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer;text-decoration:none;transition:transform .12s,background-color .15s,border-color .15s}
+.tb-btn:hover{background:var(--tb-hover)}
+.tb-btn:active{transform:scale(.95)}
+.tb-btn.primary{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:transparent}
+.tb-btn.primary:hover{background:var(--tb-primary-hover)}
+.tb-btn svg{width:18px;height:18px}
+
+/* ---------- trang "sắp ra mắt" ---------- */
+.tb-crumb{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--tb-muted);margin:2px 0 14px}
+.tb-crumb a{text-decoration:none;color:var(--tb-blue)} .tb-crumb a:hover{text-decoration:underline}
+.tb-soon{display:grid;grid-template-columns:minmax(0,340px) 1fr;gap:28px;padding:24px;align-items:center}
+.tb-soon .thumb{width:100%;aspect-ratio:1;border-radius:var(--tb-radius);overflow:hidden;box-shadow:0 8px 22px rgba(20,30,60,.18)}
+.tb-soon .thumb img{width:100%;height:100%;display:block}
+.tb-soon h1{margin:10px 0 6px;font-family:var(--tb-font-brand);font-size:38px;line-height:1.1}
+.tb-soon .sub{margin:0 0 16px;color:var(--tb-muted);font-weight:700;font-size:16px}
+.tb-soon .desc{font-size:16px;line-height:1.6;margin:0 0 22px;max-width:60ch}
+.tb-soon .desc.todo{color:var(--tb-faint);font-style:italic}
+.tb-pill{display:inline-flex;align-items:center;gap:6px;background:#fff4cc;color:var(--tb-gold-ink);border:1px solid #ffe28a;font-size:13px;font-weight:800;padding:4px 12px;border-radius:99px}
+.tb-pill svg{width:15px;height:15px}
+.tb-soon .acts{display:flex;gap:10px;flex-wrap:wrap}
+.tb-more{margin-top:22px}
+
+/* ---------- màn hình nhỏ ---------- */
+@media (max-width:720px){
+  :root{--tb-header-h:auto}
+  .tb-header-in{flex-wrap:wrap;gap:10px;padding:10px 12px}
+  .tb-search{order:3;flex-basis:100%;max-width:none;height:40px}
+  .tb-right{margin-left:auto}
+  .tb-word{font-size:24px} .tb-mark{width:32px;height:32px}
+  .tb-lang button{padding:4px}
+  .tb-lang button span{display:none}
+  .tb-main{padding:12px 12px 24px}
+  .tb-cats{padding:10px;gap:6px}
+  .tb-chip{height:34px;font-size:13.5px;padding:0 11px 0 9px}
+  .tb-chip svg{width:18px;height:18px}
+  .tb-head h2{font-size:26px}
+  .tb-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .tb-gcard .txt{padding:11px 12px 14px;gap:4px}
+  .tb-gcard b{font-size:16px}
+  .tb-gcard .txt>span{font-size:13px;line-height:1.4}
+  .tb-soon{grid-template-columns:1fr;padding:16px;gap:18px}
+  .tb-soon .thumb{max-width:280px;margin:0 auto}
+  .tb-soon h1{font-size:30px}
+  body.tb-game .tb-search{display:none}   /* trong game: bỏ ô tìm kiếm để bàn cờ có thêm chỗ */
+}

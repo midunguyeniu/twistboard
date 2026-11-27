@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cube Count · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<link rel="stylesheet" href="../../assets/puzzle-kit.css">
+<script src="../../assets/platform.js"></script>
+<script src="../../assets/puzzle-kit.js"></script>
+<style>
+.cc{width:100%;display:grid;place-items:center}
+.cc canvas{display:block;max-width:100%;touch-action:none;cursor:grab;border-radius:12px;background:radial-gradient(ellipse at 50% 40%,#fbfcff,#e9eef7 75%)}
+.cc canvas:active{cursor:grabbing}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "cube-count" });</script>
+<script>
+"use strict";
+/* RULES-START: sinh đề, không đụng DOM (cắt ra chạy bằng Node được)
+   Đề là một "bản đồ chiều cao": lưới w×d, mỗi ô là một cột khối xếp chồng (h[y*w+x] khối). Không khối nào lơ lửng. */
+function ccTarget(stage) { return Math.round(3 + Math.pow(stage - 1, 1.55) * 1.01); }   // số khối mục tiêu: màn 1 = 3, màn 10 ≈ 33, màn 20 ≈ 100
+function ccMaxH(stage) { return Math.min(2 + Math.floor((stage - 1) / 3), 7); }
+function ccGen(stage, rng) {
+  const T = ccTarget(stage), lo = Math.max(3, Math.floor(T * 0.85)), hi = Math.max(lo + 1, Math.ceil(T * 1.15)), maxH = ccMaxH(stage);
+  let best = null, bestD = Infinity;
+  for (let t = 0; t < 600; t++) {
+    const fill = 0.42 + rng() * 0.25, area = Math.max(2, T / (maxH * fill));
+    const w0 = Math.max(2, Math.min(8, Math.round(Math.sqrt(area) * (0.75 + rng() * 0.5))));
+    const d0 = Math.max(2, Math.min(8, Math.round(area / w0)));
+    const np = 1 + Math.floor(rng() * Math.min(3, 1 + stage / 6)), peaks = [];
+    for (let p = 0; p < np; p++) peaks.push({ x: rng() * (w0 - 1), y: rng() * (d0 - 1), h: maxH * (0.6 + rng() * 0.4), f: 0.55 + rng() * 1.0 });
+    const raw = [];
+    for (let y = 0; y < d0; y++) for (let x = 0; x < w0; x++) {
+      let v = 0;
+      for (const p of peaks) v = Math.max(v, p.h - Math.hypot(x - p.x, y - p.y) * p.f);
+      v += (rng() - 0.5) * 1.1;
+      raw.push(Math.max(0, Math.min(maxH, Math.round(v))));
+    }
+    // bỏ hàng/cột trống ở rìa
+    let x0 = w0, x1 = -1, y0 = d0, y1 = -1;
+    for (let y = 0; y < d0; y++) for (let x = 0; x < w0; x++) if (raw[y * w0 + x]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    if (x1 < 0) continue;
+    const w = x1 - x0 + 1, d = y1 - y0 + 1;
+    if (w * d < 2) continue;
+    const h = [];
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) h.push(raw[y * w0 + x]);
+    const total = h.reduce((a, b) => a + b, 0);
+    const pz = { w, d, h, total, stage };
+    if (total >= lo && total <= hi) return pz;
+    const dist = Math.abs(total - T); if (dist < bestD) { bestD = dist; best = pz; }
+  }
+  return best;
+}
+/* Online: đề k (1..7) lấy độ khó của màn tương ứng theo mức chủ phòng chọn */
+const CC_LEVELS = { easy: [3, 5, 6, 7, 8, 9, 10], normal: [7, 9, 10, 11, 12, 13, 14], hard: [12, 14, 15, 16, 17, 18, 20] };
+function ccOnline(k, level, rng) { const L = CC_LEVELS[level] || CC_LEVELS.normal; return ccGen(L[Math.min(k, L.length) - 1], rng); }
+/* RULES-END */
+
+/* ---------- VẼ 3D (phép chiếu song song, xoay quanh trục đứng, vẽ từ xa tới gần) ---------- */
+function mountCC(el, pz, ctx) {
+  el.innerHTML = `<div class="cc"><canvas></canvas></div>`;
+  const wrap = el.firstElementChild, cv = wrap.firstElementChild, g = cv.getContext("2d");
+  const W = pz.w, D = pz.d, HM = Math.max(1, ...pz.h);
+  const ht = (x, y) => (x < 0 || y < 0 || x >= W || y >= D) ? 0 : pz.h[y * W + x];
+  let yaw = 0.55 + Math.random() * 0.4, pitch = 0.56, aimPitch = null, paused = false, drag = null, lastTouch = -1e9, revealed = false, raf = 0, lastT = performance.now(), dpr = 1;
+
+  function size() {
+    const cw = Math.max(240, Math.min(wrap.clientWidth || 600, 640));
+    const ch = Math.round(Math.max(260, Math.min(cw * 0.86, window.innerHeight - (window.innerWidth <= 780 ? 330 : 220))));
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.style.width = cw + "px"; cv.style.height = ch + "px";
+    cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  }
+  const lerpCol = (a, b, t) => "rgb(" + a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",") + ")";
+  const SIDE_DARK = [176, 150, 112], SIDE_LIGHT = [236, 220, 188], TOP = "#f8efdc", EDGE = "#3a2f26";
+  const LX = -0.55, LY = -0.83;   // hướng ánh sáng trên mặt phẳng (cố định theo thế giới nên bóng đổi khi xoay)
+  function draw() {
+    const cw = cv.width, ch = cv.height;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cw, ch);
+    const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const cx0 = W / 2, cy0 = D / 2, cz0 = HM / 2, R = Math.hypot(W / 2 + .3, D / 2 + .3);
+    const s = Math.min(cw * 0.92 / (2 * R), ch * 0.9 / (2 * (R * sp + cz0 * cp)), Math.min(cw, ch) / 4.2);   // khối nhỏ không bị phóng quá to
+    const ox = cw / 2, oy = ch / 2;
+    const P = (x, y, z) => { const X = x - cx0, Y = y - cy0, Z = z - cz0; return [ox + s * (X * cy - Y * sy), oy - s * (Z * cp + (X * sy + Y * cy) * sp)]; };
+    const depth = (x, y, z) => -((x - cx0) * sy + (y - cy0) * cy) * cp + (z - cz0) * sp;
+    g.lineJoin = "round"; g.lineCap = "round";
+    // nền: ô lưới dưới chân khối (giúp đếm cột)
+    const floor = [P(-.25, -.25, 0), P(W + .25, -.25, 0), P(W + .25, D + .25, 0), P(-.25, D + .25, 0)];
+    poly(floor, "rgba(74,111,216,.07)", "rgba(74,111,216,.25)", Math.max(1, s * .02));
+    g.strokeStyle = "rgba(74,111,216,.18)"; g.lineWidth = Math.max(1, s * .015); g.beginPath();
+    for (let x = 0; x <= W; x++) { const a = P(x, 0, 0), b = P(x, D, 0); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); }
+    for (let y = 0; y <= D; y++) { const a = P(0, y, 0), b = P(W, y, 0); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); }
+    g.stroke();
+    const cubes = [];
+    for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) for (let z = 0; z < ht(x, y); z++) cubes.push([depth(x + .5, y + .5, z + .5), x, y, z]);
+    cubes.sort((a, b) => a[0] - b[0]);
+    const lw = Math.max(1.2 * dpr, s * 0.04);
+    const shade = (nx, ny) => lerpCol(SIDE_DARK, SIDE_LIGHT, (1 + nx * LX + ny * LY) / 2);
+    for (const [, x, y, z] of cubes) {
+      if (sy > 0 && ht(x - 1, y) <= z) poly([P(x, y, z), P(x, y + 1, z), P(x, y + 1, z + 1), P(x, y, z + 1)], shade(-1, 0), EDGE, lw);
+      if (sy < 0 && ht(x + 1, y) <= z) poly([P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], shade(1, 0), EDGE, lw);
+      if (cy > 0 && ht(x, y - 1) <= z) poly([P(x, y, z), P(x + 1, y, z), P(x + 1, y, z + 1), P(x, y, z + 1)], shade(0, -1), EDGE, lw);
+      if (cy < 0 && ht(x, y + 1) <= z) poly([P(x, y + 1, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], shade(0, 1), EDGE, lw);
+      if (z === ht(x, y) - 1) poly([P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], TOP, EDGE, lw);
+    }
+    if (revealed) {   // đáp án: ghi chiều cao từng cột lên đỉnh cột
+      const r = Math.max(9 * dpr, s * 0.24);
+      g.font = `800 ${Math.round(r * 1.15)}px Nunito, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
+      for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+        const h = ht(x, y); if (!h) continue;
+        const [px, py] = P(x + .5, y + .5, h);
+        g.beginPath(); g.arc(px, py, r, 0, Math.PI * 2); g.fillStyle = "rgba(46,166,90,.92)"; g.fill();
+        g.fillStyle = "#fff"; g.fillText(h, px, py + r * .06);
+      }
+    }
+  }
+  function poly(pts, fill, stroke, lw) {
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+    g.closePath(); g.fillStyle = fill; g.fill();
+    if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw; g.stroke(); }
+  }
+  function frame(t) {
+    const dt = Math.min(60, t - lastT); lastT = t;
+    if (!paused && !drag && t - lastTouch > 2200) yaw += dt / 1000 * (2 * Math.PI / 16);   // 16 giây một vòng
+    if (aimPitch !== null && !drag) { pitch += (aimPitch - pitch) * Math.min(1, dt / 180); if (Math.abs(aimPitch - pitch) < .002) aimPitch = null; }
+    draw(); raf = requestAnimationFrame(frame);
+  }
+  cv.addEventListener("pointerdown", e => { aimPitch = null; drag = { x: e.clientX, y: e.clientY, yaw, pitch }; try { cv.setPointerCapture(e.pointerId); } catch (er) {} });
+  cv.addEventListener("pointermove", e => {
+    if (!drag) return;
+    yaw = drag.yaw + (e.clientX - drag.x) * 0.011;
+    pitch = Math.max(0.12, Math.min(1.45, drag.pitch - (e.clientY - drag.y) * 0.009));
+  });
+  const endDrag = () => { if (drag) { drag = null; lastTouch = performance.now(); } };
+  cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+  ctx.tools([
+    { id: "spin", label: () => ctx.tr(paused ? "t_play" : "t_pause"), always: true, on() { paused = !paused; ctx.prompt(); paintSpin(); } },
+    { id: "view", label: "t_view", always: true, on() { aimPitch = 0.56; lastTouch = -1e9; } },
+  ]);
+  function paintSpin() { const b = document.querySelector('#pkTools [data-tool="spin"]'); if (b) b.textContent = ctx.tr(paused ? "t_play" : "t_pause"); }
+  size(); raf = requestAnimationFrame(frame);
+  return {
+    resize: size,
+    reveal() { revealed = true; paused = true; aimPitch = 1.2; paintSpin(); },   // nghiêng gần nhìn từ trên để đọc số trên đỉnh cột
+    lang() { paintSpin(); },
+    destroy() { cancelAnimationFrame(raf); },
+  };
+}
+
+PK.start({
+  id: "cube-count", peerPrefix: "cubecount-", proto: 1, kind: "number",
+  solo: { stages: 20, gen: ccGen },
+  online: { target: 3, maxRounds: 7, roundMs: 150000, levels: ["easy", "normal", "hard"], wrong: "lock", lockMs: 20000, gen: ccOnline },
+  answer: pz => pz.total,
+  mount: mountCC,
+  prompt: (pz, ctx) => `<span class="q">${ctx.tr("prompt_q")}</span>${ctx.tr("prompt")}<span class="hint">${ctx.tr("hint")}</span>`,
+  stageNote: (pz, stage) => PK.tr(stage <= 4 ? "sn_1" : stage <= 8 ? "sn_2" : stage <= 14 ? "sn_3" : "sn_4"),
+  rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
+  i18n: {
+    vi: {
+      brand: "Cube Count", tagline: "Đếm hết khối lập phương trong khối hình đang xoay, kể cả khối bị che.",
+      r_intro: "Một khối hình xếp từ các khối lập phương bằng nhau đang xoay trên màn hình. Hãy đếm xem có tất cả bao nhiêu khối, kể cả những khối nằm khuất phía sau và bên dưới.",
+      h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
+      r_rules: ["Không khối nào lơ lửng: mỗi khối nằm trên sàn hoặc ngay trên một khối khác. Thấy đỉnh một cột cao 3 thì dưới đó có đủ 3 khối.",
+        "Hình tự xoay. Kéo ngang để xoay, kéo dọc để nghiêng nhìn từ trên xuống. Nút Dừng xoay để giữ yên.",
+        "Nhập số khối bằng bàn phím số rồi bấm Trả lời (hoặc gõ phím số + Enter)."],
+      r_solo: ["20 màn, số khối tăng dần từ khoảng 3 tới khoảng 100.", "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một màn thì phải chờ lâu dần mới được trả lời lại.",
+        "Tính tổng thời gian cả 20 màn. Kỷ lục (màn cao nhất, thời gian ngắn nhất) lưu trên máy này."],
+      r_online: ["Hai người cùng xem một khối hình, ai trả lời đúng trước được 1 điểm. Ai đạt 3 điểm trước thì thắng.",
+        "Trả lời sai bị khoá 20 giây, trong lúc đó đối thủ vẫn trả lời được.", "Mỗi đề có 2 phút 30 giây. Hết giờ mà không ai đúng thì không ai được điểm.",
+        "Thứ tự đúng tính theo thời gian giải trên máy mỗi người, nên mạng chậm không bị thiệt."],
+      r_tips: ["Cộng chiều cao từng cột: nhìn hình như bản đồ từ trên xuống, ghi số tầng vào từng ô rồi cộng lại.",
+        "Hoặc đếm theo tầng: tầng 1 bằng số ô có khối trên sàn, tầng 2 là số cột cao từ 2 trở lên...",
+        "Khối hình lớn: tưởng tượng một hộp đầy (dài × rộng × cao) rồi trừ đi chỗ trống. Chờ hình xoay đủ một vòng để không sót cột phía sau."],
+      r_note: "Lấy cảm hứng từ trò đếm khối lập phương trong show The Devil's Plan (Netflix). Game không liên kết với Netflix.",
+      prompt_q: "Đếm khối", prompt: "Có tất cả bao nhiêu khối lập phương?", hint: "Kéo ngang để xoay, kéo dọc để nghiêng. Thấy đỉnh cột thì bên dưới đầy khối.",
+      t_pause: "Dừng xoay", t_play: "Xoay tiếp", t_view: "Góc nhìn chuẩn",
+      sn_1: "Khối hình nhỏ để làm quen.", sn_2: "Khối hình vừa, bắt đầu có cột bị che.", sn_3: "Khối hình lớn, cần đếm có hệ thống.", sn_4: "Khối hình rất lớn, khoảng 55 tới 100 khối.",
+      lvn_easy: "Khối hình nhỏ, khoảng 5 tới 35 khối.", lvn_normal: "Khối hình vừa, khoảng 20 tới 60 khối.", lvn_hard: "Khối hình lớn, khoảng 45 tới 100 khối.",
+    },
+    en: {
+      brand: "Cube Count", tagline: "Count every cube in the turning stack, hidden ones too.",
+      r_intro: "A stack of identical cubes turns on the screen. Work out how many cubes it holds, including the ones hidden at the back and underneath.",
+      h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
+      r_rules: ["No cube floats: each one sits on the floor or right on top of another. If you see the top of a column 3 high, it holds 3 cubes.",
+        "The stack turns by itself. Drag sideways to turn it, drag up or down to tilt and look from above. Press Pause to hold it still.",
+        "Type the count on the keypad and press Answer (or use the number keys and Enter)."],
+      r_solo: ["20 stages, growing from about 3 cubes to about 100.", "A wrong answer adds 5 seconds. From the 3rd miss on the same stage you wait longer and longer before you can answer again.",
+        "Your total time over the 20 stages counts. Your best (highest stage, shortest time) is saved on this device."],
+      r_online: ["Both players see the same stack and the first correct answer scores a point. First to 3 points wins.",
+        "A wrong answer locks you out for 20 seconds while your opponent can still answer.", "Each puzzle has 2 minutes 30 seconds. If nobody gets it, nobody scores.",
+        "Who answered first is decided by each player's own solving time, so a slow connection doesn't cost you."],
+      r_tips: ["Add up the column heights: picture the stack from above, write each column's height in its square and sum them.",
+        "Or count by layers: layer 1 is the number of squares on the floor, layer 2 the columns at least 2 high, and so on.",
+        "For big stacks, picture a full box (width × depth × height) and subtract the gaps. Wait for a full turn so you don't miss back columns."],
+      r_note: "Inspired by the cube counting game on The Devil's Plan (Netflix). Not affiliated with Netflix.",
+      prompt_q: "Cube count", prompt: "How many cubes are there in total?", hint: "Drag sideways to turn, up or down to tilt. A visible top means the column is full below it.",
+      t_pause: "Pause", t_play: "Spin", t_view: "Reset view",
+      sn_1: "A small stack to warm up.", sn_2: "A medium stack, with some columns hidden.", sn_3: "A big stack: count it step by step.", sn_4: "A huge stack, about 55 to 100 cubes.",
+      lvn_easy: "Small stacks, about 5 to 35 cubes.", lvn_normal: "Medium stacks, about 20 to 60 cubes.", lvn_hard: "Big stacks, about 45 to 100 cubes.",
+    },
+  },
+});
+</script>
+</body>
+</html>

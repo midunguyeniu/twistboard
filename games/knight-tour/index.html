@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knight's Tour · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<link rel="stylesheet" href="../../assets/puzzle-kit.css">
+<script src="../../assets/platform.js"></script>
+<script src="../../assets/puzzle-kit.js"></script>
+<style>
+.kt{width:100%;display:grid;place-items:center}
+.kt-board{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));grid-template-rows:repeat(var(--n),minmax(0,1fr));width:min(100%,560px,calc(100vh - 230px));min-width:250px;aspect-ratio:1;
+  border-radius:6px;box-shadow:0 0 0 5px #fff,0 0 0 6px var(--tb-border),0 12px 28px rgba(20,30,60,.2);user-select:none;-webkit-user-select:none;container-type:inline-size;touch-action:manipulation}
+.kt-cell{position:relative;border:0;padding:0;margin:0;min-width:0;min-height:0;line-height:1;font:inherit;font-weight:800;color:#6b5636;display:grid;place-items:center;cursor:default;
+  font-size:calc(100cqw / var(--n) * .32);font-variant-numeric:tabular-nums;transition:background-color .15s}
+.kt-cell.lt{background:#f3e7cf} .kt-cell.dk{background:#d9c19a}
+.kt-cell.v.lt{background:#dde6f8} .kt-cell.v.dk{background:#c2d0ee}
+.kt-cell.v{color:#2c3e6e}
+.kt-cell.can{cursor:pointer}
+.kt-cell.can::after{content:"";width:28%;height:28%;border-radius:50%;background:#2ea65a;box-shadow:0 0 0 4px rgba(46,166,90,.25);transition:transform .12s}
+.kt-cell.can:hover::after{transform:scale(1.3)}
+.kt-cell.prev{cursor:pointer}
+.kt-path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.kt-path polyline{fill:none;stroke:#4a6fd8;stroke-opacity:.24;stroke-width:.05;stroke-linecap:round;stroke-linejoin:round}
+.kt-path circle{fill:#4a6fd8;fill-opacity:.55}
+.kt-knight{position:absolute;width:calc(100% / var(--n));height:calc(100% / var(--n));pointer-events:none;object-fit:contain;padding:0;transform:scale(1.18) translateY(-5%);z-index:2;
+  transition:left .16s ease-out,top .16s ease-out;filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+.kt-board.stuck .kt-cell.cur{background:#f5c4bf}
+.kt-board.won{box-shadow:0 0 0 5px #fff,0 0 0 8px var(--tb-green),0 12px 28px rgba(20,30,60,.2)}
+.kt-board.won .kt-path polyline{stroke:var(--tb-green);stroke-opacity:.6}
+.kt-board.off .kt-cell.can::after{display:none}
+@media (max-width:780px){.kt-board{width:min(100%,calc(100vh - 250px));box-shadow:0 0 0 3px #fff,0 0 0 4px var(--tb-border),0 8px 18px rgba(20,30,60,.18)}}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "knight-tour" });</script>
+<script>const KNIGHT_IMG = "data:image/png;base64,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";</script>
+<script>
+"use strict";
+/* RULES-START: luật + sinh đề, không đụng DOM (cắt ra chạy bằng Node được) */
+const KN_D = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]];
+function knNext(n, i) {   // các ô Mã nhảy tới được từ ô i trên bàn n×n
+  const r = Math.floor(i / n), c = i % n, out = [];
+  for (const [dr, dc] of KN_D) { const rr = r + dr, cc = c + dc; if (rr >= 0 && rr < n && cc >= 0 && cc < n) out.push(rr * n + cc); }
+  return out;
+}
+/* Tìm một hành trình bằng luật Warnsdorff (ưu tiên ô ít đường đi tiếp nhất, bằng nhau thì chọn ngẫu nhiên theo rng). Trả về đường đi hoặc null. */
+function knTour(n, start, rng, tries = 40) {
+  const N = n * n, nb = []; for (let i = 0; i < N; i++) nb.push(knNext(n, i));
+  for (let t = 0; t < tries; t++) {
+    const seen = new Uint8Array(N), path = [start]; seen[start] = 1; let cur = start;
+    while (path.length < N) {
+      let best = [], bd = 9;
+      for (const j of nb[cur]) if (!seen[j]) {
+        let d = 0; for (const k of nb[j]) if (!seen[k]) d++;
+        if (d < bd) { bd = d; best = [j]; } else if (d === bd) best.push(j);
+      }
+      if (!best.length) break;
+      cur = best[Math.floor(rng() * best.length)]; seen[cur] = 1; path.push(cur);
+    }
+    if (path.length === N) return path;
+  }
+  return null;
+}
+/* Người chơi chọn kích thước bàn (level = "5" | "6" | "7" | "8") cho cả chơi một mình lẫn online. */
+const KT_SIZES = ["5", "6", "7", "8"];
+const KT_SOLO_AT = { 5: "corner", 6: "corner", 7: "center", 8: "corner" };   // chơi một mình: ô xuất phát cố định kiểu (7×7 xuất phát giữa bàn)
+function ktSolo(stage, rng, level) {
+  const n = KT_SIZES.includes(level) ? +level : 5, at = KT_SOLO_AT[n];
+  const start = at === "center" ? ((n - 1) / 2) * n + (n - 1) / 2 : [0, n - 1, n * (n - 1), n * n - 1][Math.floor(rng() * 4)];
+  return { n, start, at };
+}
+/* Online: mọi đề cùng kích thước chủ phòng chọn, ô xuất phát ngẫu nhiên theo seed (bàn lẻ chỉ xuất phát ở ô cùng màu với góc), đã kiểm có lời giải. */
+function ktOnline(k, level, rng) {
+  const n = KT_SIZES.includes(level) ? +level : 6;
+  for (let t = 0; t < 60; t++) {
+    const r = Math.floor(rng() * n), c = Math.floor(rng() * n);
+    if (n % 2 && (r + c) % 2) continue;
+    if (knTour(n, r * n + c, rng, 30)) return { n, start: r * n + c, at: "random" };
+  }
+  return { n, start: 0, at: "corner" };
+}
+/* RULES-END */
+
+/* ---------- VẼ + ĐIỀU KHIỂN ---------- */
+let KV = null;   // trạng thái bàn đang hiện (để khung nhắc đọc số ô đã đi)
+function mountKT(el, pz, ctx) {
+  const n = pz.n, N = n * n, nb = [];
+  for (let i = 0; i < N; i++) nb.push(knNext(n, i));
+  const path = [pz.start], seen = new Int16Array(N); seen[pz.start] = 1;
+  let cells = "";
+  for (let i = 0; i < N; i++) { const r = Math.floor(i / n), c = i % n; cells += `<button type="button" class="kt-cell" data-i="${i}" data-sh="${(r + c) % 2 ? "dk" : "lt"}"></button>`; }
+  el.innerHTML = `<div class="kt" style="--n:${n}"><div class="kt-board off">${cells}
+    <svg class="kt-path" viewBox="0 0 ${n} ${n}" aria-hidden="true"><polyline/><circle r=".12"/></svg>
+    <img class="kt-knight" src="${KNIGHT_IMG}" alt="" draggable="false"></div></div>`;
+  const board = el.querySelector(".kt-board"), btns = [...board.querySelectorAll(".kt-cell")];
+  const line = board.querySelector("polyline"), dot = board.querySelector("circle"), knight = board.querySelector(".kt-knight");
+  const xy = i => [i % n + .5, Math.floor(i / n) + .5];
+  KV = { pz, path, N, won: false };
+
+  function tap(i) {
+    if (!ctx.canPlay()) return;
+    const cur = path[path.length - 1];
+    if (path.length > 1 && i === path[path.length - 2]) return undo();   // bấm lại ô vừa đi = lùi 1 bước
+    if (seen[i] || !nb[cur].includes(i)) return;
+    path.push(i); seen[i] = path.length;
+    ctx.sfx("step"); draw(); ctx.progress(path.length);
+    if (path.length === N) { KV.won = true; draw(); ctx.solved(); }
+  }
+  function undo() {
+    if (!ctx.canPlay() || path.length <= 1) return;
+    seen[path.pop()] = 0; draw(); ctx.progress(path.length);
+  }
+  function reset() {
+    if (!ctx.canPlay() || path.length <= 1) return;
+    while (path.length > 1) seen[path.pop()] = 0;
+    draw(); ctx.progress(1);
+  }
+  board.addEventListener("click", e => { const b = e.target.closest(".kt-cell"); if (b) tap(+b.dataset.i); });
+  ctx.tools([{ id: "undo", label: "t_undo", on: undo }, { id: "reset", label: "t_reset", on: reset }]);
+
+  function draw() {
+    const cur = path[path.length - 1], live = ctx.canPlay();
+    const cand = new Set(live ? nb[cur].filter(j => !seen[j]) : []);
+    const prev = live && path.length > 1 ? path[path.length - 2] : -1;
+    btns.forEach((b, i) => {
+      b.className = "kt-cell " + b.dataset.sh + (seen[i] ? " v" : "") + (i === cur ? " cur" : "") + (cand.has(i) ? " can" : "") + (i === prev ? " prev" : "");
+      b.textContent = seen[i] && i !== cur ? seen[i] : "";
+    });
+    line.setAttribute("points", path.map(i => xy(i).join(",")).join(" "));
+    const [sx, sy] = xy(path[0]); dot.setAttribute("cx", sx); dot.setAttribute("cy", sy);
+    knight.style.left = (cur % n) / n * 100 + "%"; knight.style.top = Math.floor(cur / n) / n * 100 + "%";
+    const stuck = live && !cand.size && path.length < N;
+    board.classList.toggle("stuck", stuck); board.classList.toggle("won", KV.won); board.classList.toggle("off", !live);
+    ctx.note(stuck ? ctx.tr("stuck") : "", "bad");
+    ctx.prompt();
+  }
+  draw();
+  return {
+    start() { draw(); },
+    reveal() { draw(); },
+    destroy() { KV = null; },
+    key(e) {
+      if (!ctx.canPlay()) return;
+      if (e.key === "Backspace" || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z")) { e.preventDefault(); undo(); }
+    },
+  };
+}
+
+PK.start({
+  id: "knight-tour", peerPrefix: "knighttour-", proto: 2, kind: "self",   // proto 2: online đổi sang chọn kích thước bàn
+  solo: { stages: 1, useLevel: true, gen: ktSolo },
+  online: { target: 2, maxRounds: 3, roundMs: 0, levels: KT_SIZES, defaultLevel: "5", wrong: null, gen: ktOnline },
+  mount: mountKT,
+  prompt(pz, ctx) {
+    const done = KV ? KV.path.length : 1, N = pz.n * pz.n;
+    return `<span class="q">${ctx.tr("prompt_q", pz.n)}</span>${ctx.tr("prompt", done, N)}<span class="hint">${ctx.tr("hint")}</span>`;
+  },
+  stageNote: (pz) => PK.tr("stage_note", pz.n, PK.tr(pz.at === "center" ? "at_center" : "at_corner")),
+  progressText: (pz, n) => PK.tr("opp_prog", n || 1, pz.n * pz.n),
+  rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
+  i18n: {
+    vi: {
+      brand: "Knight's Tour", tagline: "Cho quân Mã nhảy qua mọi ô trên bàn, mỗi ô đúng một lần.",
+      r_intro: "Bài toán Mã đi tuần: quân Mã nhảy hình chữ L và phải ghé mọi ô của bàn cờ, mỗi ô đúng một lần.",
+      h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
+      r_rules: ["Mã nhảy hình chữ L: 2 ô theo một hướng rồi 1 ô sang ngang. Ô có chấm xanh là ô Mã nhảy tới được.",
+        "Ô đã đi giữ số thứ tự và không được đi vào lần nữa. Không cần quay về ô xuất phát.",
+        "Hết đường thì bấm <b>Đi lại</b> (hoặc bấm vào ô vừa đi) để lùi một bước, <b>Làm lại</b> để về ô đầu. Lùi không bị phạt nhưng đồng hồ vẫn chạy."],
+      r_solo: ["Chọn kích thước bàn từ 5×5 tới 8×8. Mã xuất phát ở góc, riêng bàn 7×7 xuất phát giữa bàn.", "Kỷ lục thời gian lưu riêng cho từng kích thước bàn, trên máy này."],
+      r_online: ["Chủ phòng chọn kích thước bàn (5×5 tới 8×8), cả trận đấu trên bàn đó. Ô xuất phát mỗi đề chọn ngẫu nhiên, hai người giống nhau.", "Ai đi kín bàn trước được 1 điểm. Thắng 2 đề là thắng trận (tối đa 3 đề).",
+        "Thanh trên cùng cho biết đối thủ đã đi được bao nhiêu ô."],
+      r_tips: ["Ưu tiên nhảy vào ô có ít đường đi tiếp nhất (luật Warnsdorff). Đi sát mép và góc trước, để giữa bàn lại sau.",
+        "Bị kẹt thì đừng chỉ lùi 1 bước: tìm ô trống không còn đường vào, lỗi thường nằm vài bước trước đó."],
+      r_note: "Lấy cảm hứng từ thử thách Knight's Tour trong show The Devil's Plan (Netflix). Game không liên kết với Netflix.",
+      t_undo: "Đi lại", t_reset: "Làm lại", stuck: "Hết đường! Bấm Đi lại để lùi.",
+      prompt_q: "Bàn {0}×{0}", prompt: "Đã đi <b>{0}/{1}</b> ô", hint: "Bấm ô có chấm xanh để nhảy. Bấm vào ô vừa đi để lùi.",
+      opp_prog: "Đối thủ đã đi {0}/{1} ô", stage_note: "Bàn {0}×{0}, Mã xuất phát ở {1}.", at_corner: "góc", at_center: "giữa bàn",
+      m_level: "Kích thước bàn", lv_5: "5×5", lv_6: "6×6", lv_7: "7×7", lv_8: "8×8",
+      lvn_5: "25 ô, bàn nhỏ nhất để làm quen.", lvn_6: "36 ô.", lvn_7: "49 ô. Chơi một mình thì Mã xuất phát giữa bàn.", lvn_8: "64 ô, đúng bàn cờ vua, khó nhất.",
+      m_solo_note: "Cho Mã đi kín bàn nhanh nhất có thể. Kỷ lục tính riêng cho từng kích thước bàn.",
+      m_net_create: "Bạn tạo phòng rồi gửi mã (hoặc link) cho bạn bè. Chủ phòng chọn kích thước bàn.",
+      m_net_join: "Nhập mã 5 ký tự bạn bè gửi. Kích thước bàn do chủ phòng chọn.",
+      s_done: "Đi kín bàn!", s_done_p: "Bạn đi kín bàn với thời gian <b>{1}</b>.", s_again: "Chơi lại",
+    },
+    en: {
+      brand: "Knight's Tour", tagline: "Land the knight on every square of the board, once each.",
+      r_intro: "The classic knight's tour: the knight jumps in an L and must land on every square of the board exactly once.",
+      h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
+      r_rules: ["The knight jumps in an L: two squares one way, then one sideways. Green dots mark the squares it can reach.",
+        "Each square you land on keeps its number and can't be used again. You don't need to return to the start.",
+        "Stuck? Press <b>Undo</b> (or tap the square you just left) to step back, or <b>Restart</b> to go back to the first square. Undoing has no penalty, but the clock keeps running."],
+      r_solo: ["Pick a board size from 5×5 to 8×8. The knight starts in a corner, except on 7×7 where it starts in the centre.", "Your best time is saved separately for each board size, on this device."],
+      r_online: ["The host picks the board size (5×5 to 8×8) and the whole match uses it. Each puzzle has a random start square, the same for both players.", "The first to fill the board scores a point. Win 2 puzzles to win the match (3 at most).",
+        "The top bar shows how many squares your opponent has covered."],
+      r_tips: ["Jump to the square with the fewest onward moves (Warnsdorff's rule). Cover edges and corners first and leave the middle for later.",
+        "When stuck, don't just undo once: find the empty square with no way in left; the mistake is usually a few moves back."],
+      r_note: "Inspired by the Knight's Tour challenge on The Devil's Plan (Netflix). Not affiliated with Netflix.",
+      t_undo: "Undo", t_reset: "Restart", stuck: "Dead end! Press Undo to step back.",
+      prompt_q: "{0}×{0} board", prompt: "Covered <b>{0}/{1}</b> squares", hint: "Tap a green dot to jump. Tap the square you just left to step back.",
+      opp_prog: "Opponent: {0}/{1} squares", stage_note: "{0}×{0} board, the knight starts in {1}.", at_corner: "a corner", at_center: "the centre",
+      m_level: "Board size", lv_5: "5×5", lv_6: "6×6", lv_7: "7×7", lv_8: "8×8",
+      lvn_5: "25 squares, the smallest board to warm up.", lvn_6: "36 squares.", lvn_7: "49 squares. In solo the knight starts in the centre.", lvn_8: "64 squares, a full chessboard, the hardest.",
+      m_solo_note: "Fill the board as fast as you can. Your best time is kept separately for each board size.",
+      m_net_create: "Create a room, then send the code (or link) to a friend. The host picks the board size.",
+      m_net_join: "Enter the 5-character code your friend sent. The host picks the board size.",
+      s_done: "Board filled!", s_done_p: "You filled the board in <b>{1}</b>.", s_again: "Play again",
+    },
+  },
+});
+</script>
+</body>
+</html>
