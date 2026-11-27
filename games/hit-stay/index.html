@@ -566,7 +566,7 @@ const I18N = {
     st_hit_me: "<b>Tới lượt bạn:</b> HIT để rút thêm 1 lá, STAY để dừng.", st_hit_wait: "{0} đang chọn HIT hay STAY",
     st_fold_me: "Bạn đã bỏ bài, chờ vòng kết thúc.", st_done: "Hết vòng.", st_out: "Bạn đã bị loại (hạng {0}). Đang xem tiếp.",
     st_over: "<b>{0} vô địch!</b>", st_over_me: "<b>Bạn vô địch!</b>", st_lobby: "Đang ở phòng chờ.",
-    me_title: "Bài của bạn", me_sum: "Tổng <b>{0}</b> / giới hạn {1}",
+    me_title: "Bài của bạn", me_sum: "Tổng <b>{0}</b> / giới hạn {1}", me_lim: "Giới hạn <b>{0}</b>", me_stayed_nt: "Bạn đã STAY. Chờ {0}",
     c_fold: "Bỏ bài", c_check: "Theo", c_call: "Theo {0}", c_raise: "Tố...", c_bet: "Cược thêm...",
     c_raise_to: "Tố lên {0}", c_bet_to: "Cược thêm {0}", c_min: "Tối thiểu", c_half: "½ pot", c_pot: "Cả pot", c_max: "Tối đa", c_back: "Quay lại",
     c_show: "Lật lá này", c_hit_s: "rút thêm 1 lá", c_stay_s: "dừng, không rút nữa",
@@ -656,7 +656,7 @@ const I18N = {
     st_hit_me: "<b>Your turn:</b> HIT to draw a card, STAY to stop.", st_hit_wait: "{0} is deciding: HIT or STAY",
     st_fold_me: "You folded. Waiting for the round to finish.", st_done: "Round over.", st_out: "You're out (place {0}). Watching.",
     st_over: "<b>{0} wins the game!</b>", st_over_me: "<b>You win the game!</b>", st_lobby: "In the lobby.",
-    me_title: "Your hand", me_sum: "Total <b>{0}</b> / limit {1}",
+    me_title: "Your hand", me_sum: "Total <b>{0}</b> / limit {1}", me_lim: "Limit <b>{0}</b>", me_stayed_nt: "You stayed. Waiting for {0}",
     c_fold: "Fold", c_check: "Check", c_call: "Call {0}", c_raise: "Raise...", c_bet: "Bet...",
     c_raise_to: "Raise to {0}", c_bet_to: "Bet {0}", c_min: "Min", c_half: "½ pot", c_pot: "Pot", c_max: "Max", c_back: "Back",
     c_show: "Show this", c_hit_s: "draw one more card", c_stay_s: "stop drawing",
@@ -728,6 +728,10 @@ const fmtC = v => v < 0 ? "−" + (-v) : String(v);   // giá trị lá: −1 d�
 /* ---------- ÂM THANH (tổng hợp bằng Web Audio, không có file) ---------- */
 let AC = null;
 try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+// Trình duyệt tạo AudioContext ở trạng thái ngủ; đánh thức ngay lần bấm/chạm đầu tiên để tiếng xèng đầu ván (ante/blind) không bị trễ
+const wakeAC = () => { if (AC && AC.state !== "running") AC.resume().catch(() => {}); };
+for (const ev of ["pointerdown", "keydown", "touchstart"]) window.addEventListener(ev, wakeAC, { capture: true, passive: true });
+const audioLagMs = () => AC ? Math.round(((AC.outputLatency || 0) + (AC.baseLatency || 0)) * 1000) : 0;   // độ trễ loa, phát sớm hơn đúng bằng chừng đó
 function tone(freq, start, dur, type = "sine", vol = .16) {
   const o = AC.createOscillator(), g = AC.createGain();
   o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
@@ -1182,7 +1186,7 @@ function viewFor(me) {
    CHỦ BÀN: chạy luật, bot, đồng hồ (đấu máy, hướng dẫn, chủ phòng online)
    ============================================================ */
 const HOST = { deadline: 0, dlKey: "", timerSeats: [], jobs: new Map(), watch: false, seq: 0 };
-const TIMES = { r: 10, b: 30, h: 30, n: 12 };   // giây: chọn lá lật, lượt cược, lượt HIT/STAY, chờ vòng tiếp (online)
+const TIMES = { r: 10, b: 30, h: 30, n: 5 };   // giây: chọn lá lật, lượt cược, lượt HIT/STAY, chờ vòng tiếp (online)
 const botSeat = s => T.seats[s].kind === "bot" || T.seats[s].away;
 function job(key, ms, fn) { if (HOST.jobs.has(key)) return; HOST.jobs.set(key, setTimeout(() => { HOST.jobs.delete(key); fn(); }, ms)); }
 function clearJobs() { for (const t of HOST.jobs.values()) clearTimeout(t); HOST.jobs.clear(); }
@@ -1713,7 +1717,7 @@ function flyPx(sx, sy, ex, ey, color, n, dl = 0) {
       { transform: at(ex + jx, ey + jy, 1), opacity: 1, offset: .9 },
       { transform: at(ex + jx, ey + jy, .9), opacity: 0 },
     ], { duration: 620, delay: dl + k * 75, easing: "cubic-bezier(.4,.2,.3,1)", fill: "both" }).onfinish = () => el.remove();
-    setTimeout(() => sfx("clink"), dl + k * 75 + 620 * .9);   // tiếng khớp lúc đồng xèng chạm đích
+    setTimeout(() => sfx("clink"), Math.max(0, dl + k * 75 + 620 * .9 - audioLagMs()));   // tiếng khớp lúc đồng xèng chạm đích (trừ độ trễ loa)
   }
   return dl + 620 * .9 + (n - 1) * 75;
 }
@@ -1878,6 +1882,8 @@ function handHTML(s, i, o = {}) {
   const hits = s.hits.map((c, k) => `<span class="slot"${dealStyle(`${V.handNo}:${i}:h${k}`)}>${cardHTML(c, { seen: `h${V.handNo}:${i}:${c}` })}<small class="tg hit">${tr("tg_hit")}</small></span>`).join("");
   return `<div class="hand"><div class="grp">${s.cards.map(slot).join("")}</div>${hits ? `<div class="grp hits">${hits}</div>` : ""}</div>`;
 }
+// Không hiện tổng điểm của mình khi chơi online hoặc trong bàn có máy ★★ trở lên (chủ game chọn 11/2026): người chơi phải tự cộng.
+function hideTotal() { return !!V && V.mode !== "tutorial" && (V.mode === "online" || V.seats.some(s => s.kind === "bot" && s.level !== "easy")); }
 function renderMine() {
   const box = $("#mine");
   if (!V || !V.seats[ME]) { box.dataset.sk = ""; setBlock(box, "none:" + LANG, () => `<p class="note" style="margin:0">${tr(V ? "me_none" : "st_idle")}</p>`); return; }
@@ -1889,8 +1895,9 @@ function renderMine() {
   const sum = $("#mSum");
   if (me.live && me.total != null && ph !== "idle" && !DIE.rolling) {
     sum.hidden = false;
-    sum.className = "sum" + (me.total > V.limit ? " over" : me.total === V.limit ? " exact" : "");
-    sum.innerHTML = tr("me_sum", fmtC(me.total), V.limit);
+    const hide = hideTotal() && ph !== "done";
+    sum.className = "sum" + (hide ? "" : me.total > V.limit ? " over" : me.total === V.limit ? " exact" : "");
+    sum.innerHTML = hide ? tr("me_lim", V.limit) : tr("me_sum", fmtC(me.total), V.limit);
   } else sum.hidden = true;
   const hand = $("#mHand"), ctl = $("#mCtl");
   if (me.live && ph !== "done") {
@@ -1922,7 +1929,7 @@ function renderMine() {
   if (ph === "hit") {
     if (V.toAct === ME) return setBlock(ctl, `hs:${V.handNo}:${me.hits.length}:${LANG}`, () => `<div class="ctl"><button class="btn hsb hit" id="bHit"><span>HIT</span><small>${tr("c_hit_s")}</small></button><button class="btn hsb stay" id="bStay"><span>STAY</span><small>${tr("c_stay_s")}</small></button></div>`);
     const who = V.toAct >= 0 ? nameOf(V.toAct) : "";
-    return setBlock(ctl, `hw:${who}:${me.stayed}:${me.total}:${LANG}`, () => `<p class="wait">${me.stayed ? tr("me_stayed", fmtC(me.total), escH(who)) : tr("me_wait", escH(who))}<span class="dots"></span></p>`);
+    return setBlock(ctl, `hw:${who}:${me.stayed}:${me.total}:${LANG}`, () => `<p class="wait">${me.stayed ? (hideTotal() ? tr("me_stayed_nt", escH(who)) : tr("me_stayed", fmtC(me.total), escH(who))) : tr("me_wait", escH(who))}<span class="dots"></span></p>`);
   }
   setBlock(ctl, "x", () => "");
 }

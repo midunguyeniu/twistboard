@@ -1146,7 +1146,7 @@ function viewFor(me) {
    CHỦ BÀN: chạy luật, bot, đồng hồ (đấu máy, hướng dẫn, chủ phòng online)
    ============================================================ */
 const HOST = { deadline: 0, dlKey: "", timerSeats: [], jobs: new Map(), watch: false, seq: 0 };
-const TIMES = { r: 30, b: 30, n: 12 };   // giây: lượt đổ lại, lượt cược, chờ ván tiếp (online)
+const TIMES = { r: 30, b: 30, n: 5 };   // giây: lượt đổ lại, lượt cược, chờ ván tiếp (online)
 const botSeat = s => T.seats[s].kind === "bot" || T.seats[s].away;
 function job(key, ms, fn) { if (HOST.jobs.has(key)) return; HOST.jobs.set(key, setTimeout(() => { HOST.jobs.delete(key); fn(); }, ms)); }
 function clearJobs() { for (const t of HOST.jobs.values()) clearTimeout(t); HOST.jobs.clear(); }

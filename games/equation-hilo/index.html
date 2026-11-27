@@ -717,6 +717,10 @@ const fmtV = v => !isFinite(v) ? "?" : Number(Math.round(v * 1000) / 1000).toLoc
 /* ---------- ÂM THANH (tổng hợp bằng Web Audio, không có file) ---------- */
 let AC = null;
 try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+// Trình duyệt tạo AudioContext ở trạng thái ngủ; đánh thức ngay lần bấm/chạm đầu tiên để tiếng xèng đầu ván (ante/blind) không bị trễ
+const wakeAC = () => { if (AC && AC.state !== "running") AC.resume().catch(() => {}); };
+for (const ev of ["pointerdown", "keydown", "touchstart"]) window.addEventListener(ev, wakeAC, { capture: true, passive: true });
+const audioLagMs = () => AC ? Math.round(((AC.outputLatency || 0) + (AC.baseLatency || 0)) * 1000) : 0;   // độ trễ loa, phát sớm hơn đúng bằng chừng đó
 function tone(freq, start, dur, type = "sine", vol = .16) {
   const o = AC.createOscillator(), g = AC.createGain();
   o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
@@ -1399,7 +1403,7 @@ function viewFor(me) {
    CHỦ BÀN: chạy luật, bot, đồng hồ (đấu máy, hướng dẫn, chủ phòng online)
    ============================================================ */
 const HOST = { deadline: 0, dlKey: "", timerSeats: [], jobs: new Map(), watch: false };
-const TIMES = { b: 30, d: 20, e: 90, n: 12 };   // giây: lượt cược, bỏ dấu, xếp phép tính, chờ ván tiếp (online)
+const TIMES = { b: 30, d: 20, e: 90, n: 5 };   // giây: lượt cược, bỏ dấu, xếp phép tính, chờ ván tiếp (online)
 const botSeat = s => T.seats[s].kind === "bot" || T.seats[s].away;
 function job(key, ms, fn) { if (HOST.jobs.has(key)) return; HOST.jobs.set(key, setTimeout(() => { HOST.jobs.delete(key); fn(); }, ms)); }
 function clearJobs() { for (const t of HOST.jobs.values()) clearTimeout(t); HOST.jobs.clear(); }
@@ -1936,7 +1940,7 @@ function flyPx(sx, sy, ex, ey, color, n, dl = 0) {
       { transform: at(ex + jx, ey + jy, 1), opacity: 1, offset: .9 },
       { transform: at(ex + jx, ey + jy, .9), opacity: 0 },
     ], { duration: 620, delay: dl + k * 75, easing: "cubic-bezier(.4,.2,.3,1)", fill: "both" }).onfinish = () => el.remove();
-    setTimeout(() => sfx("clink"), dl + k * 75 + 620 * .9);   // tiếng khớp lúc đồng xèng chạm đích
+    setTimeout(() => sfx("clink"), Math.max(0, dl + k * 75 + 620 * .9 - audioLagMs()));   // tiếng khớp lúc đồng xèng chạm đích (trừ độ trễ loa)
   }
   return dl + 620 * .9 + (n - 1) * 75;
 }

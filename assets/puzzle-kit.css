@@ -32,7 +32,7 @@
   display:grid;place-items:center;padding:16px;overflow:hidden}
 .pk-play{width:100%;display:grid;place-items:center;min-width:0}
 .pk-stage.flat{background:transparent;border:0;box-shadow:none;padding:8px;overflow:visible}   /* bàn vuông có khung riêng: bỏ khung chữ nhật bao ngoài */
-.pk-stage.flat .pk-cover{inset:0;margin:auto;height:calc(100% - 16px);max-width:calc(100% - 16px);aspect-ratio:1;width:auto}   /* tấm che vuông nằm gọn trong khung riêng của bàn */
+.pk-stage.flat .pk-cover{inset:0;margin:auto;height:calc(100% - 16px);max-width:calc(100% - 16px);aspect-ratio:1;width:auto;border-radius:0}   /* tấm che vuông nằm gọn trong khung riêng của bàn */
 .pk-cover{position:absolute;inset:0;background:var(--tb-surface);display:grid;place-items:center;z-index:5;border-radius:16px;text-align:center;padding:20px}
 /* tấm che đặc ngay từ khung hình đầu (đề mới đã vẽ sẵn bên dưới, không được lộ ra), chỉ chữ bên trong hiện dần */
 .pk-cover > *{animation:pkfade .25s}

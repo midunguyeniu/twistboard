@@ -196,7 +196,7 @@
     <div class="pk-acts"><button class="btn" id="pkRulesBtn"></button><button class="btn primary" id="pkNewBtn"></button></div></header>
   <div class="pk-bar" id="pkBar"></div>
   <main class="pk-main">
-    <section class="pk-stage${G.flatStage ? " flat" : ""}" id="pkStage"><div class="pk-play" id="pkPlay"></div><div class="pk-cover" id="pkCover" hidden></div></section>
+    <section class="pk-stage" id="pkStage"><div class="pk-play" id="pkPlay"></div><div class="pk-cover" id="pkCover" hidden></div></section>
     <aside class="pk-side">
       <div class="pk-box pk-prompt" id="pkPrompt"></div>
       <div class="pk-box" id="pkAns"${G.kind === "number" ? "" : " hidden"}>
@@ -760,6 +760,8 @@
   }
   function render() {
     if (ST.phase !== "done") ST.overSeen = false;
+    // flatStage: chỉ bỏ khung khi đã có bàn trên màn hình; chưa có bàn (chưa chọn chế độ, chờ đối thủ) thì vẫn là ô trắng đầy đủ
+    $("#pkStage").classList.toggle("flat", !!G.flatStage && !!$("#pkPlay").firstElementChild);
     renderBar(); renderCover(); renderPrompt(); renderResult(); paintTools();
     const showAns = G.kind === "number" && ST.mode && ST.phase !== "result" && ST.phase !== "done";
     $("#pkAns").hidden = !showAns;
