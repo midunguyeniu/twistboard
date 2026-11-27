@@ -198,10 +198,10 @@
     },
     {
       id: "secret-code", status: "live", path: "games/secret-code/", thumb: "assets/thumbs/secret-code.svg",
-      name: { vi: "Mật mã", en: "Secret Code" },
+      name: { vi: "Mật mã bí mật", en: "Secret Code" },
       meta: { vi: "Một mình · Online 2 người", en: "Solo · Online 2 players" },
       tagline: { vi: "Đọc gợi ý, tìm đúng 4 lá trong 26 lá", en: "Read the clues, find the 4 cards out of 26" },
-      tags: ["puzzle", "online", "2p"], aliases: ["secret code","mat ma","ma bi mat","giai ma","the bai","devils plan","do tri","puzzle"],
+      tags: ["puzzle", "online", "2p"], aliases: ["secret code","mat ma","mat ma bi mat","ma bi mat","giai ma","the bai","devils plan","do tri","puzzle"],
     },
   ];
   const CATS = [

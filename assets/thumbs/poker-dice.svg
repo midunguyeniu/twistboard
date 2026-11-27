@@ -9,7 +9,7 @@
 <ellipse cx="200" cy="200" rx="172" ry="118" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3" stroke-dasharray="10 8"/>
 <!-- 5 xúc xắc mặt bài: 3 con A ngửa (viền vàng), K, và 1 viên úp -->
 <g filter="url(#sh)" font-family="'Arial Black', Arial, sans-serif" font-weight="900" text-anchor="middle">
-  <g transform="translate(78 236) rotate(-14)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#face)" stroke="#ffc928" stroke-width="6"/><text y="17" font-size="44" fill="#8a4fd1">A</text></g>
+  <g transform="translate(78 236) rotate(-14)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#face)" stroke="#ffc928" stroke-width="6"/><text y="15" font-size="38" letter-spacing="-2" fill="#1f9d55">10</text></g>
   <g transform="translate(160 196) rotate(-5)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#face)" stroke="#ffc928" stroke-width="6"/><text y="17" font-size="44" fill="#8a4fd1">A</text></g>
   <g transform="translate(244 194) rotate(6)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#face)" stroke="#ffc928" stroke-width="6"/><text y="17" font-size="44" fill="#8a4fd1">A</text></g>
   <g transform="translate(324 234) rotate(15)"><rect x="-38" y="-38" width="76" height="76" rx="16" fill="url(#back)" stroke="#1b2440" stroke-width="3"/><text y="15" font-size="42" fill="#fff" fill-opacity=".5">?</text></g>

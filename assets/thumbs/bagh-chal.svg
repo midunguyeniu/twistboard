@@ -29,7 +29,7 @@
 </defs>
 <rect width="400" height="400" fill="url(#wood)"/>
 <!-- cả hình thu nhỏ 84% quanh tâm để thẻ 4:3 ở trang chủ thấy đủ bàn và 2 Hổ ở góc trên (chủ game cho to thêm 5% so với 80%) -->
-<g transform="translate(200 200) scale(.84) translate(-200 -200)">
+<g transform="translate(200 208) rotate(5) scale(.882) translate(-200 -200)">
 <!-- bàn 5x5 thu gọn vào vùng giữa (trang chủ cắt 4:3, chỉ thấy y 50-350): điểm cách nhau 64, từ (72,72) tới (328,328) -->
 <g stroke="#5b3a12" stroke-width="5" stroke-linecap="round" fill="none">
   <rect x="72" y="72" width="256" height="256"/>
