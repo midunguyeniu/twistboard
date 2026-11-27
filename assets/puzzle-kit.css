@@ -155,3 +155,9 @@
   .pk-cover .big{font-size:84px}
   .pk-cover h2{font-size:28px}
 }
+
+/* điện thoại: ẩn logo + tên game cho đỡ tốn chỗ (chủ game yêu cầu 11/2026) */
+@media (max-width:700px){.pk-top .tb-gtitle,.pk-top #pkTitle{display:none}}
+/* mục mức/cỡ bàn luôn 1 hàng, cả trên điện thoại (chủ game yêu cầu 11/2026); Mật mã nút dài nên tự cho xuống hàng */
+#pkSegLevel{flex-wrap:nowrap}
+#pkSegLevel button{min-width:0;white-space:nowrap}

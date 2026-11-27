@@ -262,6 +262,7 @@ body.portrait .hand.dice{gap:7px}
 .seg button:hover{background:var(--btn-hover)}
 .seg button.on{background:var(--gold);color:var(--tb-primary-ink);border-color:var(--gold)}
 .seg.small button{min-width:0;padding:7px 8px}
+#segBots{flex-wrap:nowrap}#segBots button{min-width:0}   /* 4 nút số máy luôn một hàng, cả trên điện thoại (chủ game yêu cầu 11/2026) */
 .field{width:100%;background:#fff;color:var(--text);border:2px solid var(--btn-line);border-radius:10px;padding:9px 12px;font:inherit;font-weight:800;font-size:15px}
 .netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
 .netrow .seg{flex:2 1 240px}
@@ -332,7 +333,7 @@ body.portrait .hand.dice{gap:7px}
 .bubble code{font-family:var(--tb-font-brand);font-weight:800;background:var(--field);padding:0 5px;border-radius:5px;white-space:nowrap}
 
 body.portrait #app{padding:8px 8px 24px}
-body.portrait .brand span{display:none}
+body.portrait .brand{display:none}   /* điện thoại: ẩn logo + tên game cho đỡ tốn chỗ (chủ game yêu cầu 11/2026) */
 body.portrait .brand h1{font-size:21px}
 body.portrait .actions .btn{padding:7px 11px;font-size:13px}
 body.portrait #status{font-size:13px;min-height:52px}

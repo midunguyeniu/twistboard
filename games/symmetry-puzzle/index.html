@@ -12,6 +12,16 @@
 <script src="../../assets/puzzle-kit.js"></script>
 <script src="bank.js"></script>
 <style>
+/* nút mức: ★/★★/★★★ tô màu chung (vàng, xanh dương, đỏ) như Mật mã, Poker Trí Nhớ; luôn 1 hàng (chủ game chọn 11/2026) */
+#pkSegLevel{flex-wrap:nowrap}
+#pkSegLevel button{white-space:nowrap;min-width:0;padding:10px 6px;font-size:15px}
+#pkSegLevel button[data-v="easy"]{border-color:#ffd24a;background:rgba(255,210,74,.2)}
+#pkSegLevel button[data-v="normal"]{border-color:#3d8bff;background:rgba(61,139,255,.16)}
+#pkSegLevel button[data-v="hard"]{border-color:#e5453b;background:rgba(229,69,59,.16)}
+#pkSegLevel button:hover:not(.on):not(:disabled){filter:brightness(1.06)}
+#pkSegLevel button.on[data-v="easy"]{background:#ffd24a;border-color:#ffd24a;color:#3a2a00}
+#pkSegLevel button.on[data-v="normal"]{background:#3d8bff;border-color:#3d8bff;color:#fff}
+#pkSegLevel button.on[data-v="hard"]{background:#e5453b;border-color:#e5453b;color:#fff}
 .sy{width:100%;display:grid;place-items:center;gap:12px;--sy-bg:#fdf6dc}
 .sy-boards{width:100%}
 .sy-board{width:100%;display:grid;place-items:center}
@@ -540,21 +550,22 @@ PK.start({
   rules: [["h_rules", ["r_rules"]], ["h_ctrl", ["r_ctrl"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
   i18n: {
     vi: {
+      lv_easy: "★", lv_normal: "★★", lv_hard: "★★★",
       brand: "Xếp hình đối xứng", tagline: "Ghép hết các mảnh thành một hình gấp đôi trùng khít.",
       r_intro: "Mỗi bộ có vài mảnh ghép. Hãy <b>dùng hết các mảnh</b> ghép thành <b>một hình liền</b>, sao cho gấp đôi hình theo một đường thẳng thì hai nửa trùng khít nhau. Không có hình mẫu: tự tìm ra hình chính là phần khó.",
       c1_h: "Dùng hết các mảnh", c1_p: "Ghép các mảnh sát cạnh nhau thành một hình liền, không chồng lên nhau, không mảnh nào đứng riêng.",
       c2_h: "Gấp đôi phải trùng khít", c2_p: "Hình có trục đối xứng dọc, ngang hoặc chéo. Hình đối xứng nào cũng được, không cần giống đáp án.",
-      c3_h: "Kéo để dời, chạm để xoay", c3_p: "Mỗi lần chạm, mảnh xoay 90°. Mức Khó được lật mảnh: chạm chọn mảnh rồi bấm Lật mảnh.",
+      c3_h: "Kéo để dời, chạm để xoay", c3_p: "Mỗi lần chạm, mảnh xoay 90°. Mức ★★★ được lật mảnh: chạm chọn mảnh rồi bấm Lật mảnh.",
       h_rules: "Luật", h_ctrl: "Cách chơi", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
       r_rules: ["Dùng <b>tất cả</b> các mảnh của bộ, ghép sát cạnh nhau thành <b>một hình liền</b>. Hai mảnh chỉ chạm nhau ở một góc thì chưa tính là liền. Không mảnh nào được chồng lên mảnh khác.",
         "Gấp hình theo một đường thẳng (dọc, ngang hoặc chéo 45°) thì hai nửa phải trùng khít nhau.",
         "Mỗi bộ được cắt ra từ một hình đối xứng nên luôn có lời giải. Ghép ra hình đối xứng khác cũng được tính.",
-        "Độ khó: Dễ 3 mảnh, Vừa 4 mảnh (như trong show), Khó 5 mảnh. Dễ và Vừa chỉ được xoay mảnh, Khó được xoay và lật.",
+        "Độ khó: ★ 3 mảnh, ★★ 4 mảnh (như trong show), ★★★ 5 mảnh. ★ và ★★ chỉ được xoay mảnh, ★★★ được xoay và lật.",
         "Một lượt có <b>3 bộ</b>. Bấm các ô 1, 2, 3 phía trên bàn để chuyển qua lại giữa các bộ bất cứ lúc nào. Xong cả 3 bộ là xong lượt.",
         "Ghép đúng thì game tự nhận ra, vẽ trục đối xứng và khoá bộ đó lại (ô số có dấu ✓), không cần bấm nộp."],
       r_ctrl: ["Giữ và kéo mảnh để dời (mảnh nhấc lên có bóng), thả tay là mảnh tự khớp vào vị trí gần nhất. Giữ rồi thả mà không kéo thì mảnh không xoay.",
         "Chạm nhanh (bấm) vào mảnh để xoay 90° theo chiều kim đồng hồ. Máy tính: chuột phải để xoay ngược lại, phím R cũng xoay mảnh vừa chọn.",
-        "Mức Khó: chạm hoặc kéo một mảnh để chọn (mảnh có viền đậm), rồi bấm <b>Lật mảnh</b> hoặc phím F.",
+        "Mức ★★★: chạm hoặc kéo một mảnh để chọn (mảnh có viền đậm), rồi bấm <b>Lật mảnh</b> hoặc phím F.",
         "Ô 1, 2, 3 phía trên bàn (hoặc phím 1, 2, 3) để chuyển bộ; mảnh của mỗi bộ giữ nguyên chỗ khi quay lại.",
         "Mảnh chồng lên nhau có viền đỏ nét đứt. <b>Xếp lại</b> đưa mọi mảnh của bộ đang xem về chỗ lúc đầu.",
         "<b>Bỏ cuộc</b> (bấm 2 lần cho chắc): các bộ chưa xong tự ghép thành đáp án. Chỉ có khi chơi một mình, không tính kỷ lục."],
@@ -581,21 +592,22 @@ PK.start({
       s_gave_p: "Các bộ chưa xong đã tự ghép thành một cách đúng (bấm ô 1, 2, 3 để xem).", s_gave_again: "Lượt mới",
     },
     en: {
+      lv_easy: "★", lv_normal: "★★", lv_hard: "★★★",
       brand: "Symmetry Puzzle", tagline: "Fit all the pieces into one shape with matching halves.",
       r_intro: "Each set has a few pieces. <b>Use every piece</b> to build <b>one connected shape</b> that you could fold along a straight line so the two halves match exactly. There is no target picture: finding the shape is the puzzle.",
       c1_h: "Use every piece", c1_p: "Join the pieces edge to edge into one shape. No overlaps, and no piece left on its own.",
       c2_h: "Both halves must match", c2_p: "The shape needs a mirror line: up-down, across or diagonal. Any symmetrical shape counts, not just the answer.",
-      c3_h: "Drag to move, tap to turn", c3_p: "Each tap turns a piece 90°. Hard also lets you flip: tap a piece, then press Flip.",
+      c3_h: "Drag to move, tap to turn", c3_p: "Each tap turns a piece 90°. ★★★ also lets you flip: tap a piece, then press Flip.",
       h_rules: "Rules", h_ctrl: "Controls", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
       r_rules: ["Use <b>all</b> the pieces of the set, joined edge to edge into <b>one connected shape</b>. Pieces that only touch at a corner don't count as joined. Pieces may not overlap.",
         "Fold the shape along one straight line (up-down, across or at 45°) and the two halves must cover each other exactly.",
         "Every set is cut from a symmetrical shape, so it can always be solved. Any other symmetrical shape counts too.",
-        "Difficulty: Easy has 3 pieces, Medium 4 (as on the show), Hard 5. Easy and Medium only allow turning; Hard allows turning and flipping.",
+        "Difficulty: ★ has 3 pieces, ★★ has 4 (as on the show), ★★★ has 5. ★ and ★★ only allow turning; ★★★ allows turning and flipping.",
         "A round has <b>3 sets</b>. Tap 1, 2, 3 above the board to switch between sets at any time. Finish all 3 to finish the round.",
         "When a shape is right, the game spots it by itself, draws the mirror line and locks that set (its tab gets a ✓). No need to submit."],
       r_ctrl: ["Hold and drag a piece to move it (it lifts and casts a shadow). It snaps into place when you let go. Holding and releasing without dragging doesn't turn it.",
         "Quick-tap (click) a piece to turn it 90° clockwise. With a mouse, right-click turns it back; R also turns the selected piece.",
-        "Hard: tap or drag a piece to select it (bold outline), then press <b>Flip</b> or F.",
+        "★★★: tap or drag a piece to select it (bold outline), then press <b>Flip</b> or F.",
         "Tabs 1, 2, 3 above the board (or keys 1, 2, 3) switch sets; pieces stay where you left them.",
         "Overlapping pieces get a dashed red outline. <b>Reset</b> puts the current set's pieces back where they started.",
         "<b>Give up</b> (tap twice to be sure): unfinished sets slide into an answer. Solo only; it doesn't count toward your best time."],

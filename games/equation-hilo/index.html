@@ -253,6 +253,7 @@ body:not(.portrait) .eqrows.two{display:grid;grid-template-columns:1fr 1fr}
 .seg button:hover{background:var(--btn-hover)}
 .seg button.on{background:var(--gold);color:var(--tb-primary-ink);border-color:var(--gold)}
 .seg.small button{min-width:0;padding:7px 8px}
+#segBots{flex-wrap:nowrap}#segBots button{min-width:0}   /* 4 nút số máy luôn một hàng, cả trên điện thoại (chủ game yêu cầu 11/2026) */
 .field{width:100%;background:#fff;color:var(--text);border:2px solid var(--btn-line);border-radius:10px;padding:9px 12px;font:inherit;font-weight:800;font-size:15px}
 .netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
 .netrow .seg{flex:2 1 240px}
@@ -295,6 +296,8 @@ body:not(.portrait) .eqrows.two{display:grid;grid-template-columns:1fr 1fr}
 #mSeat{z-index:160} #mSeat .card{max-width:440px}
 #seatCards{display:flex;flex-direction:column;gap:10px}
 #seatCards .hand .cd{--w:46px}
+#mHand .cd{--w:var(--hw,54px)}   /* cùng cỡ với lá trong khung xếp phép tính (myCardW) */
+body.portrait #mHand .hand{gap:4px}body.portrait #mHand .grp{gap:4px;padding-right:4px}body.portrait #mHand .grp + .grp{padding-left:5px}   /* điện thoại: khe hẹp để 8 lá vừa 1 hàng */
 .over-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .over-list li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:var(--field);font-weight:800}
 .over-list li .pl{font-family:var(--tb-font-brand);font-size:20px;width:30px;color:var(--gold-ink)}
@@ -319,7 +322,7 @@ body:not(.portrait) .eqrows.two{display:grid;grid-template-columns:1fr 1fr}
 .bubble code{font-family:var(--tb-font-brand);font-weight:800;background:var(--field);padding:0 5px;border-radius:5px;white-space:nowrap}
 
 body.portrait #app{padding:8px 8px 24px}
-body.portrait .brand span{display:none}
+body.portrait .brand{display:none}   /* điện thoại: ẩn logo + tên game cho đỡ tốn chỗ (chủ game yêu cầu 11/2026) */
 body.portrait .brand h1{font-size:21px}
 body.portrait .actions .btn{padding:7px 11px;font-size:13px}
 body.portrait #status{font-size:13px;min-height:52px}
@@ -2072,6 +2075,7 @@ function renderMine() {
   $("#mTitle").textContent = tr("me_title");
   $("#mStack").innerHTML = `<span class="chip" style="--cc:${SEAT_COLORS[ME % 5]};width:15px;height:15px;vertical-align:-2px"></span> ${fmt(me.chips)}`;
   const hand = $("#mHand"), ctl = $("#mCtl");
+  box.style.setProperty("--hw", myCardW() + "px");
   const editing = ph === "equation" && me.live && !me.fold && !me.locked && !(EQ && EQ.hand === V.handNo && EQ.locked);
   // bài trên tay
   if (me.live && ph !== "done" && !editing) {
@@ -2239,10 +2243,20 @@ function renderEqRows() {
     <div class="eqcards">${rowArr(key).map((t, k) => cardHTML(t, { k, hid: t === hid, cls: EQ.sel && EQ.sel.key === key && EQ.sel.k === k ? "sel" : "" })).join("")}</div><div class="eqval"></div></div>`).join("");
   fitEqCards();
 }
+/* Cỡ lá chung cho bài trên tay và khung xếp phép tính (chủ game yêu cầu 11/2026: cùng một cỡ). Tính sao cho một hàng
+   xếp phép tính 8 lá (4 số + 3 dấu + 1 √) vừa khung; hàng nhiều lá hơn (thêm √) thì riêng hàng đó thu nhỏ thêm. */
+function myCardW() {
+  const m = $("#mine"), cap = innerHeight < 800 && !PORTRAIT ? 46 : 54;
+  if (!m || !m.clientWidth) return cap;
+  const cs = getComputedStyle(m), w = m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 23;   // 23 = lề + viền của .eqrow
+  return Math.max(28, Math.min(cap, Math.floor((w - 7 * 4) / 8)));
+}
 function fitEqCards() {
+  const cw = myCardW(), m = $("#mine");
+  if (m) m.style.setProperty("--hw", cw + "px");
   $$("#eqRows .eqcards").forEach(el => {
     const n = el.children.length, w = el.clientWidth || 300;
-    el.style.setProperty("--ew", Math.max(28, Math.min(innerHeight < 800 && !PORTRAIT ? 46 : 54, Math.floor((w - (n - 1) * 4) / n))) + "px");
+    el.style.setProperty("--ew", Math.max(28, Math.min(cw, Math.floor((w - (n - 1) * 4) / n))) + "px");
   });
 }
 function evalRow(arr, it, target) { const r = scoreEq(arr, it, target ?? 1); return r; }

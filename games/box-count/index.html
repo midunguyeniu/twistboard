@@ -11,6 +11,15 @@
 <script src="../../assets/platform.js"></script>
 <script src="../../assets/puzzle-kit.js"></script>
 <style>
+/* nút mức: ★/★★/★★★ tô màu chung (vàng, xanh dương, đỏ) như Mật mã, Xếp hình đối xứng (chủ game chọn 11/2026) */
+#pkSegLevel button{font-size:15px}
+#pkSegLevel button[data-v="easy"]{border-color:#ffd24a;background:rgba(255,210,74,.2)}
+#pkSegLevel button[data-v="normal"]{border-color:#3d8bff;background:rgba(61,139,255,.16)}
+#pkSegLevel button[data-v="hard"]{border-color:#e5453b;background:rgba(229,69,59,.16)}
+#pkSegLevel button:hover:not(.on):not(:disabled){filter:brightness(1.06)}
+#pkSegLevel button.on[data-v="easy"]{background:#ffd24a;border-color:#ffd24a;color:#3a2a00}
+#pkSegLevel button.on[data-v="normal"]{background:#3d8bff;border-color:#3d8bff;color:#fff}
+#pkSegLevel button.on[data-v="hard"]{background:#e5453b;border-color:#e5453b;color:#fff}
 .bx{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
 .bx-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
 .bx-target{display:inline-flex;align-items:center;gap:8px;background:#1d2330;color:#fff;border-radius:99px;padding:6px 22px;font-family:var(--tb-font-brand);font-size:30px;font-weight:800;line-height:1.2;
@@ -421,11 +430,12 @@ PK.start({
   rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
   i18n: {
     vi: {
+      lv_easy: "★", lv_normal: "★★", lv_hard: "★★★",
       brand: "Đếm hình chữ nhật", tagline: "Đếm mọi hình chữ nhật trên lưới số có tổng đúng bằng số đích.",
       r_intro: "Trên bảng là một lưới số và một số đích. Hãy đếm có bao nhiêu hình chữ nhật (gồm các ô liền nhau) mà tổng các số bên trong đúng bằng số đích.",
       c1_h: "Đếm hình có tổng bằng đích", c1_p: "Gom các ô liền nhau thành hình chữ nhật rồi cộng lại. Một ô đứng riêng cũng tính, các hình chồng lên nhau tính riêng từng hình.", c1_cap: "Đáp án: 3",
       c2_h: "Chỗ khuyết chặn hình", c2_p: "Chỗ không có ô là lỗ, hình không đi qua được. Ô trắng không ghi số là 0, nên hình chứa nó vẫn tính.",
-      c3_h: "Số âm cộng bình thường", c3_p: "Số âm có thể xuất hiện, nhất là ở mức Khó. Nhập số hình đếm được, trả lời sai bị cộng 5 giây.",
+      c3_h: "Số âm cộng bình thường", c3_p: "Số âm có thể xuất hiện, nhất là ở mức ★★★. Nhập số hình đếm được, trả lời sai bị cộng 5 giây.",
       h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
       r_rules: ["Chỉ tính hình chữ nhật (hình vuông cũng là hình chữ nhật). Hình chéo hay hình chữ L không tính.",
         "Một ô đứng riêng cũng là một hình. Các hình chồng lên nhau vẫn tính riêng từng hình.",
@@ -433,7 +443,7 @@ PK.start({
         "Số âm và phân số cộng bình thường. Đáp án có thể là 0.",
         "Nhập số hình đếm được rồi bấm Trả lời. Hết đề sẽ hiện lần lượt từng hình đúng.",
         "<b>Bỏ cuộc</b> (bấm 2 lần để chắc chắn): hiện đáp án. Chơi một mình thì kết thúc lượt chơi và không tính kỷ lục; online không có nút này."],
-      r_solo: ["Chọn độ khó Dễ, Vừa hoặc Khó. Mỗi mức có 5 câu, lưới lớn dần: Dễ là lưới nhỏ, Vừa là lưới vừa có nhiều ô trắng và ô mồi, Khó là lưới lớn có số âm.",
+      r_solo: ["Chọn độ khó ★, ★★ hoặc ★★★. Mỗi mức có 5 câu, lưới lớn dần: ★ là lưới nhỏ, ★★ là lưới vừa có nhiều ô trắng và ô mồi, ★★★ là lưới lớn có số âm.",
         "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một câu thì phải chờ lâu dần.", "Tính tổng thời gian cả 5 câu. Kỷ lục lưu riêng từng mức trên máy này."],
       r_online: ["Hai người cùng giải một lưới, ai trả lời đúng trước được 1 điểm. Ai đạt 3 điểm trước thì thắng.",
         "Trả lời sai là mất quyền trả lời đề đó. Cả hai cùng sai thì không ai được điểm.", "Mỗi đề có 3 phút.",
@@ -450,11 +460,12 @@ PK.start({
       lvn_easy: "Lưới nhỏ và vừa, ít bẫy.", lvn_normal: "Lưới vừa và lớn, nhiều ô trắng và bẫy hơn.", lvn_hard: "Lưới lớn có số âm, bẫy khó nhất.",
     },
     en: {
+      lv_easy: "★", lv_normal: "★★", lv_hard: "★★★",
       brand: "Box Count", tagline: "Count every rectangle in the number grid that adds up to the target.",
       r_intro: "You get a grid of numbers and a target. Count how many rectangles of adjacent cells add up exactly to the target.",
       c1_h: "Count boxes that hit the target", c1_p: "Group adjacent cells into a rectangle and add them up. Single cells and overlapping boxes each count.", c1_cap: "Answer: 3",
       c2_h: "Holes break a box", c2_p: "A spot with no cell is a hole, so no box can cross it. An empty white cell is 0, so a box can include it.",
-      c3_h: "Negatives add as they are", c3_p: "Negative numbers can show up, mostly on Hard. Enter the count; a wrong answer adds 5 seconds.",
+      c3_h: "Negatives add as they are", c3_p: "Negative numbers can show up, mostly on ★★★. Enter the count; a wrong answer adds 5 seconds.",
       h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
       r_rules: ["Only rectangles count (squares are rectangles too). Diagonal or L-shaped groups don't.",
         "A single cell is a rectangle on its own. Overlapping rectangles each count separately.",
@@ -462,7 +473,7 @@ PK.start({
         "Negatives and fractions add as usual. The answer can be 0.",
         "Enter your count and press Answer. After each puzzle, every matching rectangle is shown in turn.",
         "<b>Give up</b> (tap twice to be sure) shows the answer. In solo it ends the run and doesn't count toward your best; there is no Give up online."],
-      r_solo: ["Pick Easy, Medium or Hard. Each level has 5 puzzles that grow as you go: Easy uses small grids, Medium medium grids with more empty cells and decoys, Hard big grids with negatives.",
+      r_solo: ["Pick ★, ★★ or ★★★. Each level has 5 puzzles that grow as you go: ★ uses small grids, ★★ medium grids with more empty cells and decoys, ★★★ big grids with negatives.",
         "A wrong answer adds 5 seconds. From the 3rd miss on the same puzzle you wait longer and longer.", "Your total time over the 5 puzzles counts. Your best is saved per level on this device."],
       r_online: ["Both players solve the same grid and the first correct answer scores a point. First to 3 points wins.",
         "A wrong answer loses you the right to answer that puzzle. If both answer wrong, nobody scores.", "Each puzzle has 3 minutes.",

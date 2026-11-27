@@ -87,8 +87,10 @@ body.tb-home .tb-search:focus-within{background:#fff}
 .tb-gcard .txt{display:flex;flex-direction:column;gap:6px;padding:14px 16px 18px;flex:1}
 .tb-gcard b{font-family:var(--tb-font-display);font-weight:400;font-size:20px;line-height:1.4;margin:-3px 0;letter-spacing:.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* tên game: 1 dòng (dòng cao để không cắt dấu tiếng Việt) */
 .tb-gcard .txt>span{font-size:14px;line-height:1.45;color:var(--tb-muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}   /* mô tả: tối đa 2 dòng, dài hơn thì hiện … */
+@media (hover:hover){   /* chỉ máy có chuột: trên điện thoại chạm xong thẻ bị "dính" trạng thái nhấc lên, lệch với thẻ bên cạnh */
 .tb-gcard:hover{transform:translateY(-3px);border-color:var(--tb-border-strong);box-shadow:0 10px 24px rgba(20,30,60,.14)}
 .tb-gcard:hover img{transform:scale(1.04)}
+}
 .tb-gcard:focus-visible{outline:3px solid var(--tb-text);outline-offset:3px}
 .tb-empty{color:var(--tb-muted);font-size:15px;padding:30px 0;text-align:center}
 
