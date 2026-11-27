@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#22b8cf"/></linearGradient>
+  <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#1b1060" flood-opacity=".4"/></filter>
+  <g id="sb"><rect width="80" height="80" rx="11" fill="#ffffff" fill-opacity=".09"/>
+    <g fill="#f6f7fb"><rect x="5" y="5" width="21" height="21" rx="5"/><rect x="29.5" y="5" width="21" height="21" rx="5"/><rect x="54" y="5" width="21" height="21" rx="5"/>
+    <rect x="5" y="29.5" width="21" height="21" rx="5"/><rect x="29.5" y="29.5" width="21" height="21" rx="5"/><rect x="54" y="29.5" width="21" height="21" rx="5"/>
+    <rect x="5" y="54" width="21" height="21" rx="5"/><rect x="29.5" y="54" width="21" height="21" rx="5"/><rect x="54" y="54" width="21" height="21" rx="5"/></g></g>
+  <g id="sx"><path d="M-5-5 5 5M5-5-5 5" stroke="#ef4b5f" stroke-width="3.6" stroke-linecap="round"/></g>
+  <g id="so"><circle r="5.4" fill="none" stroke="#2f7de1" stroke-width="3.2"/></g>
+  <g id="bx"><path d="M-24-24 24 24M24-24-24 24" stroke="#ef4b5f" stroke-width="12" stroke-linecap="round"/></g>
+  <g id="bo"><circle r="25" fill="none" stroke="#2f7de1" stroke-width="11"/></g>
+</defs>
+<rect width="400" height="400" fill="url(#bg)"/>
+<circle cx="40" cy="360" r="90" fill="#fff" opacity=".1"/><circle cx="380" cy="30" r="70" fill="#fff" opacity=".1"/>
+<g transform="rotate(-6 200 210)" filter="url(#sh)">
+  <rect x="62" y="72" width="276" height="276" rx="28" fill="#2c3550"/>
+  <use href="#sb" x="72" y="82"/><use href="#sb" x="160" y="82"/><use href="#sb" x="248" y="82"/>
+  <use href="#sb" x="72" y="170"/><use href="#sb" x="160" y="170"/><use href="#sb" x="248" y="170"/>
+  <use href="#sb" x="72" y="258"/><use href="#sb" x="160" y="258"/><use href="#sb" x="248" y="258"/>
+  <!-- bàn nhỏ X thắng (góc trên trái) và O thắng (giữa phải) -->
+  <rect x="72" y="82" width="80" height="80" rx="11" fill="#fde3e6" fill-opacity=".93"/><use href="#bx" x="112" y="122"/>
+  <rect x="248" y="170" width="80" height="80" rx="11" fill="#dde9fb" fill-opacity=".93"/><use href="#bo" x="288" y="210"/>
+  <!-- bàn đang phải đánh: tô vàng -->
+  <rect x="158.5" y="256.5" width="83" height="83" rx="12" fill="none" stroke="#ffc928" stroke-width="5"/>
+  <!-- vài quân nhỏ -->
+  <use href="#sx" x="187.5" y="110"/><use href="#so" x="212" y="134.5"/><use href="#sx" x="236.5" y="110"/>
+  <use href="#so" x="87.5" y="198"/><use href="#sx" x="112" y="222.5"/><use href="#sx" x="200" y="210"/><use href="#so" x="175.5" y="234.5"/>
+  <use href="#so" x="263.5" y="110"/><use href="#sx" x="312.5" y="134.5"/>
+  <use href="#sx" x="87.5" y="310.5"/><use href="#so" x="136.5" y="286"/>
+  <use href="#so" x="187.5" y="286"/><use href="#sx" x="263.5" y="310.5"/><use href="#so" x="288" y="286"/>
+</g>
+</svg>

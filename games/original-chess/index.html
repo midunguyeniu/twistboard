@@ -220,8 +220,8 @@ kbd{background:var(--field);border:1px solid var(--line);border-radius:5px;paddi
 #mRules .card{position:relative}
 /* Luật chơi: cao cố định (đủ cho bản dài nhất) để đổi vi/en popup không đổi kích thước; nút "Đã hiểu" luôn nằm đáy */
 #mRules .card{height:min(760px,calc(100vh - 28px));max-height:none}
-#mRules .card > .foot{position:sticky;bottom:0;background:var(--panel);padding:10px 0 20px;margin-bottom:-20px}   /* màn thấp phải cuộn: nút Đã hiểu vẫn dính ở đáy */
-.langsw{position:absolute;top:18px;right:22px;display:flex;gap:4px;z-index:2}
+#mRules .card > .foot{position:sticky;bottom:-20px;background:var(--panel);padding:10px 24px 20px;margin:0 -24px -20px}   /* bottom âm bằng lề dưới của bảng: thanh nút dính sát mép, chữ cuộn không lọt xuống dưới */   /* màn thấp phải cuộn: nút Đã hiểu vẫn dính ở đáy */
+.langsw{position:absolute;top:18px;right:58px;display:flex;gap:4px;z-index:2}
 .langsw button{background:var(--btn);color:var(--text);border:1px solid var(--line);border-radius:99px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
 .langsw button{display:inline-flex;align-items:center;justify-content:center;padding:4px}
 .langsw svg{width:18px;height:18px;flex:none;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
@@ -411,6 +411,7 @@ body.portrait .cbox{flex:0 0 calc((100% - 16px) / 3);min-width:0}
     <h3 data-i18n="m_theme">Màu bàn cờ</h3>
     <div class="seg" id="segTheme"></div>
     <div class="foot">
+      <span class="note credit tb-credit"></span>   <!-- game này không có hộp Luật chơi: ghi công ở chân bảng Ván mới -->
       <button class="btn" id="modeCancel" data-i18n="cancel">Huỷ</button>
       <button class="btn primary" id="modeStart" data-i18n="m_start">Bắt đầu ván mới</button>
     </div>
@@ -1482,6 +1483,7 @@ window.addEventListener("resize", fit);
     modeDraft = { ...clone(MODE), vs: "online", net: "join", code: room };
     startOnline();
   } else openMode();
+  if (window.TB && TB.closeX) TB.closeX({ "#mMode": "#modeCancel", "#mNet": "#netCancel", "#gameover": "#goView" });   // nút × góc trên phải mỗi popup, bấm = nút đóng/huỷ sẵn có
   window.game = { get mode() { return MODE; }, get state() { return { B, pieces, turn, over, move, half, ep, FLIP }; } };   // tiện debug ở console
 })();
 </script>

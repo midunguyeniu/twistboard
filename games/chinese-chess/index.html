@@ -70,12 +70,12 @@ body.portrait #app{width:100%;padding:8px 8px 24px}
 
 /* quân cờ: đĩa tròn chữ Hán */
 .pc{--d:30px;position:relative;flex:none;display:inline-grid;place-items:center;width:var(--d);height:var(--d);border-radius:50%;
-  background:radial-gradient(circle at 36% 30%,#fffaf0 0,#f6e3bd 55%,#ddb877 100%);
-  box-shadow:0 calc(var(--d)*.05) 0 #a87c42,0 calc(var(--d)*.07) calc(var(--d)*.08) rgba(0,0,0,.4);
-  font-family:var(--han);font-weight:900;font-size:calc(var(--d)*.56);line-height:1;color:#1d1d1d}
+  background:radial-gradient(circle at 36% 28%,#5a5a5a 0,#2b2b2b 48%,#161616 100%);
+  box-shadow:inset 0 calc(var(--d)*.03) calc(var(--d)*.03) rgba(255,255,255,.22),inset 0 calc(var(--d)*-.04) calc(var(--d)*.05) rgba(0,0,0,.45),0 calc(var(--d)*.05) 0 #000,0 calc(var(--d)*.07) calc(var(--d)*.08) rgba(0,0,0,.4);
+  font-family:var(--han);font-weight:900;font-size:calc(var(--d)*.56);line-height:1;color:#fff}
 .pc::before{content:"";position:absolute;inset:9%;border-radius:50%;border:max(1px,calc(var(--d)*.035)) solid currentColor;opacity:.85}
-.pc.red{color:var(--red)}
-.pc b{position:relative;font-weight:900;transform:translateY(-3%)}
+.pc.red{background:radial-gradient(circle at 36% 28%,#ec5a4f 0,#c8231b 50%,#8f130f 100%);box-shadow:inset 0 calc(var(--d)*.03) calc(var(--d)*.03) rgba(255,255,255,.28),inset 0 calc(var(--d)*-.04) calc(var(--d)*.05) rgba(0,0,0,.35),0 calc(var(--d)*.05) 0 #6e0d0a,0 calc(var(--d)*.07) calc(var(--d)*.08) rgba(0,0,0,.4)}
+.pc .gl{position:relative;display:block;width:54%;height:54%;fill:currentColor;overflow:visible}
 .piece{display:flex;align-items:center;justify-content:center;transition:transform .24s cubic-bezier(.3,.8,.3,1);z-index:1}
 .piece.top{z-index:3}
 .piece .pc{--d:calc(var(--cell)*.88);transition:transform .28s,opacity .28s}
@@ -84,10 +84,18 @@ body.portrait #app{width:100%;padding:8px 8px 24px}
 @keyframes spawnIn{0%{transform:scale(.4);opacity:0}100%{transform:none;opacity:1}}
 
 /* điểm đánh dấu trên giao điểm */
-.mk::before{content:"";position:absolute;inset:4%;border-radius:50%}
+/* vòng quanh quân canh theo cả phần đáy nổi khối của quân (đáy dày 5% đường kính), nên hở đều trên dưới */
+.mk::before{content:"";position:absolute;inset:3.5% 3.5% -1% 3.5%;border-radius:50%}
 .mk.last::before{box-shadow:0 0 0 3px rgba(255,170,20,.85)}
 .mk.last.from::before{inset:34%;box-shadow:none;background:rgba(255,170,20,.55)}
-.mk.sel::before{box-shadow:0 0 0 4px var(--gold),0 0 16px 4px rgba(255,201,40,.7)}
+/* nước vừa đi theo màu viền chọn quân: xanh lá khi Đỏ vừa đi, xanh dương khi Đen vừa đi */
+.mk.last.red::before{box-shadow:0 0 0 3px rgba(34,197,94,.9)}
+.mk.last.red.from::before{box-shadow:none;background:rgba(34,197,94,.6)}
+.mk.last.black::before{box-shadow:0 0 0 3px rgba(47,128,255,.9)}
+.mk.last.black.from::before{box-shadow:none;background:rgba(47,128,255,.6)}
+/* viền khi chọn quân: xanh lá cho quân Đỏ, xanh dương cho quân Đen (viền vàng bị chìm trên nền quân đỏ) */
+.mk.sel.red::before{box-shadow:0 0 0 4px #22c55e,0 0 16px 4px rgba(34,197,94,.65)}
+.mk.sel.black::before{box-shadow:0 0 0 4px #2f80ff,0 0 16px 4px rgba(47,128,255,.65)}
 .mk.mv::before{inset:37%;background:rgba(40,170,90,.9);box-shadow:0 0 0 3px rgba(255,255,255,.75)}
 .mk.cap::before{box-shadow:0 0 0 4px var(--bad),inset 0 0 0 999px rgba(255,80,70,.18)}
 .mk.danger::before{animation:danger 1s infinite}
@@ -215,7 +223,7 @@ body.flip .side #panel-red{order:1} body.flip .side #panel-black{order:3}
 
 /* luật chơi */
 #mRules .card{height:min(780px,calc(100vh - 28px));max-height:none}
-#mRules .card > .foot{position:sticky;bottom:0;background:var(--panel);padding:10px 0 20px;margin-bottom:-20px}
+#mRules .card > .foot{position:sticky;bottom:-20px;background:var(--panel);padding:10px 24px 20px;margin:0 -24px -20px}   /* bottom âm bằng lề dưới của bảng: thanh nút dính sát mép, chữ cuộn không lọt xuống dưới */
 .rpieces{display:flex;flex-direction:column;gap:8px;margin:6px 0}
 .rp{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
 .rp .ic{display:flex;gap:4px}
@@ -335,7 +343,7 @@ body.portrait .clock{font-size:20px;padding:6px 10px;min-width:84px}
     <ul id="rulesEnd"></ul>
     <h3 data-i18n="r_h_note"></h3>
     <p data-i18n="r_note"></p>
-    <div class="foot"><span class="note credit" data-i18n="r_credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok">Đã hiểu</button></div>
+    <div class="foot"><span class="note credit tb-credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok">Đã hiểu</button></div>
   </div>
 </div>
 
@@ -482,7 +490,7 @@ vi: {
   ],
   r_h_note: "Ký hiệu nước đi",
   r_note: "Viết theo kiểu Việt Nam: <b>quân + cột đang đứng + hướng + số</b>. Quân: Tg Tướng, S Sĩ, T Tượng, X Xe, M Mã, P Pháo, B Tốt. Cột đếm 1–9 <b>từ phải sang trái</b> theo phía người cầm quân (số in ở mép bàn). Dấu <b>.</b> là tiến, <b>/</b> là lùi, <b>-</b> là đi ngang. Xe, Pháo, Tốt, Tướng đi thẳng thì số là số bước; đi ngang, hoặc Mã, Tượng, Sĩ thì số là cột đến. Ví dụ <b>P2-5</b>: Pháo cột 2 sang cột 5; <b>M8.7</b>: Mã cột 8 tiến sang cột 7. Hai quân cùng loại trên một cột: <b>t</b> là quân trước, <b>s</b> là quân sau (ví dụ Xt.1).",
-  r_credit: "Game được làm bởi Gary Duc Nguyen", r_ok: "Đã hiểu",
+  r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
 },
 en: {
   title: "Chinese Chess", brand: "Chinese Chess",
@@ -564,7 +572,7 @@ en: {
   ],
   r_h_note: "Move notation",
   r_note: "<b>Piece + current file + direction + number</b>. Pieces: K General, A Advisor, E Elephant, R Chariot, H Horse, C Cannon, P Soldier. Files are numbered 1–9 <b>from right to left</b> as seen by the player who owns the piece (the numbers on the board edge). <b>+</b> means forward, <b>-</b> backward, <b>=</b> sideways. For a Chariot, Cannon, Soldier or General moving straight, the number is how many steps; when moving sideways, and for a Horse, Elephant or Advisor, it is the file it lands on. Example: <b>C2=5</b> moves the Cannon on file 2 to file 5; <b>H8+7</b> moves the Horse on file 8 forward to file 7. With two pieces of a kind on one file, <b>+</b> before the letter marks the front one and <b>-</b> the rear one (e.g. +R+1).",
-  r_credit: "Game made by Gary Duc Nguyen", r_ok: "Got it",
+  r_ok: "Got it", m_back: "Back to Game rules",
 }
 };
 let LANG = window.TB ? TB.lang : "vi";
@@ -591,9 +599,31 @@ const GLYPH = {
   red:   { K: "帥", A: "仕", E: "相", R: "俥", H: "傌", C: "炮", P: "兵" },
   black: { K: "將", A: "士", E: "象", R: "車", H: "馬", C: "砲", P: "卒" },
 };
+/* Nét chữ trên quân lấy từ bộ Pieces/Chinese (file SVG gốc, đã căn khung vuông quanh chữ), tô trắng trên nền quân đỏ/đen. [viewBox, hình] */
+const GLYPH_SVG = {
+  red: {
+    K: ["-4.35 0 129.53 129.53","<path d=\"M9.82,58H44.89V15.9H23.38L27.59,3.27,18.23,0,13.09,15.9H0V126.71H9.82v-8.42H37.87v8.42h9.82V73.87H9.82Zm0-32.26H35.53V48.16H9.82Zm28.52,58v24.78H10.29V83.69Z\"/><path d=\"M120.82,91.64V25.72H92.91V1.87H83.09V25.72H55.17v86H65V35.53h18.1v94h9.82v-94H111V92.11a10.09,10.09,0,0,1-1.87,5.61c-1.87,1.87-4.68,2.81-8.89,2.81v9.81c7,0,12.63-1.87,15.9-6.07A18,18,0,0,0,120.82,91.64Z\"/>"],
+    A: ["0.8 0.95 27.7 27.7","<path d=\"M9.8,1.7l-2-0.7c-2.9,8.7-7,12.4-7,12.4l1.4,1.6C2.2,15,3.4,13.9,5,11.7v16.9h2.1V8.3h0C8,6.5,9,4.3,9.8,1.7z\"/><polygon points=\"28.5,11.9 28.5,9.8 19.7,9.8 19.7,1.4 17.6,1.4 17.6,9.8 9,9.8 9,11.9 17.6,11.9 17.6,25.4 9.8,25.4 9.8,27.5 27.8,27.5 27.8,25.4 19.7,25.4 19.7,11.9\"/>"],
+    E: ["1.4 1.4 27.3 27.3","<path d=\"M9.3,10.6V8.9h3.7V6.8H9.3V1.4H7.2v5.4H2.7v2.1h4.4v0.7c-1.7,4.2-5.3,10-5.3,10.1l1.8,1.1 c0.1-0.2,1.9-3.1,3.5-6.3v14.2h2.1V13.4c1.6,1.6,2.5,3.5,2.5,3.5l1.9-0.9C13.6,15.9,12,12.6,9.3,10.6z\"/><path d=\"M14.4,2.8v25.8h2.1v-2h9.7v2h2.1V2.8H14.4z M26.2,4.9v4.9h-9.7V4.9H26.2z M16.5,11.9h9.7v5.2h-9.7V11.9z M16.5,24.5v-5.3h9.7v5.3H16.5z\"/>"],
+    R: ["0 -0.36 128 128","<path d=\"M32.28,0C18.91,40.12,0,57.18,0,57.18l3.23,3.69,3.23,3.69c.46-.47,6-5.08,12.91-15.22v77.93h9.22V33.66c4.61-8.3,8.76-18.44,12.91-30.43Z\"/><path d=\"M128,98.15H86.69V87.77h30.2V32.28H86.69V22.13h38V12.45h-38V1.84H77V12.45H39v9.68H77V32.28H46.8V87.77H77V98.15H35.74v10.23H77v18.89h9.68V108.38H128ZM107.05,77.93H86.69V64.13h20.36Zm0-36.43v13H86.69v-13Zm-50.4,0H77v13H56.65Zm0,36.43V64.13H77v13.8Z\"/>"],
+    H: ["0.95 1 27.6 27.6","<path d=\"M10.5,1.7l-2-0.7c-2.9,8.7-7,12.4-7,12.4l1.4,1.6c0.1-0.1,1.3-1.1,2.8-3.3v16.9h2.1V8.3h0 C8.7,6.5,9.7,4.3,10.5,1.7z\"/><path d=\"M21.4,15.4V13h6.4v-2.1h-6.4V8.6h6.4V6.5h-6.4V4.1h6.4V2h-16v15.6h14l-0.3,6.2c0,0.3-0.4,2.5-2.4,2.5h-3.5v2.1 h3.5c3.2,0,4.3-2.8,4.5-4.4l0.4-8.5H21.4z M19.3,10.9H14V8.6h5.4V10.9z M19.3,4.1v2.4H14V4.1H19.3z M14,13h5.4v2.4H14V13z\"/><rect x=\"22.4\" y=\"18.3\" transform=\"matrix(0.9387 -0.3446 0.3446 0.9387 -5.7126 9.3631)\" width=\"2.1\" height=\"4.9\"/><path d=\"M20.3,18.2l-2,0.6c0.8,2.7,0.8,5.9,0.8,5.9h2.1C21.1,24.5,21.1,21.2,20.3,18.2z\"/><path d=\"M14.7,19c0.4,3.2,0.3,7.1,0.3,7.2l2.1,0.1c0-0.2,0.1-4.1-0.3-7.5L14.7,19z\"/><path d=\"M9.5,26.6l2,0.7c0.1-0.2,1.4-3.7,2.3-8.3l-2.1-0.4C10.8,23,9.5,26.5,9.5,26.6z\"/>"],
+    C: ["1.2 1.45 27.8 27.8","<path d=\"M3.2,16c0.1-0.2,1.3-4.1,1.2-8.9L2.3,7.2c0.1,4.4-1.1,8.1-1.1,8.1L3.2,16z\"/><path d=\"M7.4,18.1c0.3-2.3,0.5-4.7,0.6-6.9c0.9-0.7,3.4-2.8,4.3-4.7l-1.9-0.9C9.9,6.5,8.9,7.5,8,8.4 c0-3.7-0.2-6.5-0.2-6.8L5.7,1.8c0.5,5.8,0.7,21.7-4.2,25.7l1.3,1.6c2.1-1.7,3.3-4.9,4.1-8.5c0.9,0.9,2.2,2.4,3.3,4l1.8-1.1 C10.3,20.9,8.3,18.9,7.4,18.1z\"/><path d=\"M26.8,22.1c-0.1,4.2-1.5,4.2-2,4.2h-7.4c-0.5,0-1.2-0.1-1.5-0.5c-0.3-0.4-0.2-0.9-0.2-0.9l0-5.4H22v2.1h1.4 c1,0,1.8-0.3,2.4-1c1.2-1.3,1.2-3.3,1.1-3.5L27.4,5H16.6c0.3-1,0.6-2.1,0.7-3.2l-2.1-0.2c-0.7,5.9-5.1,10.3-5.1,10.4l1.5,1.5 c0.1-0.1,0.9-1,2-2.4v13.6c0,0.4-0.1,1.5,0.7,2.5c0.7,0.8,1.7,1.2,3.2,1.2h7.4c2.6,0,4-2.1,4.1-6.2L26.8,22.1z M20,17.5h-4.3V13H20 V17.5z M13.6,10.9c0.7-1,1.5-2.3,2.1-3.8h9.5l-0.3,10.1c0,0.4-0.1,1.5-0.6,2c-0.1,0.1-0.4,0.3-0.9,0.3h-1.4v-8.7H13.6z\"/>"],
+    P: ["1.45 1.3 27.2 27.2","<path d=\"M20.7,18.3v-7.2h5.4V9H8.7V5.3c2.4-0.1,8.8-0.5,15.4-2l-0.5-2c-8.1,1.9-15.9,2-16,2l-1,0v15H1.8v2.1h26.5v-2.1 H20.7z M8.7,11.1h9.9v7.2H8.7V11.1z\"/><path d=\"M2.1,26.6l0.8,1.9c0.2-0.1,4.1-1.8,8.9-6l-1.4-1.6C5.9,24.9,2.1,26.5,2.1,26.6z\"/><path d=\"M19.2,20.6l-1,1.8c0,0,4.7,2.6,7.5,6l1.6-1.3C24.3,23.4,19.4,20.7,19.2,20.6z\"/>"],
+  },
+  black: {
+    K: ["0 0 30 30","<path d=\"M8.9,9.4H4.8v-8H2.5v10.3h6.4v4H0.7V18h2.8c-0.1,1.8-0.6,5.8-3,10.3l2,1c2.6-5,3.1-9.4,3.2-11.4h3.1v11.7h2.3 V0H8.9V9.4z\"/><path d=\"M29.5,18.4v-2.3h-3v-4h-2.3v4H13v2.3h11.2v7.3l0,0.2c0,0.2,0.1,0.9-0.2,1.3c-0.2,0.3-0.6,0.4-1.3,0.4h-3.6V30 h3.6c1.7,0,2.6-0.7,3-1.3c0.9-1.1,0.8-2.6,0.7-3.1v-7.2H29.5z\"/><rect x=\"15.8\" y=\"19.6\" transform=\"matrix(0.7405 -0.6721 0.6721 0.7405 -10.9898 17.3363)\" width=\"2.3\" height=\"6.5\"/><path d=\"M13.7,10c0,0,0.5-0.3,1.1-1L18,12c-2.5,1.1-4.6,1.3-4.7,1.3l0.2,2.3c0.5-0.1,11.8-1.4,14.6-11.5l0.4-1.4h-8.6 c0.2-0.4,0.4-0.7,0.6-1.1l-2-1.1c-2.9,5.3-6.2,7.8-6.3,7.8L13,9.1L13.7,10z M16.4,7.4c0.4-0.4,0.7-0.8,1.1-1.3l4.2,3.7 c-0.5,0.4-0.9,0.7-1.5,1L16.4,7.4z M23.4,8.2l-3.8-3.4h5.9C25,6.1,24.3,7.2,23.4,8.2z\"/>"],
+    A: ["1.1 1.1 27.8 27.8","<polygon points=\"28.9,13.9 28.9,11.8 16.1,11.8 16.1,2.3 14,2.3 14,11.8 1.1,11.8 1.1,13.9 14,13.9 14,25.7 2.6,25.7 2.6,27.7 27.4,27.7 27.4,25.7 16.1,25.7 16.1,13.9\"/>"],
+    E: ["1.4 1.5 27.2 27.2","<path d=\"M22.1,18.7c1.3-0.5,2.6-1.1,3.9-2L24.8,15c-2.7,1.9-5.7,2.6-7,2.8c-0.8-1.4-1.9-2.7-2.9-3.6h11V7.2h-6.7 l2.6-3.9h-9.2c0.2-0.2,0.3-0.4,0.5-0.6l-1.7-1.2C9.1,4.8,2.1,7.6,2.1,7.6l0.8,1.9c0.1,0,1-0.4,2.2-1v5.5h6c-4.3,2.3-7.8,2.5-7.8,2.5 l0,1l0,1c0.2,0,4.6-0.2,9.8-3.4c0.4,0.3,0.8,0.7,1.1,1.1C10,20,3.1,21.1,3.1,21.1l0.3,2.1c0.3-0.1,7.4-1.3,12.2-5.1 c0.3,0.5,0.6,1,0.8,1.5C11.9,23.3,3.1,25.4,3,25.5l0.5,2c0.4-0.1,8.4-2,13.4-5.6c0,0.4,0,0.8,0,1.2c0,3.1,0,3.4-4.5,3.5l0,2.1 c6-0.1,6.5-1.6,6.5-5.6c0-0.4,0-0.9,0-1.4c0-0.7-0.1-1.3-0.3-1.9c0.4-0.1,0.9-0.2,1.5-0.3c0.9,1.7,3.4,5.7,6.8,7.6l1-1.8 C25.2,23.6,23.1,20.4,22.1,18.7z M23.9,12h-8.4l2.4-2.8h6V12z M10.5,5.3H18l-1.2,1.9H7.6C8.6,6.6,9.6,6,10.5,5.3z M7.1,9.3h8 L12.8,12H7.1V9.3z\"/>"],
+    R: ["1.1 1.1 27.8 27.8","<path d=\"M28.9,6.4V4.3H16.1V1.1H14v3.2H1.1v2.1H14v2H4.6v11.5H14v2.7H1.1v2.1H14v4.2h2.1v-4.2h12.8v-2.1H16.1v-2.7h9.4 V8.4h-9.4v-2H28.9z M14,10.5v2.6H6.6v-2.6H14z M6.6,17.8v-2.6H14v2.6H6.6z M16.1,17.8v-2.6h7.4v2.6H16.1z M23.4,10.5v2.6h-7.4v-2.6 H23.4z\"/>"],
+    H: ["2.28 2.2 25.51 25.51","<path d=\"M27.5,23.1v-6.8l-9.4,0v-3.2h7.5V11h-7.5V8.2h7.5V6.1h-7.5V4.3h9.3V2.2H5.7v3.9v6.9v5.2l19.7,0.1v4.8l0,0.2 c0,0,0.1,1.1-0.6,1.7c-0.8,0.8-2.5,0.9-4.8,0.4l-0.4,2c1,0.2,2,0.3,2.9,0.3c1.6,0,2.9-0.4,3.8-1.2C27.6,25.3,27.5,23.5,27.5,23.1z M16,11H7.8V8.2H16V11z M7.8,4.3H16v1.9H7.8V4.3z M7.8,13.1H16v3.2l-8.3,0V13.1z\"/><rect x=\"20.3\" y=\"19.2\" transform=\"matrix(0.9247 -0.3807 0.3807 0.9247 -6.5638 9.7362)\" width=\"2.1\" height=\"4.4\"/><rect x=\"15.2\" y=\"19.7\" transform=\"matrix(0.9606 -0.278 0.278 0.9606 -5.6254 5.415)\" width=\"2.1\" height=\"5.7\"/><rect x=\"10\" y=\"19.8\" transform=\"matrix(0.9983 -5.835022e-02 5.835022e-02 0.9983 -1.3401 0.6844)\" width=\"2.1\" height=\"6.9\"/><rect x=\"0.9\" y=\"22.6\" transform=\"matrix(0.345 -0.9386 0.9386 0.345 -18.9477 20.0318)\" width=\"8\" height=\"2.1\"/>"],
+    C: ["1.4 1.3 27.3 27.3","<path d=\"M7.4,5.8h5V3.7H2.2v2.1h3.1c0,1.9-0.3,6.5-3.9,12.2l1.8,1.1c0.5-0.8,1-1.6,1.4-2.4v11.6h2.1v-1.7h3.2v0.9h2.1 v-15H6.2C7.2,9.5,7.4,7.1,7.4,5.8z M9.8,14.6v9.9H6.6v-9.9H9.8z\"/><path d=\"M28.7,22.3l-2.1,0.1c0,0,0.1,2.2-1,3.3c-0.4,0.4-0.9,0.6-1.7,0.6l-6,0c-0.3,0-2-0.2-2-2.5v-4.2h5.7v-8.6h-7.5 c0.6-0.9,1.4-2.2,2.1-3.7H25l0,10.2c0,0,0.1,0.8-0.5,1.4c-0.5,0.6-1.5,0.9-2.8,0.9v2.1c2,0,3.4-0.5,4.4-1.6c1.1-1.2,1.1-2.6,1-2.9 V5.2h-9.6c0.4-1,0.8-2.1,1-3.1l-2-0.5c-1,4.2-4.6,9.3-4.7,9.4l1.7,1.2c0,0,0.2-0.3,0.5-0.8v12.3c0,3.6,2.6,4.6,4,4.6h6 c1.3,0,2.4-0.4,3.2-1.3C28.8,25.3,28.7,22.4,28.7,22.3z M16.1,13h3.7v4.5h-3.7V13z\"/>"],
+    P: ["1 1 28 28","<polygon points=\"16.1,16.1 14,16.1 14,19.8 1.1,19.8 1.1,21.8 14,21.8 14,29 16.1,29 16.1,21.8 28.9,21.8 28.9,19.8 16.1,19.8\"/><polygon points=\"15.8,4.4 15.1,1 13,1.5 13.7,4.4 1.1,4.4 1.1,6.5 28.9,6.5 28.9,4.4\"/><path d=\"M8.4,7.6c0,0-0.6,3.5-6,8l1.3,1.6c2.1-1.8,3.6-3.4,4.5-4.8c1.8,1.1,3.7,2.3,4,2.9l1.8-1.1 c-0.7-1.1-3.1-2.7-4.6-3.6c0.9-1.7,1-2.7,1.1-2.8L8.4,7.6z\"/><path d=\"M20.7,7.7c0,0-1.6,3.8-4.2,6.3l1.5,1.5c0.9-0.9,1.7-1.9,2.4-2.9c1.1,0.6,4,2.1,5.7,4.1l1.6-1.4 c-1.9-2.2-4.8-3.8-6.1-4.5c0.7-1.3,1.2-2.3,1.2-2.4L20.7,7.7z\"/>"],
+  },
+};
+const glyphSvg = (type, color) => { const [vb, body] = GLYPH_SVG[color][type]; return `<svg class="gl" viewBox="${vb}" aria-hidden="true">${body}</svg>`; };
 const LETTER = { vi: { K: "Tg", A: "S", E: "T", R: "X", H: "M", C: "P", P: "B" }, en: { K: "K", A: "A", E: "E", R: "R", H: "H", C: "C", P: "P" } };
-function discEl(type, color) { const d = el("span", "pc " + color, `<b>${GLYPH[color][type]}</b>`); return d; }
-const discHTML = (type, color) => `<span class="pc ${color}"><b>${GLYPH[color][type]}</b></span>`;
+function discEl(type, color) { const d = el("span", "pc " + color, glyphSvg(type, color)); d.setAttribute("role", "img"); d.setAttribute("aria-label", GLYPH[color][type]); return d; }
+const discHTML = (type, color) => `<span class="pc ${color}" role="img" aria-label="${GLYPH[color][type]}">${glyphSvg(type, color)}</span>`;
 
 /* ---------- CHẾ ĐỘ, GIAO DIỆN ---------- */
 const THEMES = {
@@ -1410,11 +1440,11 @@ function renderBoard() {
   }
   for (const [id, e] of [...pieceEls]) if (!seen.has(id)) { pieceEls.delete(id); e.classList.add("dying"); setTimeout(() => e.remove(), 320); }
   lowL.innerHTML = ""; topL.innerHTML = "";
-  if (last) { lowL.appendChild(mk("last from", last.from.r, last.from.c)); lowL.appendChild(mk("last", last.to.r, last.to.c)); }
+  if (last) { const lc = pieces.get(last.id)?.color || ""; lowL.appendChild(mk("last from " + lc, last.from.r, last.from.c)); lowL.appendChild(mk("last " + lc, last.to.r, last.to.c)); }
   const checked = started && !over && inCheck(turn) ? KING[turn] : null;
   if (checked) lowL.appendChild(mk("danger", checked.r, checked.c));
   if (sel && pieces.get(sel)) {
-    const pc = pieces.get(sel); lowL.appendChild(mk("sel", pc.r, pc.c));
+    const pc = pieces.get(sel); lowL.appendChild(mk("sel " + pc.color, pc.r, pc.c));
     for (const m of moves) topL.appendChild(mk(m.kind === "capture" ? "cap" : "mv", m.r, m.c));
   }
   if (hoverCell && clickable(hoverCell.r, hoverCell.c)) topL.appendChild(mk("hover", hoverCell.r, hoverCell.c));
@@ -1546,7 +1576,7 @@ function syncMode() {
   $("#segTime").querySelectorAll("button").forEach(b => { b.disabled = timeOff; });
   $("#timeNote").textContent = vs === "bot" ? tr("tcn_bot") : join ? tr("tcn_join") : tr("tcn_" + modeDraft.tc);
   $("#modeStart").textContent = online ? tr(join ? "m_join" : "m_create") : started && !over ? tr("m_forfeit") : tr("m_start");
-  $("#modeCancel").hidden = !started;
+  $("#modeCancel").hidden = false; $("#modeCancel").textContent = started ? tr("cancel") : tr("m_back");   // chưa có ván nào: nút này thành "Xem lại Luật chơi" (giống Cờ Vua Triệu Hồi)
   if (!started) {                                     // bàn phía sau popup đổi theo theme và bên cầm quân
     MODE = clone(modeDraft); applyTheme();
     FLIP = (vs === "bot" || (online && !join)) && modeDraft.human === "black";
@@ -1592,7 +1622,7 @@ $("#netCopy").addEventListener("click", () => {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done, legacy); else legacy();
 });
 window.addEventListener("pagehide", () => { if (netOpen()) try { NET.conn.send({ t: "bye" }); } catch (e) {} });
-$("#modeCancel").addEventListener("click", () => { $("#mMode").hidden = true; });
+$("#modeCancel").addEventListener("click", () => { $("#mMode").hidden = true; if (!started) { rulesFromMode = true; openRules(); } });   // chưa chơi: quay lại Luật chơi, bấm Đã hiểu sẽ về bảng chọn chế độ
 $("#modeStart").addEventListener("click", () => {
   if (modeDraft.vs === "online") {
     if (modeDraft.net === "join") {
@@ -1604,7 +1634,7 @@ $("#modeStart").addEventListener("click", () => {
   netClose(true);
   MODE = clone(modeDraft); $("#mMode").hidden = true; newGame();
 });
-let rulesFromMode = false;
+let rulesFromMode = true;   // lần mở đầu (hoặc quay lại từ bảng chế độ): bấm "Đã hiểu" xong thì hiện bảng chọn chế độ
 $("#btnRules").addEventListener("click", () => { rulesFromMode = false; openRules(); });
 $("#rulesOk").addEventListener("click", () => { $("#mRules").hidden = true; if (rulesFromMode) { rulesFromMode = false; openMode(); } });
 $("#btnUndo").addEventListener("click", undo);
@@ -1645,7 +1675,8 @@ window.addEventListener("resize", fit);
     try { history.replaceState(null, "", location.href.split("#")[0]); } catch (e) {}
     modeDraft = { ...clone(MODE), vs: "online", net: "join", code: room };
     startOnline();
-  } else openMode();
+  } else openRules();                              // mở trang: hiện Luật chơi trước, Đã hiểu → bảng chọn chế độ
+  if (window.TB && TB.closeX) TB.closeX({ "#mRules": "#rulesOk", "#mMode": "#modeCancel", "#mNet": "#netCancel", "#gameover": "#goView" });   // nút × góc trên phải mỗi popup, bấm = nút đóng/huỷ sẵn có
   window.game = { get mode() { return MODE; }, get state() { return { B, pieces, turn, over, move, half, FLIP }; } };   // tiện debug ở console
 })();
 </script>

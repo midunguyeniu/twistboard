@@ -223,7 +223,7 @@ kbd{background:var(--field);border:1px solid var(--line);border-radius:5px;paddi
 #mRules .card{max-width:600px}
 #mRules li{margin:4px 0}
 #mRules .card > .foot{margin-top:14px}
-.langsw{position:absolute;top:18px;right:22px;display:flex;gap:4px;z-index:2}
+.langsw{position:absolute;top:18px;right:58px;display:flex;gap:4px;z-index:2}
 .langsw button{background:var(--btn);color:var(--text);border:1px solid var(--line);border-radius:99px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
 .langsw button{display:inline-flex;align-items:center;justify-content:center;padding:4px}
 .langsw svg{width:18px;height:18px;flex:none;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
@@ -424,7 +424,7 @@ body.portrait .cbox{flex:0 0 calc((100% - 16px) / 3);min-width:0}
   <div class="card">
     <h2 data-i18n="r_title">Luật Đua Vua</h2>
     <ul id="rulesList"></ul>
-    <div class="foot"><button class="btn primary" id="rulesOk" data-i18n="r_ok">Đã hiểu</button></div>
+    <div class="foot"><span class="note credit tb-credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok">Đã hiểu</button></div>
   </div>
 </div>
 
@@ -518,7 +518,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const I18N = {
 vi: {
   title: "Đua Vua", brand: "Đua Vua",
-  b_rules: "Luật chơi", r_title: "Luật Đua Vua (Racing Kings)", r_ok: "Đã hiểu",
+  b_rules: "Luật chơi", r_title: "Luật Đua Vua (Racing Kings)", r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
   r_1: "Không có Tốt. Mỗi bên có Vua, Hậu, 2 Xe, 2 Tượng, 2 Mã, xếp sẵn ở hàng 1 và 2. Cả hai bên đều đi <b>lên phía trên</b>.",
   r_2: "Đưa <b>Vua</b> của mình lên <b>hàng 8</b> (hàng tô vàng) trước đối thủ là thắng.",
   r_3: "<b>Cấm chiếu</b>: không được đi nước nào làm Vua đối phương bị chiếu. Vua của mình cũng không được đi vào ô bị khống chế.",
@@ -586,7 +586,7 @@ vi: {
 },
 en: {
   title: "Racing Kings", brand: "Racing Kings",
-  b_rules: "Rules", r_title: "Racing Kings rules", r_ok: "Got it",
+  b_rules: "Rules", r_title: "Racing Kings rules", r_ok: "Got it", m_back: "Back to Game rules",
   r_1: "No pawns. Each side has a King, Queen, 2 Rooks, 2 Bishops and 2 Knights, set up on ranks 1 and 2. Both sides head <b>up the board</b>.",
   r_2: "Get your <b>King</b> to the <b>8th rank</b> (the gold row) before your opponent does.",
   r_3: "<b>No checks</b>: a move that puts the enemy King in check is illegal. Your own King can't step onto an attacked square either.",
@@ -1461,7 +1461,7 @@ function syncMode() {
   $("#segTime").querySelectorAll("button").forEach(b => { b.disabled = timeOff; });
   $("#timeNote").textContent = vs === "bot" ? tr("tcn_bot") : join ? tr("tcn_join") : tr("tcn_" + modeDraft.tc);
   $("#modeStart").textContent = online ? tr(join ? "m_join" : "m_create") : started && !over ? tr("m_forfeit") : tr("m_start");
-  $("#modeCancel").hidden = !started;                 // chưa có ván nào thì phải chọn chế độ
+  $("#modeCancel").hidden = false; $("#modeCancel").textContent = started ? tr("cancel") : tr("m_back");   // chưa có ván nào: nút này thành "Xem lại Luật chơi" (giống Cờ Vua Triệu Hồi)
   if (!started) {                                     // bàn phía sau popup đổi theo theme và bên cầm quân
     MODE = clone(modeDraft); applyTheme();
     FLIP = false;
@@ -1500,7 +1500,7 @@ $("#netCopy").addEventListener("click", () => {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done, legacy); else legacy();
 });
 window.addEventListener("pagehide", () => { if (netOpen()) try { NET.conn.send({ t: "bye" }); } catch (e) {} });
-$("#modeCancel").addEventListener("click", () => { $("#mMode").hidden = true; });
+$("#modeCancel").addEventListener("click", () => { $("#mMode").hidden = true; if (!started) { rulesFromMode = true; openRules(); } });   // chưa chơi: quay lại Luật chơi, bấm Đã hiểu sẽ về bảng chọn chế độ
 $("#modeStart").addEventListener("click", () => {
   if (modeDraft.vs === "online") {
     if (modeDraft.net === "join") {
@@ -1522,13 +1522,14 @@ boardEl.addEventListener("mouseleave", () => { hoverCell = null; renderBoard(); 
 $("#promo").addEventListener("click", e => { if (e.target.id === "promo") cancelAll(); });   // bấm ra ngoài: huỷ phong cấp
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  if (!$("#mRules").hidden) $("#mRules").hidden = true;
+  if (!$("#mRules").hidden) $("#rulesOk").click();
   else if (!$("#mNet").hidden) $("#netCancel").click();
   else if (!$("#mMode").hidden) { if (started) $("#mMode").hidden = true; }
   else if (sel || promo) cancelAll();
 });
-$("#btnRules").addEventListener("click", openRules);
-$("#rulesOk").addEventListener("click", () => { $("#mRules").hidden = true; });
+let rulesFromMode = true;   // lần mở đầu (hoặc quay lại từ bảng chế độ): bấm "Đã hiểu" xong thì hiện bảng chọn chế độ
+$("#btnRules").addEventListener("click", () => { rulesFromMode = false; openRules(); });
+$("#rulesOk").addEventListener("click", () => { $("#mRules").hidden = true; if (rulesFromMode) { rulesFromMode = false; openMode(); } });
 $("#btnNew").addEventListener("click", () => {
   if (MODE.vs === "online" && netOpen() && over) { overDismissed = false; return renderOver(); }
   openMode();
@@ -1547,7 +1548,8 @@ window.addEventListener("resize", fit);
     try { history.replaceState(null, "", location.href.split("#")[0]); } catch (e) {}
     modeDraft = { ...clone(MODE), vs: "online", net: "join", code: room };
     startOnline();
-  } else { openMode(); openRules(); }                // lần đầu: hiện luật nằm trên popup Ván mới
+  } else openRules();                              // mở trang: hiện Luật chơi trước, Đã hiểu → bảng chọn chế độ
+  if (window.TB && TB.closeX) TB.closeX({ "#mRules": "#rulesOk", "#mMode": "#modeCancel", "#mNet": "#netCancel", "#gameover": "#goView" });   // nút × góc trên phải mỗi popup, bấm = nút đóng/huỷ sẵn có
   window.game = { get mode() { return MODE; }, get state() { return { B, pieces, turn, over, move, half, ep, FLIP, arrived }; } };   // tiện debug ở console
 })();
 </script>

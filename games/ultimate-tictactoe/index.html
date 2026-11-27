@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ultimate Tic Tac Toe · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<script src="../../assets/platform.js"></script>
+<style>
+:root{
+  --S:560px; --pad:10px; --gap:8px;
+  --bg:var(--tb-bg); --panel:var(--tb-surface); --line:var(--tb-border); --text:var(--tb-text); --muted:var(--tb-muted);
+  --btn:#fff; --btn-hover:var(--tb-hover); --btn-line:var(--tb-border-strong); --field:var(--tb-surface-2); --gold:#ffc928; --gold-ink:var(--tb-gold-ink);
+  --x:#ef4b5f; --x-soft:#fde3e6; --o:#2f7de1; --o-soft:#dde9fb;
+  --board:#2c3550; --tile:#f6f7fb; --tile-hover:#ffffff;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--tb-font);min-height:100vh;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;transition:transform .12s ease-out,background-color .15s,filter .15s,opacity .15s}
+button:active:not(:disabled){transform:scale(.92)}
+#app{width:fit-content;margin:0 auto;padding:14px 12px 28px}
+body.portrait #app{width:100%;padding:8px 8px 24px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.brand h1{margin:0;font-family:var(--tb-font-brand);font-size:26px;line-height:1.1}
+.actions{display:flex;gap:8px}
+.btn{background:var(--btn);color:var(--text);border:1.5px solid var(--btn-line);border-radius:10px;padding:8px 15px;font-size:14px;font-weight:800;cursor:pointer}
+.btn:hover{background:var(--btn-hover)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.primary{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:transparent}
+.btn.primary:hover{background:var(--tb-primary-hover)}
+
+#status{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);margin-bottom:12px;font-size:14px;min-height:42px}
+.mk{flex:none;width:20px;height:20px;display:inline-grid;place-items:center}
+.mk svg{width:100%;height:100%}
+.mk.think{animation:blink .9s infinite}
+@keyframes blink{50%{opacity:.2}}
+
+.ix path{stroke:var(--x);fill:none;stroke-linecap:round}
+.io circle{stroke:var(--o);fill:none}
+
+#stage{display:flex;gap:20px;align-items:flex-start;justify-content:center}
+#boardWrap{position:relative;flex:none}
+#board{position:relative;width:var(--S);height:var(--S);background:var(--board);border-radius:22px;padding:var(--pad);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:var(--gap);
+  box-shadow:0 14px 34px rgba(20,30,60,.25);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.sb{position:relative;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:calc(var(--gap) * .4);padding:calc(var(--gap) * .5);border-radius:14px;background:rgba(255,255,255,.07);transition:background .2s,box-shadow .2s}
+.sb.act{background:rgba(255,201,40,.42);box-shadow:0 0 0 3px var(--gold)}
+.sb.dim .cell{opacity:.72}
+.cell{position:relative;border-radius:calc(var(--gap) * 1.1);background:var(--tile);display:grid;place-items:center;transition:background .15s,box-shadow .15s,opacity .2s}
+.cell svg{width:68%;height:68%}
+.cell.new svg{animation:pop .24s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:none;opacity:1}}
+.cell.can{cursor:pointer}
+.cell.can:hover{background:var(--tile-hover);box-shadow:inset 0 0 0 2px var(--gold)}
+.cell.ghost svg{opacity:.3}
+.cell.last{box-shadow:inset 0 0 0 2.5px #1fae4b}
+.cell.last.theirs{box-shadow:inset 0 0 0 2.5px #e5322b}
+.big{position:absolute;inset:0;border-radius:14px;display:grid;place-items:center;pointer-events:none;animation:fade .3s}
+.big svg{width:78%;height:78%}
+.big.w1{background:rgba(253,227,230,.86)} .big.w2{background:rgba(221,233,251,.86)}
+.big.w3{background:repeating-linear-gradient(45deg,rgba(236,238,244,.9) 0 8px,rgba(222,225,234,.9) 8px 16px)}
+.big.w3 span{font-family:var(--tb-font-brand);font-weight:800;font-size:calc(var(--S) * .035);color:var(--muted);background:rgba(255,255,255,.85);padding:2px 10px;border-radius:99px}
+.big.wl{box-shadow:0 0 0 3px #1fae4b}
+#winLine{position:absolute;left:0;top:0;pointer-events:none;z-index:6;overflow:visible}
+#winLine line{stroke:#1fae4b;stroke-linecap:round;animation:draw .55s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+.side{width:290px;flex:none;display:flex;flex-direction:column;gap:10px}
+.panel{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:10px;row-gap:8px;padding:10px 12px;border-radius:12px;
+  background:var(--panel);border:2px solid var(--line);box-shadow:var(--tb-shadow);transition:border-color .2s,box-shadow .2s}
+.panel.active{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,201,40,.35)}
+.picon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center}
+.picon svg{width:72%;height:72%}
+#panel-1 .picon{background:var(--x-soft)} #panel-2 .picon{background:var(--o-soft)}
+.pinfo{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.pinfo b{font-size:15px}
+.pinfo span{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clock{font-family:var(--tb-font-brand);font-size:24px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--muted);padding:5px 9px;border-radius:9px;background:var(--field)}
+.clock.run{background:#1d2330;color:#fff}
+.clock.low{color:#e8473e}
+.clock.low.run{background:#e8473e;color:#fff}
+.pwon{grid-column:1/-1;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:800;color:var(--muted)}
+.pwon i{width:16px;height:16px;border-radius:4px;background:var(--field);display:inline-grid;place-items:center}
+.pwon i svg{width:80%;height:80%}
+.pwon span{margin-left:6px}
+#info{padding:12px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow);font-size:13.5px}
+#info dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
+#info dt{color:var(--muted)} #info dd{margin:0;font-weight:800;text-align:right}
+#tip{margin:10px 0 0;color:var(--gold-ink);font-weight:700;line-height:1.4}
+
+#gameover{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,25,40,.35);z-index:20;animation:fade .3s;border-radius:22px}
+.go-card{background:var(--panel);border:2px solid var(--gold);border-radius:16px;padding:22px 26px;text-align:center;max-width:90%;box-shadow:var(--tb-shadow-lg);position:relative}
+.go-card h2{margin:0 0 6px;font-family:var(--tb-font-brand);font-size:30px}
+.go-card p{margin:0 0 16px;color:var(--muted)}
+.go-card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#goNet{margin:-8px 0 14px}
+#goNet:empty{display:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.modal{position:fixed;inset:0;background:rgba(20,25,40,.5);display:grid;place-items:center;z-index:50;padding:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:20px 24px;box-shadow:var(--tb-shadow-lg);position:relative}
+.card h2{margin:0 0 10px;font-family:var(--tb-font-brand);font-size:26px;line-height:1.15}
+.card h3{margin:16px 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink)}
+.card p,.card li{font-size:14.5px;line-height:1.55}
+.card ul{margin:6px 0;padding-left:20px}
+.card .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;align-items:center}
+.note{color:var(--muted);font-size:12.5px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:110px;background:var(--btn);color:var(--text);border:2px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-weight:800;cursor:pointer}
+.seg button:hover{background:var(--btn-hover)}
+.seg button.on{background:var(--gold);color:var(--tb-primary-ink);border-color:var(--gold)}
+.seg button:disabled{cursor:not-allowed;pointer-events:none}
+#segLevel button,#segTime button{min-width:0;padding:9px 4px}
+#segSide button{display:flex;align-items:center;justify-content:center;gap:8px}
+#segSide button svg{width:18px;height:18px;flex:none}
+.off{opacity:.28;filter:grayscale(1)}
+.off .seg button.on{background:var(--btn);color:var(--text);border-color:var(--line);box-shadow:none}
+#levelNote{min-height:2.8em;line-height:1.4;margin:6px 0 0}
+#timeNote{line-height:1.4;margin:6px 0 0}
+.netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.netrow .seg{flex:2 1 240px}
+#joinCode{flex:1 1 140px;min-width:0;background:#fff;color:var(--text);border:2px solid var(--btn-line);border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;font-size:18px;letter-spacing:.2em;text-transform:uppercase;text-align:center}
+#joinCode::placeholder{letter-spacing:normal;font-weight:600;font-size:14px;color:var(--muted);text-transform:none}
+#joinCode:disabled{opacity:.35}
+#mNet .card{max-width:460px;text-align:center}
+#mNet .foot{justify-content:center}
+.netcode{font-family:var(--tb-font-brand);font-size:46px;font-weight:800;letter-spacing:.22em;padding-left:.22em;color:var(--gold-ink);margin:4px 0 12px;user-select:all}
+.netlink{display:flex;gap:8px}
+.netlink input{flex:1;min-width:0;background:var(--field);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px}
+#netMsg{color:var(--muted);margin:14px 0 0}
+/* minh hoạ trong hộp Luật chơi: đánh ô bên phải giữa của bàn góc trên trái → đối thủ phải đánh ở bàn bên phải giữa */
+.demo{display:flex;gap:14px;align-items:center;justify-content:center;margin:10px 0 4px;flex-wrap:wrap}
+.demo .mb{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4px;padding:5px;background:var(--board);border-radius:10px;width:132px;height:132px}
+.demo .ms{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:1.5px;padding:2px;border-radius:5px;background:rgba(255,255,255,.08)}
+.demo .ms.act{background:rgba(255,201,40,.5);box-shadow:0 0 0 2px var(--gold)}
+.demo .ms i{background:var(--tile);border-radius:2px;display:grid;place-items:center}
+.demo .ms i svg{width:90%;height:90%}
+.demo .ms i.hl{box-shadow:inset 0 0 0 1.5px #1fae4b}
+.demo .arr{font-size:22px;color:var(--muted);font-weight:900}
+
+body.portrait .brand{display:none}
+body.portrait .actions{width:100%} body.portrait #btnNew{margin-left:auto}
+body.portrait #status{font-size:13px;margin-bottom:8px;min-height:58px}
+body.portrait #stage{flex-direction:column;align-items:center;gap:10px}
+body.portrait .side{display:contents}
+body.portrait .panel{width:var(--S)}
+body.portrait .panel.top-p{order:1} body.portrait #boardWrap{order:2} body.portrait .panel.bot-p{order:3} body.portrait #info{order:4;width:var(--S)}
+body.portrait .clock{font-size:20px}
+@media (max-width:600px){#segLevel button,#segTime button{flex:0 0 calc((100% - 16px) / 3)}#segLevel,#segTime{justify-content:center}.seg button{min-width:0}}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "ultimate-tictactoe" });</script>
+<div id="app">
+  <header class="top">
+    <div class="brand"><h1 data-i18n="brand">Ultimate Tic Tac Toe</h1></div>
+    <div class="actions">
+      <button class="btn" id="btnRules" data-i18n="b_rules">Luật chơi</button>
+      <button class="btn" id="btnUndo" data-i18n="b_undo">Đi lại</button>
+      <button class="btn primary" id="btnNew" data-i18n="b_new">Ván mới</button>
+    </div>
+  </header>
+  <div id="status"><span class="mk" id="stMark"></span><span id="statusText"></span></div>
+  <main id="stage">
+    <div id="boardWrap">
+      <div id="board"></div>
+      <svg id="winLine" aria-hidden="true"></svg>
+      <div id="gameover" hidden>
+        <div class="go-card">
+          <h2 id="goTitle"></h2>
+          <p id="goSub"></p>
+          <p class="note" id="goNet"></p>
+          <div class="row">
+            <button class="btn primary" id="goNew" data-i18n="b_new">Ván mới</button>
+            <button class="btn" id="goView" data-i18n="b_view">Xem bàn cờ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="side">
+      <section class="panel" id="panel-1"><span class="picon"></span><div class="pinfo"><b></b><span></span></div><div class="clock"></div><div class="pwon"></div></section>
+      <section class="panel" id="panel-2"><span class="picon"></span><div class="pinfo"><b></b><span></span></div><div class="clock"></div><div class="pwon"></div></section>
+      <section id="info"><dl id="infoList"></dl><p id="tip"></p></section>
+    </aside>
+  </main>
+</div>
+
+<div class="modal" id="mRules" hidden>
+  <div class="card">
+    <h2 data-i18n="brand">Ultimate Tic Tac Toe</h2>
+    <p data-i18n="r_intro"></p>
+    <div class="demo" id="rulesDemo"></div>
+    <h3 data-i18n="r_h_rules"></h3>
+    <ul><li data-i18n="r_turn"></li><li data-i18n="r_send"></li><li data-i18n="r_free"></li><li data-i18n="r_small"></li><li data-i18n="r_win"></li><li data-i18n="r_draw"></li></ul>
+    <h3 data-i18n="r_h_time"></h3>
+    <ul><li data-i18n="r_time"></li></ul>
+    <h3 data-i18n="r_h_opp"></h3>
+    <ul><li data-i18n="r_ai"></li><li data-i18n="r_online"></li></ul>
+    <div class="foot"><span class="note tb-credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok"></button></div>
+  </div>
+</div>
+
+<div class="modal" id="mMode" hidden>
+  <div class="card">
+    <h2 data-i18n="m_title"></h2>
+    <h3 data-i18n="m_vs"></h3>
+    <div class="seg" id="segVs"><button data-v="bot" data-i18n="m_bot"></button><button data-v="online" data-i18n="m_online"></button></div>
+    <div id="netOpts">
+      <h3 data-i18n="m_net"></h3>
+      <div class="netrow">
+        <div class="seg" id="segNet"><button data-v="create" data-i18n="m_create"></button><button data-v="join" data-i18n="m_join"></button></div>
+        <input id="joinCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+      <p class="note" id="netNote"></p>
+    </div>
+    <div id="sideOpts">
+      <h3 data-i18n="m_side"></h3>
+      <div class="seg" id="segSide"><button data-v="x"></button><button data-v="o"></button></div>
+    </div>
+    <div id="timeOpts">
+      <h3 data-i18n="m_time"></h3>
+      <div class="seg" id="segTime"></div>
+      <p class="note" id="timeNote"></p>
+    </div>
+    <div id="levelOpts">
+      <h3 data-i18n="m_level"></h3>
+      <div class="seg" id="segLevel"></div>
+      <p class="note" id="levelNote"></p>
+    </div>
+    <div class="foot">
+      <button class="btn" id="modeCancel" data-i18n="cancel"></button>
+      <button class="btn primary" id="modeStart" data-i18n="m_start"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mNet" hidden>
+  <div class="card">
+    <h2 id="netTitle"></h2>
+    <div id="netCodeBox" hidden>
+      <div class="netcode" id="netCode"></div>
+      <div class="netlink"><input id="netLink" readonly><button class="btn" id="netCopy" data-i18n="n_copy"></button></div>
+    </div>
+    <p id="netMsg"></p>
+    <div class="foot"><button class="btn" id="netCancel" data-i18n="cancel"></button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   ULTIMATE TIC TAC TOE (luật theo bejofo.com/ttt)
+   Bàn lớn gồm 9 bàn nhỏ 3x3. Đánh vào ô số c của bàn nhỏ thì đối thủ phải đánh tiếp ở bàn nhỏ số c.
+   Bàn đó đã có người thắng hoặc kín ô thì đối thủ được đánh bất kỳ ô trống nào của các bàn nhỏ còn mở.
+   Thắng 3 bàn nhỏ liền hàng là thắng cả ván. Mọi bàn nhỏ đã xong mà không ai có 3 bàn liền hàng thì hoà (chủ game chọn).
+   Đồng hồ tổng kiểu cờ vua chỉ khi chơi online (chủ phòng chọn thể thức); đấu AI không tính giờ, có nút Đi lại.
+   ============================================================ */
+const $ = (s, root = document) => root.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* RULES-AI-START */
+/* Luật + AI, không đụng DOM (cắt ra chạy bằng Node được: tools/test-ultimate-tictactoe.js).
+   Ô i = b*9 + c: b là bàn nhỏ 0-8, c là ô trong bàn nhỏ 0-8 (cả hai đánh số từ trái sang phải, trên xuống dưới).
+   Bên 1 = X (đi trước), 2 = O. Mỗi bàn nhỏ lưu 2 mặt nạ 9 bit (bx, bo).
+   win[b]: 0 còn mở, 1 X thắng, 2 O thắng, 3 kín ô không ai thắng (không tính cho ai).
+   active: bàn nhỏ phải đánh, -1 = được đánh bất kỳ ô trống nào của bàn nhỏ còn mở.
+   over: 0 đang chơi, 1 X thắng, 2 O thắng, 3 hoà (mọi bàn nhỏ đã xong mà không ai có 3 bàn liền hàng). */
+const LINES9 = [7, 56, 448, 73, 146, 292, 273, 84];
+const WIN9 = (() => { const w = new Uint8Array(512); for (let m = 0; m < 512; m++) for (const l of LINES9) if ((m & l) === l) { w[m] = 1; break; } return w; })();
+const POP9 = (() => { const p = new Uint8Array(512); for (let m = 1; m < 512; m++) p[m] = p[m >> 1] + (m & 1); return p; })();
+function newState() {
+  return { bx: new Uint16Array(9), bo: new Uint16Array(9), win: new Uint8Array(9), wx: 0, wo: 0, closed: 0, active: -1, turn: 1, over: 0, n: 0 };
+}
+function cloneState(s) {
+  return { bx: s.bx.slice(), bo: s.bo.slice(), win: s.win.slice(), wx: s.wx, wo: s.wo, closed: s.closed, active: s.active, turn: s.turn, over: s.over, n: s.n };
+}
+const cellAt = (s, i) => (s.bx[(i / 9) | 0] >> (i % 9) & 1) ? 1 : (s.bo[(i / 9) | 0] >> (i % 9) & 1) ? 2 : 0;
+function legalMoves(s) {
+  const out = [];
+  if (s.over) return out;
+  const add = b => { const e = ~(s.bx[b] | s.bo[b]) & 511; for (let c = 0; c < 9; c++) if (e >> c & 1) out.push(b * 9 + c); };
+  if (s.active >= 0) add(s.active);
+  else for (let b = 0; b < 9; b++) if (!(s.closed >> b & 1)) add(b);
+  return out;
+}
+function isLegal(s, i) {
+  if (s.over || !Number.isInteger(i) || i < 0 || i > 80) return false;
+  const b = (i / 9) | 0, c = i % 9;
+  if (s.closed >> b & 1) return false;
+  if (s.active >= 0 && b !== s.active) return false;
+  return !((s.bx[b] | s.bo[b]) >> c & 1);
+}
+/* Đi nước i cho bên tới lượt (giả định hợp lệ). Trả về { small: bàn nhỏ vừa được thắng/kín hoặc -1 } */
+function playMove(s, i) {
+  const b = (i / 9) | 0, c = i % 9, p = s.turn;
+  let small = -1;
+  if (p === 1) s.bx[b] |= 1 << c; else s.bo[b] |= 1 << c;
+  if (WIN9[p === 1 ? s.bx[b] : s.bo[b]]) {
+    s.win[b] = p; s.closed |= 1 << b; small = b;
+    if (p === 1) { s.wx |= 1 << b; if (WIN9[s.wx]) s.over = 1; } else { s.wo |= 1 << b; if (WIN9[s.wo]) s.over = 2; }
+  } else if ((s.bx[b] | s.bo[b]) === 511) { s.win[b] = 3; s.closed |= 1 << b; small = b; }
+  if (!s.over && s.closed === 511) s.over = 3;
+  s.active = (s.closed >> c & 1) ? -1 : c;   // đưa đối thủ tới bàn nhỏ số c; bàn đó đã xong thì đối thủ đánh đâu cũng được
+  s.turn = 3 - p; s.n++;
+  return { small };
+}
+/* Đường thắng trên bàn lớn của bên thắng (3 bàn nhỏ), để vẽ vạch */
+function bigLine(s) { const m = s.over === 1 ? s.wx : s.over === 2 ? s.wo : 0; return LINES9.find(l => (m & l) === l) || 0; }
+
+/* ---------- AI: tìm kiếm cây Monte Carlo (MCTS, công thức UCT) ----------
+   Mỗi vòng: đi xuống cây theo nước hứa hẹn nhất, mở thêm 1 nước, chơi ngẫu nhiên tới hết ván, rồi cộng kết quả ngược lên.
+   Ván chơi ngẫu nhiên có mẹo nhỏ: thấy nước thắng cả ván ngay thì đi luôn. */
+function rollout(s, rnd) {
+  const bx = s.bx.slice(), bo = s.bo.slice();
+  let wx = s.wx, wo = s.wo, closed = s.closed, active = s.active, p = s.turn;
+  for (;;) {
+    // chọn bàn nhỏ
+    let b = active;
+    if (b < 0) {
+      let tot = 0; const cnt = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+      for (let k = 0; k < 9; k++) if (!(closed >> k & 1)) { cnt[k] = 9 - POP9[bx[k] | bo[k]]; tot += cnt[k]; }
+      let r = Math.floor(rnd() * tot);
+      for (b = 0; b < 9; b++) { if (r < cnt[b]) break; r -= cnt[b]; }
+    }
+    const e = ~(bx[b] | bo[b]) & 511, mine = p === 1 ? bx[b] : bo[b];
+    // nước thắng bàn nhỏ mà thắng luôn cả ván: đi ngay
+    let c = -1;
+    const big = p === 1 ? wx : wo;
+    if (WIN9[big | 1 << b]) for (let q = 0; q < 9; q++) if ((e >> q & 1) && WIN9[mine | 1 << q]) { c = q; break; }
+    if (c < 0) { let r = Math.floor(rnd() * POP9[e]); for (c = 0; c < 9; c++) if (e >> c & 1) { if (!r) break; r--; } }
+    if (p === 1) bx[b] |= 1 << c; else bo[b] |= 1 << c;
+    if (WIN9[p === 1 ? bx[b] : bo[b]]) {
+      closed |= 1 << b;
+      if (p === 1) { wx |= 1 << b; if (WIN9[wx]) return 1; } else { wo |= 1 << b; if (WIN9[wo]) return 2; }
+    } else if ((bx[b] | bo[b]) === 511) closed |= 1 << b;
+    if (closed === 511) return 3;
+    active = (closed >> c & 1) ? -1 : c;
+    p = 3 - p;
+  }
+}
+/* Cây tìm kiếm chạy từng phần (để trang không bị đứng): new Mcts(state) rồi gọi run(số vòng hoặc hạn giờ) nhiều lần, cuối cùng best(). */
+class Mcts {
+  constructor(state, rnd = Math.random, c = 1.0) {
+    this.root = { s: cloneState(state), m: -1, p: null, kids: [], untried: legalMoves(state), n: 0, w: 0, who: 3 - state.turn };
+    this.rnd = rnd; this.c = c; this.iters = 0;
+  }
+  step() {
+    let node = this.root;
+    while (!node.untried.length && node.kids.length) {   // chọn
+      let best = null, bv = -Infinity; const ln = Math.log(node.n);
+      for (const k of node.kids) { const v = k.w / k.n + this.c * Math.sqrt(ln / k.n); if (v > bv) { bv = v; best = k; } }
+      node = best;
+    }
+    if (node.untried.length) {   // mở thêm 1 nước
+      const j = Math.floor(this.rnd() * node.untried.length), m = node.untried[j];
+      node.untried[j] = node.untried[node.untried.length - 1]; node.untried.pop();
+      const s = cloneState(node.s), who = s.turn; playMove(s, m);
+      const kid = { s, m, p: node, kids: [], untried: legalMoves(s), n: 0, w: 0, who };
+      node.kids.push(kid); node = kid;
+    }
+    const res = node.s.over || rollout(node.s, this.rnd);
+    for (let k = node; k; k = k.p) { k.n++; k.w += res === 3 ? .5 : res === k.who ? 1 : 0; }   // cộng ngược: thắng 1, hoà 0,5
+    this.iters++;
+  }
+  run(iters, deadline = Infinity) {
+    for (let i = 0; i < iters; i++) { this.step(); if ((i & 31) === 31 && Date.now() > deadline) return; }
+  }
+  best() {   // nước được thử nhiều nhất
+    let b = null; for (const k of this.root.kids) if (!b || k.n > b.n) b = k;
+    return b ? b.m : -1;
+  }
+}
+/* 5 mức: iters = số vòng tìm kiếm, ms = giới hạn thời gian (mức cao), rand = tỉ lệ đi ngẫu nhiên (mức thấp) */
+const AI_LEVELS = {
+  easy:   { iters: 60,    ms: 0,    rand: .3 },
+  normal: { iters: 400,   ms: 0,    rand: .05 },
+  hard:   { iters: 2500,  ms: 0,    rand: 0 },
+  expert: { iters: 10000, ms: 1500, rand: 0 },
+  master: { iters: 50000, ms: 3000, rand: 0 },   // máy tính ~0,25 giây/nước; máy yếu thì dừng ở 3 giây
+};
+/* Nước thắng cả ván ngay (nếu có) */
+function winningMove(s) { for (const m of legalMoves(s)) { const t = cloneState(s); playMove(t, m); if (t.over === s.turn) return m; } return -1; }
+/* Chọn nước (bản chạy một lèo, dùng cho test Node; trong trang thì chạy Mcts từng phần) */
+function aiPick(s, level, rnd = Math.random) {
+  const cfg = AI_LEVELS[level] || AI_LEVELS.normal, L = legalMoves(s);
+  if (rnd() < cfg.rand) return L[Math.floor(rnd() * L.length)];
+  const w = winningMove(s); if (w >= 0) return w;
+  const t = new Mcts(s, rnd); t.run(cfg.iters, cfg.ms ? Date.now() + cfg.ms : Infinity);
+  return t.best();
+}
+/* RULES-AI-END */
+
+/* ---------- ĐA NGÔN NGỮ (vi / en) ---------- */
+const I18N = {
+vi: {
+  title: "Ultimate Tic Tac Toe", brand: "Ultimate Tic Tac Toe",
+  b_rules: "Luật chơi", b_new: "Ván mới", b_view: "Xem bàn cờ", b_undo: "Đi lại", cancel: "Huỷ",
+  r_intro: "Cờ ca-rô 3×3 lồng trong cờ ca-rô 3×3: bàn lớn gồm <b>9 bàn nhỏ</b>. Mỗi nước bạn đánh sẽ <b>quyết định bàn nhỏ</b> mà đối thủ phải đánh tiếp.",
+  r_h_rules: "Luật chơi",
+  r_turn: "<b>X đi trước</b>. Nước đầu tiên được đánh vào bất kỳ ô nào.",
+  r_send: "Bạn đánh vào ô ở vị trí nào trong bàn nhỏ thì đối thủ phải đánh tiếp ở <b>bàn nhỏ ở đúng vị trí đó</b> trên bàn lớn (bàn được tô vàng).",
+  r_free: "Nếu bàn nhỏ đó đã có người thắng hoặc đã kín ô, đối thủ được đánh vào <b>bất kỳ ô trống nào</b> của các bàn nhỏ còn mở.",
+  r_small: "Có 3 quân liền hàng trong một bàn nhỏ là thắng bàn nhỏ đó. Bàn nhỏ đã có người thắng thì đóng lại, không đánh thêm vào được. Bàn nhỏ kín ô mà không ai thắng thì không tính cho ai.",
+  r_win: "Thắng <b>3 bàn nhỏ liền hàng</b> (ngang, dọc hoặc chéo) trên bàn lớn là thắng cả ván.",
+  r_draw: "Mọi bàn nhỏ đã xong mà không ai có 3 bàn liền hàng thì hoà.",
+  r_h_time: "Thời gian",
+  r_time: "Chơi online có đồng hồ tổng như cờ vua: mỗi bên có một quỹ thời gian cho cả ván, cộng thêm vài giây sau mỗi nước. <b>Hết giờ là thua.</b> Chơi với AI thì không tính giờ.",
+  r_h_opp: "Đối thủ",
+  r_ai: "<b>AI</b> có 5 mức, từ Dễ tới Bậc thầy. Khi chơi với AI có nút <b>Đi lại</b> để rút lại nước vừa đi.",
+  r_online: "<b>Chơi online</b>: một người tạo phòng rồi gửi mã 5 ký tự hoặc link mời cho bạn. Chủ phòng chọn bên cầm quân và thời gian. Chơi lại thì hai bên đổi bên.",
+  r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
+  m_title: "Ván mới", m_vs: "Đối thủ", m_bot: "Chơi với AI", m_online: "Chơi online",
+  m_net: "Phòng online", m_create: "Tạo phòng", m_join: "Vào phòng", m_code_ph: "Mã phòng",
+  m_net_create: "Bên cầm quân và thời gian bạn chọn ở dưới sẽ áp dụng cho cả hai người.",
+  m_net_join: "Nhập mã phòng bạn bè gửi, hoặc mở thẳng link mời của họ. Chủ phòng chọn luật.",
+  m_side: "Bạn cầm quân", m_x: "X (đi trước)", m_o: "O (đi sau)",
+  m_time: "Thời gian (chơi online)", tc_none: "Không tính giờ",
+  tcn: "Mỗi bên {0} phút cho cả ván, cộng {1} giây sau mỗi nước. Hết giờ là thua.", tcn_none: "Không có đồng hồ.",
+  tcn_bot: "Chơi với AI không tính giờ.", tcn_join: "Chủ phòng chọn thời gian.",
+  m_level: "Độ khó của AI", m_start: "Bắt đầu ván mới", m_forfeit: "Bỏ ván này, chơi ván mới",
+  lv_easy: "Dễ", lv_normal: "Vừa", lv_hard: "Khó", lv_expert: "Cao thủ", lv_master: "Bậc thầy",
+  lvn_easy: "Đi khá ngẫu hứng, hợp để làm quen luật.",
+  lvn_normal: "Biết chọn nước, nhưng hay để hở cho bạn được đánh tự do.",
+  lvn_hard: "Tính trước khá xa, ít khi đưa bạn tới bàn nhỏ có lợi.",
+  lvn_expert: "Tính kỹ hơn nhiều, thắng được mức này là chơi tốt.",
+  lvn_master: "Mức mạnh nhất, mỗi nước thử hàng chục nghìn diễn biến. Thắng được một ván là rất giỏi.",
+  n_1: "X", n_2: "O",
+  role_you: "BẠN", role_bot: "AI · {0}", role_opp: "ĐỐI THỦ",
+  won_n: "Đã thắng {0} bàn nhỏ",
+  st_notstarted: "<b>Chưa bắt đầu</b> · Bấm <b>Ván mới</b> để chọn chế độ và bắt đầu chơi",
+  st_act: "<b>Lượt của bạn</b> · Đánh vào bàn nhỏ được tô vàng",
+  st_free: "<b>Lượt của bạn</b> · Được đánh vào bất kỳ ô trống nào",
+  st_bot: "<b>AI đang nghĩ…</b>", st_remote: "<b>Lượt đối thủ</b> · đang chờ đối thủ đi…",
+  st_win_you: "<b>Bạn thắng!</b> 3 bàn nhỏ liền hàng.", st_win_bot: "<b>AI thắng</b> với 3 bàn nhỏ liền hàng.", st_win_opp: "<b>Đối thủ thắng</b> với 3 bàn nhỏ liền hàng.",
+  st_flag_you: "<b>Hết giờ!</b> Bạn thua vì hết thời gian.", st_flag_opp: "<b>Đối thủ hết giờ</b> · bạn thắng!",
+  st_draw: "<b>Hoà</b> · mọi bàn nhỏ đã xong mà không ai có 3 bàn liền hàng.", st_left: "<b>Bạn thắng</b> · đối thủ đã rời phòng.",
+  st_aborted: "<b>Ván online đã dừng</b> · mất kết nối hoặc lệch trạng thái.",
+  go_you: "BẠN THẮNG!", go_bot: "AI THẮNG!", go_opp: "ĐỐI THỦ THẮNG!", go_draw: "HOÀ", go_flag: "HẾT GIỜ!", go_aborted: "VÁN ĐÃ DỪNG",
+  gs_line: "3 bàn nhỏ liền hàng ở nước thứ {0}.", gs_flag_you: "Bạn đã dùng hết thời gian.", gs_flag_opp: "Đối thủ đã dùng hết thời gian.",
+  gs_draw: "Mọi bàn nhỏ đã xong mà không ai có 3 bàn liền hàng.", gs_left: "Đối thủ đã rời phòng.", gs_aborted: "Ván online bị dừng giữa chừng.",
+  go_rematch: "Chơi lại", go_rm_wait: "Đã mời chơi lại, đang chờ đối thủ đồng ý…", go_rm_them: "Đối thủ muốn chơi lại! Bấm Chơi lại để bắt đầu (hai bên đổi bên).",
+  i_mode: "Chế độ", i_mode_bot: "Đấu AI · {0}", i_mode_online: "Online", i_time: "Thời gian", i_moves: "Số nước đã đi", i_boards: "Bàn nhỏ còn mở",
+  tip: "Mỗi nước của bạn là chỉ đường cho đối thủ: tránh gửi họ tới bàn nhỏ họ sắp thắng, hoặc bàn đã xong (họ sẽ được đánh tự do).",
+  small_draw: "Hoà",
+  n_title_host: "Phòng của bạn", n_title_join: "Vào phòng", n_title_err: "Không kết nối được",
+  n_connecting: "Đang kết nối…", n_wait: "Gửi mã hoặc link này cho bạn bè. Đang chờ đối thủ vào phòng…",
+  n_joining: "Đang vào phòng {0}…", n_copy: "Chép link", n_copied: "Đã chép!", n_close: "Đóng",
+  n_err_code: "Mã phòng gồm 5 ký tự, bạn kiểm tra lại nhé.",
+  n_err_nopeer: "Không tìm thấy phòng {0}. Mã có thể sai, hoặc chủ phòng đã đóng phòng.",
+  n_err_full: "Phòng này đã đủ 2 người.",
+  n_err_version: "Hai máy đang chạy hai phiên bản game khác nhau. Tải lại trang (Ctrl+F5) ở cả hai máy rồi thử lại.",
+  n_err_timeout: "Chờ quá lâu mà không nối được tới chủ phòng. Mạng của một trong hai bên có thể đang chặn kết nối.",
+  n_err_desync: "Hai máy bị lệch trạng thái ván cờ nên ván online đã dừng.",
+  n_err_net: "Lỗi kết nối ({0}). Thử lại sau ít phút.",
+  n_err_lib: "Không tải được thư viện kết nối PeerJS. Kiểm tra mạng rồi thử lại.",
+},
+en: {
+  title: "Ultimate Tic Tac Toe", brand: "Ultimate Tic Tac Toe",
+  b_rules: "Rules", b_new: "New game", b_view: "View board", b_undo: "Undo", cancel: "Cancel",
+  r_intro: "Tic tac toe inside tic tac toe: the big board is made of <b>9 small boards</b>. Every move you make <b>decides which small board</b> your opponent must play next.",
+  r_h_rules: "Rules",
+  r_turn: "<b>X moves first</b>. The first move can go anywhere.",
+  r_send: "Wherever you play inside a small board, your opponent must play next in the <b>small board at that same position</b> on the big board (highlighted in yellow).",
+  r_free: "If that small board is already won or full, your opponent may play on <b>any empty square</b> of the small boards still open.",
+  r_small: "Three in a row inside a small board wins that board. A won board is closed and no more moves can be made there. A full board with no winner counts for nobody.",
+  r_win: "Win <b>3 small boards in a row</b> (horizontally, vertically or diagonally) on the big board to win the game.",
+  r_draw: "If every small board is finished and nobody has 3 in a row, the game is a draw.",
+  r_h_time: "Time",
+  r_time: "Online games use a chess-style clock: each side has a time bank for the whole game, plus a few seconds after every move. <b>Run out of time and you lose.</b> Games against the AI have no clock.",
+  r_h_opp: "Opponent",
+  r_ai: "The <b>AI</b> has 5 levels, from Easy to Master. Against the AI you can <b>Undo</b> your last move.",
+  r_online: "<b>Online</b>: one player creates a room and sends the 5-letter code or invite link to a friend. The host picks the sides and the time control. In a rematch the sides are swapped.",
+  r_ok: "Got it", m_back: "Back to Rules",
+  m_title: "New Game", m_vs: "Opponent", m_bot: "Play vs AI", m_online: "Play online",
+  m_net: "Online room", m_create: "Create room", m_join: "Join room", m_code_ph: "Room code",
+  m_net_create: "The side and time control you pick below apply to both players.",
+  m_net_join: "Enter the room code your friend sent you, or just open their invite link. The host picks the rules.",
+  m_side: "You play", m_x: "X (moves first)", m_o: "O (moves second)",
+  m_time: "Time control (online)", tc_none: "No clock",
+  tcn: "{0} minutes each for the whole game, plus {1} seconds per move. Run out of time and you lose.", tcn_none: "No clock.",
+  tcn_bot: "Games against the AI have no clock.", tcn_join: "The host picks the time control.",
+  m_level: "AI difficulty", m_start: "Start new game", m_forfeit: "Abandon this game, start new",
+  lv_easy: "Easy", lv_normal: "Normal", lv_hard: "Hard", lv_expert: "Expert", lv_master: "Master",
+  lvn_easy: "Plays on a whim. Good for learning the rules.",
+  lvn_normal: "Picks decent moves, but often gives you a free move.",
+  lvn_hard: "Looks fairly far ahead and rarely sends you to a good board.",
+  lvn_expert: "Thinks much deeper. Beating this level means you play well.",
+  lvn_master: "The strongest level, trying tens of thousands of lines per move. Even one win is a great result.",
+  n_1: "X", n_2: "O",
+  role_you: "YOU", role_bot: "AI · {0}", role_opp: "OPPONENT",
+  won_n: "{0} small boards won",
+  st_notstarted: "<b>Not started</b> · Press <b>New game</b> to choose a mode and start playing",
+  st_act: "<b>Your turn</b> · Play in the highlighted small board",
+  st_free: "<b>Your turn</b> · Play on any empty square",
+  st_bot: "<b>The AI is thinking…</b>", st_remote: "<b>Opponent's turn</b> · waiting for their move…",
+  st_win_you: "<b>You win!</b> Three small boards in a row.", st_win_bot: "<b>The AI wins</b> with three small boards in a row.", st_win_opp: "<b>Your opponent wins</b> with three small boards in a row.",
+  st_flag_you: "<b>Time's up!</b> You ran out of time.", st_flag_opp: "<b>Your opponent ran out of time</b> · you win!",
+  st_draw: "<b>Draw</b> · every small board is finished and nobody has 3 in a row.", st_left: "<b>You win</b> · your opponent left the room.",
+  st_aborted: "<b>Online game stopped</b> · connection lost or out of sync.",
+  go_you: "YOU WIN!", go_bot: "AI WINS!", go_opp: "OPPONENT WINS!", go_draw: "DRAW", go_flag: "TIME'S UP!", go_aborted: "GAME STOPPED",
+  gs_line: "Three small boards in a row on move {0}.", gs_flag_you: "You used up all your time.", gs_flag_opp: "Your opponent used up all their time.",
+  gs_draw: "Every small board is finished and nobody has 3 in a row.", gs_left: "Your opponent left the room.", gs_aborted: "The online game was stopped midway.",
+  go_rematch: "Rematch", go_rm_wait: "Rematch requested, waiting for your opponent…", go_rm_them: "Your opponent wants a rematch! Press Rematch to start (sides are swapped).",
+  i_mode: "Mode", i_mode_bot: "Vs AI · {0}", i_mode_online: "Online", i_time: "Time", i_moves: "Moves played", i_boards: "Small boards open",
+  tip: "Every move tells your opponent where to go: avoid sending them to a board they are about to win, or to a finished board (they get a free move).",
+  small_draw: "Draw",
+  n_title_host: "Your room", n_title_join: "Joining room", n_title_err: "Could not connect",
+  n_connecting: "Connecting…", n_wait: "Send this code or link to a friend. Waiting for an opponent to join…",
+  n_joining: "Joining room {0}…", n_copy: "Copy link", n_copied: "Copied!", n_close: "Close",
+  n_err_code: "Room codes have 5 characters, please check it again.",
+  n_err_nopeer: "Room {0} was not found. The code may be wrong, or the host has closed the room.",
+  n_err_full: "This room already has 2 players.",
+  n_err_version: "The two devices are running different versions of the game. Reload the page (Ctrl+F5) on both and try again.",
+  n_err_timeout: "Timed out connecting to the host. One of the networks may be blocking the connection.",
+  n_err_desync: "The two devices got out of sync, so the online game was stopped.",
+  n_err_net: "Connection error ({0}). Try again in a few minutes.",
+  n_err_lib: "Could not load the PeerJS connection library. Check your network and try again.",
+}
+};
+let LANG = "vi";
+try { const s = localStorage.getItem("lang"); LANG = (s === "vi" || s === "en") ? s : ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"); } catch (e) { LANG = (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"; }
+const tr = (key, ...a) => String((I18N[LANG][key] ?? I18N.vi[key] ?? key)).replace(/\{(\d)\}/g, (m, i) => a[i]);
+const ICON_X = '<svg class="ix" viewBox="0 0 100 100"><path d="M24 24L76 76M76 24L24 76" stroke-width="15"/></svg>';
+const ICON_O = '<svg class="io" viewBox="0 0 100 100"><circle cx="50" cy="50" r="29" stroke-width="13"/></svg>';
+const ICON = p => p === 2 ? ICON_O : ICON_X;
+function applyI18n() {
+  document.documentElement.lang = LANG; document.title = tr("title") + " · Twistboard";
+  document.querySelectorAll("[data-i18n]").forEach(e => { e.innerHTML = tr(e.dataset.i18n); });
+  $("#segSide").querySelector('[data-v="x"]').innerHTML = ICON_X + tr("m_x");
+  $("#segSide").querySelector('[data-v="o"]').innerHTML = ICON_O + tr("m_o");
+  $("#segTime").querySelectorAll("button").forEach(b => { const tc = TIME_CONTROLS[b.dataset.v]; b.textContent = tc ? tc.label : tr("tc_none"); });
+}
+
+/* ---------- ÂM THANH (tổng hợp bằng Web Audio, không cần file) ---------- */
+let AC = null;
+try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+function tone(freq, start, dur, type = "sine", vol = .18) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
+  g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + .01); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.start(start); o.stop(start + dur + .02);
+}
+function sfx(name) {
+  if (!AC) return;
+  try {
+    if (AC.state !== "running") AC.resume().catch(() => {});
+    const t = AC.currentTime + .01;
+    if (name === "place") { tone(520, t, .09, "triangle", .2); tone(780, t + .03, .08, "sine", .1); }
+    else if (name === "small") [660, 880].forEach((f, i) => tone(f, t + i * .08, .16, "triangle", .16));   // vừa thắng 1 bàn nhỏ
+    else if (name === "win") [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * .11, .3, "triangle", .2));
+    else if (name === "lose") [392, 330, 262, 196].forEach((f, i) => tone(f, t + i * .15, .35, "triangle", .18));
+    else if (name === "draw") [440, 440].forEach((f, i) => tone(f, t + i * .18, .25, "triangle", .16));
+    else if (name === "tick") tone(1100, t, .05, "square", .05);
+  } catch (e) {}
+}
+
+/* ---------- CHẾ ĐỘ, CÀI ĐẶT ---------- */
+const LEVELS = ["easy", "normal", "hard", "expert", "master"];
+/* Đồng hồ tổng (chỉ online): base = phút cả ván, inc = giây cộng sau mỗi nước (Fischer) */
+const TIME_CONTROLS = {
+  "1+2": { base: 60e3, inc: 2e3, label: "1′ + 2″" },
+  "3+2": { base: 180e3, inc: 2e3, label: "3′ + 2″" },
+  "5+3": { base: 300e3, inc: 3e3, label: "5′ + 3″" },
+  "10+5": { base: 600e3, inc: 5e3, label: "10′ + 5″" },
+  none: null,
+};
+const TC_KEYS = Object.keys(TIME_CONTROLS);
+const PREFS_KEY = "ultimatettt.prefs";
+let PREFS = { vs: "bot", human: "x", level: "normal", tc: "5+3", net: "create", code: "" };
+try { const s = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); if (s && typeof s === "object") for (const k of ["vs", "human", "level", "tc"]) if (s[k] !== undefined) PREFS[k] = s[k]; } catch (e) {}
+if (!LEVELS.includes(PREFS.level)) PREFS.level = "normal";
+if (!TC_KEYS.includes(PREFS.tc)) PREFS.tc = "5+3";
+if (PREFS.vs !== "online") PREFS.vs = "bot";
+if (PREFS.human !== "o") PREFS.human = "x";
+function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify({ vs: PREFS.vs, human: PREFS.human, level: PREFS.level, tc: PREFS.tc })); } catch (e) {} }
+
+let MODE = clone(PREFS);
+const humanP = () => (MODE.human === "o" ? 2 : 1);
+const isBot = p => MODE.vs === "bot" && p !== humanP();
+const isRemote = p => MODE.vs === "online" && p !== humanP();
+const isLocal = p => !isBot(p) && !isRemote(p);
+
+/* ---------- TRẠNG THÁI ---------- */
+let S = newState(), over = null, moves = [], started = false, gameId = 0, overDismissed = false;
+let undoStack = [];   // đấu AI: thế cờ trước mỗi nước của người chơi
+/* over = { winner: 1 | 2 | null, line?, flag?: bên hết giờ, left?, aborted?, move } */
+
+/* ---------- ĐỒNG HỒ TỔNG (chỉ online) ---------- */
+let TC = null, clock = null;   // clock = { 1: ms còn lại, 2: ms còn lại, run: bên đang chạy | 0, since }
+const clockLeft = p => clock[p] - (clock.run === p ? performance.now() - clock.since : 0);
+function clockStart(p) { clock.run = p; clock.since = performance.now(); }
+function clockStop() { if (clock && clock.run) { clock[clock.run] = clockLeft(clock.run); clock.run = 0; } }
+function fmtClock(ms) {
+  ms = Math.max(0, ms);
+  if (ms < 20e3) return "0:" + (Math.floor(ms / 100) / 10).toFixed(1).padStart(4, "0");   // dưới 20 giây: hiện phần mười giây
+  const t = Math.ceil(ms / 1000);
+  return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+}
+function flagFall(p, fromNet) {   // bên p hết giờ: thua
+  if (!started || over || !TC) return;
+  clockStop(); clock[p] = 0;
+  over = { winner: 3 - p, flag: p, move: moves.length };
+  render();
+  if (MODE.vs === "online" && !fromNet) netSend({ t: "flag", s: p, h: stateHash() });
+}
+let lastBeep = -1;
+setInterval(() => {
+  if (!TC || !started || !clock) return;
+  renderClocks();
+  if (over || !clock.run) return;
+  const left = clockLeft(clock.run);
+  if (isLocal(clock.run)) { const s = Math.ceil(left / 1000); if (s <= 5 && s > 0 && s !== lastBeep) { lastBeep = s; sfx("tick"); } }
+  // bên của máy kia: chờ thêm 3 giây phòng khi nước đi của họ đang trên đường tới
+  if (left <= 0 && (!isRemote(clock.run) || left <= -3000)) flagFall(clock.run);
+}, 100);
+
+/* ---------- KHỞI TẠO VÁN ---------- */
+function newGame(blank) {
+  gameId++; clearTimeout(botTimer);
+  S = newState(); over = null; moves = []; started = !blank; overDismissed = false; undoStack = []; newCell = -1;
+  TC = MODE.vs === "online" ? TIME_CONTROLS[MODE.tc] || null : null;
+  clock = TC ? { 1: TC.base, 2: TC.base, run: 0, since: 0 } : null;
+  if (TC && started) clockStart(1);   // đồng hồ X chạy ngay khi ván bắt đầu
+  fit(); render();
+  if (!blank) scheduleBot();
+}
+
+/* ---------- HÀNH ĐỘNG (mọi nước đi thật đều qua đây) ---------- */
+function act(i) {
+  const p = S.turn;
+  if (TC) { clock[p] = clockLeft(p) + TC.inc; clock.run = 0; }
+  const r = playMove(S, i);
+  moves.push(i); newCell = i;
+  if (S.over === 1 || S.over === 2) over = { winner: S.over, line: bigLine(S), move: moves.length };
+  else if (S.over === 3) over = { winner: null, move: moves.length };
+  sfx(over ? "place" : r.small >= 0 && S.win[r.small] !== 3 ? "small" : "place");
+  if (TC && !over) clockStart(S.turn);
+  lastBeep = -1;
+  render(); scheduleBot();
+}
+function humanAct(i) {
+  if (!started || over || !isLocal(S.turn) || !isLegal(S, i)) return false;
+  if (MODE.vs === "bot") undoStack.push({ s: cloneState(S), moves: moves.slice() });
+  act(i);
+  if (MODE.vs === "online") netSend({ t: "mv", i, h: stateHash(), cl: TC ? clock[3 - S.turn] : null });
+  return true;
+}
+function undo() {   // đấu AI: quay về trước nước gần nhất của người chơi (rút cả nước AI vừa đáp)
+  if (MODE.vs !== "bot" || !undoStack.length) return;
+  const u = undoStack.pop();
+  gameId++; clearTimeout(botTimer); botThinking = false;
+  S = u.s; moves = u.moves; over = null; overDismissed = false; newCell = -1;
+  render(); scheduleBot();
+}
+
+/* ---------- AI (chạy từng phần 25 ms để trang không bị đứng) ---------- */
+let botTimer = null, botThinking = false;
+function scheduleBot() {
+  clearTimeout(botTimer); botThinking = false;
+  if (!started || over || !isBot(S.turn)) return;
+  const gid = gameId, cfg = AI_LEVELS[MODE.level] || AI_LEVELS.normal, t0 = Date.now();
+  botThinking = true;
+  const finish = m => {
+    const wait = Math.max(0, 450 - (Date.now() - t0));   // nghĩ nhanh quá thì chờ chút cho tự nhiên
+    botTimer = setTimeout(() => { if (gid !== gameId || over || !isBot(S.turn)) return; if (anyModal()) return scheduleBot(); botThinking = false; if (isLegal(S, m)) act(m); }, wait);
+  };
+  botTimer = setTimeout(() => {
+    if (gid !== gameId) return;
+    if (anyModal()) return scheduleBot();   // đang mở bảng: chờ người chơi đóng rồi mới đi
+    const L = legalMoves(S);
+    if (Math.random() < cfg.rand) return finish(L[Math.floor(Math.random() * L.length)]);
+    const w = winningMove(S); if (w >= 0) return finish(w);
+    const tree = new Mcts(S), deadline = cfg.ms ? Date.now() + cfg.ms : Infinity;
+    const slice = () => {
+      if (gid !== gameId) return;
+      tree.run(cfg.iters - tree.iters, Math.min(deadline, Date.now() + 25));
+      if (tree.iters >= cfg.iters || Date.now() >= deadline) return finish(tree.best());
+      botTimer = setTimeout(slice, 0);
+    };
+    slice();
+  }, 60);
+  renderStatus();
+}
+function anyModal() { return [...document.querySelectorAll(".modal")].some(m => !m.hidden); }
+
+/* ============================================================
+   CHƠI ONLINE (PeerJS: WebRTC nối thẳng hai trình duyệt). Cùng kiểu với Sliding Tic Tac Toe.
+   Chủ phòng gửi start (bên của khách, thể thức đồng hồ). Mỗi nước gửi mv {i} kèm stateHash và cl (giờ còn lại của người đi, đã cộng giây).
+   Hết giờ: bên của máy mình thì báo ngay (flag); bên của máy kia thì chờ thêm 3 giây phòng nước đi đang trên đường tới.
+   Tin: hello, start, mv, flag, rematch, bye, err.
+   ============================================================ */
+const NET_PROTO = 1;   // tăng số này mỗi khi đổi luật/giao thức
+const PEER_SRC = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+const PEER_SRI = "sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR";
+const PEER_PREFIX = "ultimatettt-";
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", CODE_LEN = 5;
+const NET = { peer: null, conn: null, role: null, code: "", playing: false, hostSide: "x", rm: { me: false, them: false }, gen: 0 };
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
+const newCode = () => Array.from({ length: CODE_LEN }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+const netOpen = () => !!(NET.conn && NET.conn.open);
+const netSend = d => { if (netOpen()) NET.conn.send(d); };
+const stateHash = () => moves.join(",") + "|" + S.turn + "|" + (over ? over.winner : "-");
+const inviteLink = code => location.href.split("#")[0] + "#room=" + code;
+
+let peerLoading = null;
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  return peerLoading || (peerLoading = new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = PEER_SRC; s.integrity = PEER_SRI; s.crossOrigin = "anonymous";
+    s.onload = () => (window.Peer ? ok() : fail());
+    s.onerror = () => { peerLoading = null; s.remove(); fail(); };
+    document.head.appendChild(s);
+  }));
+}
+function showNet(title, msg, opt = {}) {
+  $("#netTitle").textContent = title; $("#netMsg").textContent = msg;
+  $("#netCodeBox").hidden = !opt.code;
+  if (opt.code) { $("#netCode").textContent = opt.code; $("#netLink").value = inviteLink(opt.code); }
+  $("#netCancel").textContent = tr(opt.done ? "n_close" : "cancel");
+  $("#mNet").hidden = false;
+}
+function startOnline() {
+  netClose(true);
+  MODE = clone(modeDraft); $("#mMode").hidden = true; $("#mRules").hidden = true;
+  newGame(true);
+  if (MODE.net === "join") netJoin(MODE.code); else netHost();
+}
+async function netHost(tries = 0) {
+  const gen = ++NET.gen;
+  NET.role = "host"; NET.hostSide = MODE.human;
+  showNet(tr("n_title_host"), tr("n_connecting"));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const code = newCode(), peer = new Peer(PEER_PREFIX + code);
+  NET.peer = peer; NET.code = code;
+  peer.on("open", () => { if (gen === NET.gen) showNet(tr("n_title_host"), tr("n_wait"), { code }); });
+  peer.on("connection", conn => {
+    if (gen !== NET.gen || NET.conn) { conn.on("open", () => { conn.send({ t: "err", code: "full" }); setTimeout(() => conn.close(), 500); }); return; }
+    NET.conn = conn; bindConn(conn, gen);
+  });
+  peer.on("disconnected", () => {
+    if (gen === NET.gen && !NET.playing && !peer.destroyed) setTimeout(() => { if (gen === NET.gen && !peer.destroyed) peer.reconnect(); }, 1500);
+  });
+  peer.on("error", e => {
+    if (gen !== NET.gen) return;
+    if (e.type === "unavailable-id" && tries < 3) { peer.destroy(); NET.peer = null; netHost(tries + 1); return; }
+    netError(e);
+  });
+}
+async function netJoin(code) {
+  const gen = ++NET.gen;
+  NET.role = "guest"; NET.code = code;
+  showNet(tr("n_title_join"), tr("n_joining", code));
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const peer = new Peer(); NET.peer = peer;
+  peer.on("open", () => {
+    if (gen !== NET.gen) return;
+    const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+    NET.conn = conn; bindConn(conn, gen);
+    setTimeout(() => { if (gen === NET.gen && !NET.playing) netFail("n_err_timeout"); }, 25000);
+  });
+  peer.on("error", e => { if (gen === NET.gen) netError(e); });
+}
+function bindConn(conn, gen) {
+  conn.on("open", () => { if (gen === NET.gen && NET.role === "guest") conn.send({ t: "hello", v: NET_PROTO }); });
+  conn.on("data", d => { if (gen === NET.gen) onNetData(d); });
+  conn.on("close", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+  conn.on("error", () => { if (gen === NET.gen && NET.conn === conn) onNetLost(); });
+}
+function beginOnlineGame() {
+  NET.playing = true; NET.rm = { me: false, them: false };
+  for (const id of ["#mNet", "#mMode", "#mRules"]) $(id).hidden = true;
+}
+function hostStartGame(side) {
+  NET.hostSide = side;
+  netSend({ t: "start", v: NET_PROTO, side: side === "x" ? "o" : "x", tc: MODE.tc });
+  MODE.human = side; beginOnlineGame(); newGame(false);
+}
+function onNetData(d) {
+  if (!d || typeof d !== "object") return;
+  switch (d.t) {
+    case "hello":
+      if (NET.role !== "host" || NET.playing) return;
+      if (d.v !== NET_PROTO) { netSend({ t: "err", code: "version" }); const c = NET.conn; NET.conn = null; setTimeout(() => c.close(), 500); return; }
+      return hostStartGame(NET.hostSide);
+    case "start":
+      if (NET.role !== "guest") return;
+      if (d.v !== NET_PROTO) return netFail("n_err_version");
+      MODE.human = d.side === "o" ? "o" : "x";
+      MODE.tc = TC_KEYS.includes(d.tc) ? d.tc : "none";
+      beginOnlineGame(); newGame(false);
+      return;
+    case "mv": {
+      if (!started || over || !isRemote(S.turn) || !isLegal(S, d.i)) return netDesync();
+      const mover = S.turn;
+      act(d.i);
+      if (TC && typeof d.cl === "number" && d.cl > 0) clock[mover] = d.cl;   // giờ còn lại do máy người đi báo (đã cộng giây)
+      if (d.h !== stateHash()) netDesync();
+      return;
+    }
+    case "flag":
+      if (d.s === 1 || d.s === 2) flagFall(d.s, true);
+      return;
+    case "rematch":
+      if (!over || NET.rm.them) return;
+      NET.rm.them = true;
+      if (NET.role === "host" && NET.rm.me) return hostStartGame(NET.hostSide === "x" ? "o" : "x");
+      overDismissed = false; render();
+      return;
+    case "bye": return onNetLost();
+    case "err": return netFail(d.code === "full" ? "n_err_full" : d.code === "version" ? "n_err_version" : "n_err_desync");
+  }
+}
+function requestRematch() {
+  if (NET.rm.me) return;
+  NET.rm.me = true; netSend({ t: "rematch" });
+  if (NET.role === "host" && NET.rm.them) return hostStartGame(NET.hostSide === "x" ? "o" : "x");   // đổi bên mỗi ván
+  renderOver();
+}
+function netDesync() { netSend({ t: "err", code: "desync" }); netFail("n_err_desync"); }
+function netError(e) {
+  const type = (e && e.type) || "";
+  if (netOpen()) { console.warn("PeerJS:", type, e); return; }
+  if (type === "peer-unavailable") return netFail("n_err_nopeer", NET.code);
+  netFail("n_err_net", type || String(e));
+}
+function netFail(key, arg) {
+  const midGame = NET.playing && started && !over;
+  netClose(false);
+  if (midGame) { over = { winner: null, aborted: true, move: moves.length }; clockStop(); render(); }
+  showNet(tr("n_title_err"), tr(key, arg), { done: true });
+}
+function onNetLost() {
+  if (NET.role === "host" && !NET.playing) { NET.conn = null; return; }
+  netClose(false);
+  if (started && !over) { over = { winner: humanP(), left: true, move: moves.length }; clockStop(); }
+  render();
+}
+function netClose(bye) {
+  NET.gen++;
+  if (bye) try { netSend({ t: "bye" }); } catch (e) {}
+  const peer = NET.peer, conn = NET.conn;
+  NET.peer = NET.conn = null; NET.playing = false; NET.rm = { me: false, them: false };
+  if (peer || conn) setTimeout(() => { try { if (conn) conn.close(); } catch (e) {} try { if (peer) peer.destroy(); } catch (e) {} }, bye ? 400 : 0);
+}
+
+/* ---------- RENDER ---------- */
+const boardEl = $("#board");
+const sbEls = [], cellEls = [], bigEls = [];
+let newCell = -1, hoverCell = -1;
+(function buildBoard() {
+  for (let b = 0; b < 9; b++) {
+    const sb = document.createElement("div"); sb.className = "sb"; sb.dataset.b = b;
+    for (let c = 0; c < 9; c++) { const e = document.createElement("div"); e.className = "cell"; e.dataset.i = b * 9 + c; e.dataset.v = ""; sb.appendChild(e); cellEls[b * 9 + c] = e; }
+    const big = document.createElement("div"); big.className = "big"; big.hidden = true; sb.appendChild(big); bigEls.push(big);
+    boardEl.appendChild(sb); sbEls.push(sb);
+  }
+})();
+const canAct = () => started && !over && isLocal(S.turn);
+function renderBoard() {
+  const my = canAct(), last = moves.length ? moves[moves.length - 1] : -1, lastMine = moves.length && ((moves.length % 2 === 1) === (humanP() === 1));
+  const legal = my ? new Set(legalMoves(S)) : null;
+  for (let b = 0; b < 9; b++) {
+    const open = !(S.closed >> b & 1), act = started && !over && open && (S.active === b || S.active < 0);
+    sbEls[b].className = "sb" + (act && S.active >= 0 ? " act" : "") + (started && !over && S.active >= 0 && S.active !== b && open ? " dim" : "");
+    const w = S.win[b], big = bigEls[b];
+    big.hidden = !w;
+    if (w) {
+      const key = w + (over && over.line >> b & 1 ? "L" : "") + LANG;
+      if (big.dataset.k !== key) {
+        big.dataset.k = key;
+        big.className = "big w" + w + (over && over.line && (over.line >> b & 1) ? " wl" : "");
+        big.innerHTML = w === 3 ? `<span>${tr("small_draw")}</span>` : ICON(w);
+      }
+    } else big.dataset.k = "";
+    for (let c = 0; c < 9; c++) {
+      const i = b * 9 + c, e = cellEls[i], v = cellAt(S, i);
+      const ghost = !v && i === hoverCell && legal && legal.has(i);
+      const want = v ? "p" + v : ghost ? "g" + S.turn : "";
+      if (e.dataset.v !== want) { e.dataset.v = want; e.innerHTML = v ? ICON(v) : ghost ? ICON(S.turn) : ""; }
+      e.className = "cell" + (ghost ? " ghost" : "") + (legal && legal.has(i) ? " can" : "") + (i === last ? " last" + (lastMine ? "" : " theirs") : "") + (i === newCell ? " new" : "");
+    }
+  }
+  newCell = -1;
+  renderWinLine();
+}
+function renderWinLine() {
+  const svg = $("#winLine"), W = boardEl.offsetWidth;
+  svg.setAttribute("width", W); svg.setAttribute("height", W);
+  if (!over || !over.line) { svg.innerHTML = ""; svg.dataset.k = ""; return; }
+  const bs = []; for (let b = 0; b < 9; b++) if (over.line >> b & 1) bs.push(b);
+  const ctr = b => { const e = sbEls[b]; return [e.offsetLeft + e.offsetWidth / 2, e.offsetTop + e.offsetHeight / 2]; };
+  const [x1, y1] = ctr(bs[0]), [x2, y2] = ctr(bs[2]), key = bs.join() + "@" + W;
+  if (svg.dataset.k === key) return;
+  svg.dataset.k = key;
+  const len = Math.hypot(x2 - x1, y2 - y1) + 1;
+  svg.innerHTML = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${Math.max(8, W * .022)}" style="stroke-dasharray:${len};stroke-dashoffset:${len}"/>`;
+}
+function roleOf(p) {
+  if (isBot(p)) return tr("role_bot", tr("lv_" + MODE.level));
+  if (isRemote(p)) return tr("role_opp");
+  return tr("role_you");
+}
+function renderClocks() {
+  if (over && clock && clock.run) clockStop();
+  for (const p of [1, 2]) {
+    const e = $("#panel-" + p + " .clock");
+    e.hidden = !TC; if (!TC) continue;
+    const left = clockLeft(p);
+    e.textContent = fmtClock(left);
+    e.classList.toggle("run", clock.run === p);
+    e.classList.toggle("low", left < Math.min(TC.base * .1, 20e3));
+  }
+}
+function renderPanels() {
+  for (const p of [1, 2]) {
+    const el = $("#panel-" + p);
+    el.querySelector(".picon").innerHTML = ICON(p);
+    el.querySelector(".pinfo b").textContent = tr("n_" + p);
+    el.querySelector(".pinfo span").textContent = started ? roleOf(p) : "";
+    el.classList.toggle("active", started && !over && S.turn === p);
+    const wonB = []; for (let b = 0; b < 9; b++) if (S.win[b] === p) wonB.push(b);
+    el.querySelector(".pwon").innerHTML = Array.from({ length: 9 }, (_, b) => `<i>${S.win[b] === p ? ICON(p) : ""}</i>`).join("") + `<span>${tr("won_n", wonB.length)}</span>`;
+    el.classList.toggle("top-p", p !== humanP()); el.classList.toggle("bot-p", p === humanP());
+  }
+  const side = $(".side");   // màn ngang: đối thủ ở trên, mình ở dưới
+  if (humanP() === 1) side.insertBefore($("#panel-2"), $("#panel-1")); else side.insertBefore($("#panel-1"), $("#panel-2"));
+  renderClocks();
+}
+function renderStatus() {
+  const mk = $("#stMark"); let h; const p = over ? over.winner : S.turn;
+  mk.innerHTML = p ? ICON(p) : ""; mk.className = "mk";
+  if (!started) { h = tr("st_notstarted"); mk.innerHTML = ""; }
+  else if (over) {
+    const me = humanP();
+    if (over.aborted) h = tr("st_aborted");
+    else if (over.left) h = tr("st_left");
+    else if (over.winner === null) h = tr("st_draw");
+    else if (over.flag) h = over.flag === me ? tr("st_flag_you") : tr("st_flag_opp");
+    else h = over.winner === me ? tr("st_win_you") : MODE.vs === "bot" ? tr("st_win_bot") : tr("st_win_opp");
+  }
+  else if (isBot(S.turn)) { h = tr("st_bot"); mk.classList.add("think"); }
+  else if (isRemote(S.turn)) h = tr("st_remote");
+  else h = S.active >= 0 ? tr("st_act") : tr("st_free");
+  $("#statusText").innerHTML = h;
+}
+function renderInfo() {
+  const openB = 9 - POP9[S.closed];
+  $("#infoList").innerHTML = `<dt>${tr("i_mode")}</dt><dd>${MODE.vs === "bot" ? tr("i_mode_bot", tr("lv_" + MODE.level)) : tr("i_mode_online")}</dd>` +
+    (MODE.vs === "online" ? `<dt>${tr("i_time")}</dt><dd>${TC ? TC.label : tr("tc_none")}</dd>` : "") +
+    `<dt>${tr("i_moves")}</dt><dd>${moves.length}</dd><dt>${tr("i_boards")}</dt><dd>${openB}</dd>`;
+  $("#tip").textContent = tr("tip");
+  const u = $("#btnUndo"); u.hidden = MODE.vs !== "bot"; u.disabled = !undoStack.length;
+}
+function renderOver() {
+  const go = $("#gameover");
+  if (!over || overDismissed) { go.hidden = true; return; }
+  const me = humanP();
+  if (go.hidden) sfx(over.aborted || over.winner === null ? "draw" : over.winner === me ? "win" : "lose");
+  go.hidden = false;
+  $("#goTitle").textContent = over.aborted ? tr("go_aborted") : over.winner === null ? tr("go_draw") : over.flag === me ? tr("go_flag")
+    : over.winner === me ? tr("go_you") : MODE.vs === "bot" ? tr("go_bot") : tr("go_opp");
+  $("#goSub").textContent = over.aborted ? tr("gs_aborted") : over.left ? tr("gs_left") : over.winner === null ? tr("gs_draw")
+    : over.flag ? (over.flag === me ? tr("gs_flag_you") : tr("gs_flag_opp")) : tr("gs_line", over.move);
+  const rematch = MODE.vs === "online" && netOpen();
+  $("#goNew").textContent = tr(rematch ? "go_rematch" : "b_new");
+  $("#goNew").disabled = rematch && NET.rm.me;
+  $("#goNet").textContent = !rematch ? "" : NET.rm.me ? tr("go_rm_wait") : NET.rm.them ? tr("go_rm_them") : "";
+}
+function render() { renderBoard(); renderPanels(); renderStatus(); renderInfo(); renderOver(); }
+
+/* ---------- KÍCH THƯỚC ---------- */
+function fit() {
+  const vw = document.documentElement.clientWidth, vh = window.innerHeight - ((document.getElementById("tb-header") || {}).offsetHeight || 0);
+  const portrait = vw < 860;
+  document.body.classList.toggle("portrait", portrait);
+  let S2 = portrait ? Math.min(vw - 16, Math.max(320, vh - 250)) : Math.min(vw - 24 - 290 - 20, vh - 140);
+  S2 = Math.floor(Math.max(300, Math.min(S2, 640)));
+  const root = document.documentElement.style;
+  root.setProperty("--S", S2 + "px");
+  root.setProperty("--pad", Math.round(S2 * .018) + "px");
+  root.setProperty("--gap", Math.round(Math.max(5, S2 * .016)) + "px");
+  renderWinLine();
+}
+
+/* ---------- ĐIỀU KHIỂN ---------- */
+boardEl.addEventListener("click", e => { const c = e.target.closest(".cell"); if (c) humanAct(+c.dataset.i); });
+boardEl.addEventListener("mousemove", e => {
+  const c = e.target.closest(".cell"), i = c ? +c.dataset.i : -1;
+  if (i !== hoverCell) { hoverCell = i; if (canAct()) renderBoard(); }
+});
+boardEl.addEventListener("mouseleave", () => { hoverCell = -1; renderBoard(); });
+
+/* ---------- BẢNG CHỌN CHẾ ĐỘ ---------- */
+let modeDraft = null;
+$("#segLevel").innerHTML = LEVELS.map(l => `<button data-v="${l}" data-i18n="lv_${l}"></button>`).join("");
+$("#segTime").innerHTML = TC_KEYS.map(k => `<button data-v="${k}"></button>`).join("");
+const MODE_SEGS = [["#segVs", "vs"], ["#segNet", "net"], ["#segSide", "human"], ["#segTime", "tc"], ["#segLevel", "level"]];
+function syncMode() {
+  for (const [id, key] of MODE_SEGS) document.querySelectorAll(id + " button").forEach(b => b.classList.toggle("on", b.dataset.v === modeDraft[key]));
+  const online = modeDraft.vs === "online", join = online && modeDraft.net === "join";
+  $("#netOpts").classList.toggle("off", !online);
+  $("#segNet").querySelectorAll("button").forEach(b => { b.disabled = !online; });
+  $("#joinCode").disabled = !join; $("#joinCode").placeholder = tr("m_code_ph");
+  if (!$("#joinCode").value && modeDraft.code) $("#joinCode").value = modeDraft.code;
+  $("#netNote").textContent = tr(join ? "m_net_join" : "m_net_create");
+  $("#sideOpts").classList.toggle("off", join);   // vào phòng người khác: chủ phòng chọn
+  $("#segSide").querySelectorAll("button").forEach(b => { b.disabled = join; });
+  const timeOff = !online || join;
+  $("#timeOpts").classList.toggle("off", timeOff);
+  $("#segTime").querySelectorAll("button").forEach(b => { b.disabled = timeOff; });
+  const tc = TIME_CONTROLS[modeDraft.tc];
+  $("#timeNote").textContent = !online ? tr("tcn_bot") : join ? tr("tcn_join") : tc ? tr("tcn", tc.base / 60e3, tc.inc / 1e3) : tr("tcn_none");
+  $("#levelOpts").classList.toggle("off", online);
+  $("#segLevel").querySelectorAll("button").forEach(b => { b.disabled = online; });
+  $("#levelNote").textContent = tr("lv_" + modeDraft.level) + ": " + tr("lvn_" + modeDraft.level);
+  $("#modeStart").textContent = online ? tr(join ? "m_join" : "m_create") : started && !over ? tr("m_forfeit") : tr("m_start");
+}
+function openMode() {
+  modeDraft = clone(PREFS); modeDraft.net = MODE.net || "create"; modeDraft.code = "";
+  syncMode();
+  $("#modeCancel").textContent = started ? tr("cancel") : tr("m_back");
+  $("#mMode").hidden = false;
+}
+let returnToMode = true;
+function openRules() { $("#mRules").hidden = false; }
+function buildDemo() {   // X đánh ô giữa-phải (số 5) của bàn góc trên trái → O phải đánh ở bàn giữa-phải (số 5)
+  const mb = (hl, act) => `<div class="mb">${Array.from({ length: 9 }, (_, b) => `<div class="ms${b === act ? " act" : ""}">${Array.from({ length: 9 }, (_, c) => {
+    const x = b === 0 && c === 5 && hl, o = b === 0 && c === 0, x2 = b === 4 && c === 4;
+    return `<i class="${x ? "hl" : ""}">${x || x2 ? ICON_X : o ? ICON_O : ""}</i>`; }).join("")}</div>`).join("")}</div>`;
+  $("#rulesDemo").innerHTML = mb(true, -1) + '<span class="arr">→</span>' + mb(true, 5);
+}
+
+/* ---------- NGÔN NGỮ ---------- */
+function setLang(l) {
+  LANG = l; try { localStorage.setItem("lang", l); } catch (e) {}
+  if (window.TB) TB.setLang(l);
+  applyI18n(); if (modeDraft && !$("#mMode").hidden) syncMode();
+  render();
+}
+if (window.TB) TB.onLang(l => { if (l !== LANG) setLang(l); });
+
+/* ---------- SỰ KIỆN ---------- */
+for (const [id, key] of MODE_SEGS)
+  document.querySelectorAll(id + " button").forEach(b => b.addEventListener("click", () => {
+    modeDraft[key] = b.dataset.v; syncMode();
+    if (modeDraft.vs === "online" && modeDraft.net === "join" && (key === "net" || key === "vs")) $("#joinCode").focus();
+  }));
+$("#joinCode").addEventListener("input", e => { const v = normCode(e.target.value); if (e.target.value !== v) e.target.value = v; });
+$("#joinCode").addEventListener("keydown", e => { if (e.key === "Enter") $("#modeStart").click(); });
+$("#netCancel").addEventListener("click", () => { netClose(true); $("#mNet").hidden = true; if (!started) openMode(); });
+$("#netCopy").addEventListener("click", () => {
+  const inp = $("#netLink"), btn = $("#netCopy");
+  const done = () => { btn.textContent = tr("n_copied"); setTimeout(() => { btn.textContent = tr("n_copy"); }, 1500); };
+  const legacy = () => { inp.select(); try { document.execCommand("copy"); done(); } catch (e) {} };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done, legacy); else legacy();
+});
+window.addEventListener("pagehide", () => { if (netOpen()) try { NET.conn.send({ t: "bye" }); } catch (e) {} });
+$("#modeCancel").addEventListener("click", () => {
+  $("#mMode").hidden = true;
+  if (!started) { returnToMode = true; openRules(); }
+});
+$("#modeStart").addEventListener("click", () => {
+  for (const k of ["vs", "human", "level", "tc"]) if (!(modeDraft.vs === "online" && modeDraft.net === "join" && k !== "vs")) PREFS[k] = modeDraft[k];
+  savePrefs();
+  if (modeDraft.vs === "online") {
+    if (modeDraft.net === "join") {
+      modeDraft.code = normCode($("#joinCode").value);
+      if (modeDraft.code.length !== CODE_LEN) { $("#netNote").textContent = tr("n_err_code"); $("#joinCode").focus(); return; }
+    }
+    return startOnline();
+  }
+  netClose(true);
+  MODE = clone(modeDraft); $("#mMode").hidden = true; newGame(false);
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("#mNet").hidden) $("#netCancel").click();
+  else if (!$("#mRules").hidden) $("#rulesOk").click();
+  else if (!$("#mMode").hidden) { if (started) $("#mMode").hidden = true; }
+});
+$("#btnNew").addEventListener("click", () => {
+  if (MODE.vs === "online" && netOpen() && over) { overDismissed = false; return renderOver(); }
+  openMode();
+});
+$("#btnUndo").addEventListener("click", undo);
+$("#goNew").addEventListener("click", () => { if (MODE.vs === "online" && netOpen()) return requestRematch(); openMode(); });
+$("#goView").addEventListener("click", () => { overDismissed = true; renderOver(); });
+$("#btnRules").addEventListener("click", () => { returnToMode = false; openRules(); });
+$("#rulesOk").addEventListener("click", () => { $("#mRules").hidden = true; if (returnToMode) { returnToMode = false; openMode(); } });
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("mousedown", e => {
+  if (e.target !== m || m.id === "mNet" || (m.id === "mMode" && !started)) return;
+  if (m.id === "mRules") return $("#rulesOk").click();
+  m.hidden = true;
+}));
+window.addEventListener("resize", fit);
+
+/* ---------- KHỞI ĐỘNG ---------- */
+(function init() {
+  applyI18n(); buildDemo(); newGame(true);
+  const room = normCode((location.hash.match(/room=([A-Za-z0-9]+)/) || [])[1]);
+  if (room.length === CODE_LEN) {   // mở từ link mời: vào phòng luôn
+    try { history.replaceState(null, "", location.href.split("#")[0]); } catch (e) {}
+    modeDraft = { ...clone(PREFS), vs: "online", net: "join", code: room };
+    startOnline();
+  } else openRules();
+  if (window.TB && TB.closeX) TB.closeX({ "#mRules": "#rulesOk", "#mMode": "#modeCancel", "#mNet": "#netCancel", "#gameover": "#goView" });
+  window.game = {   // tiện debug ở console
+    get mode() { return MODE; }, get state() { return { S, over, moves, clock, undoStack }; },
+    humanAct, act, undo, aiPick, stateHash, flagFall,
+  };
+})();
+</script>
+</body>
+</html>

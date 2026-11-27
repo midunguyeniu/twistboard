@@ -9,6 +9,8 @@
      solo.useLevel: người chơi một mình cũng chọn mức trong online.levels (ví dụ kích thước bàn), kỷ lục lưu riêng theo mức.
      online.defaultLevel: mức chọn sẵn (mặc định "normal" nếu có trong levels, không thì mức đầu tiên).
      i18n: { vi: {...}, en: {...} } (bắt buộc có brand, r_intro, r_rules[], prompt...), rules: [[tiêu đề, [khoá...]], ...]
+     ruleCards (tuỳ chọn): [{ fig({ tr, lang }) -> HTML hình minh hoạ, h: khoá tiêu đề, p: khoá mô tả }, ...], hiện thành hàng thẻ đánh số ngay dưới r_intro.
+     ruleCardsBg (tuỳ chọn): màu nền vùng hình của các thẻ.
    ============================================================ */
 (function () {
   "use strict";
@@ -20,15 +22,16 @@
   /* ---------- CHỮ CHUNG ---------- */
   const KI = {
     vi: {
-      b_rules: "Luật chơi", b_new: "Chơi mới",
+      b_rules: "Luật chơi", b_new: "Chơi mới", r_ok: "Đã hiểu", cv_idle: "Chưa bắt đầu", cv_idle_p: "Bấm Chơi mới để chọn chế độ và bắt đầu.",
       m_title: "Chọn chế độ", m_solo: "Chơi một mình", m_online: "Online 2 người",
       m_solo_note: "Vượt {0} màn từ dễ tới khó. Đồng hồ chỉ chạy khi đang giải, trả lời sai bị cộng 5 giây.",
+      m_solo_note_lv: "Vượt {0} màn của độ khó bạn chọn. Đồng hồ chỉ chạy khi đang giải, trả lời sai bị cộng 5 giây.",
       m_online_note: "Hai người cùng giải một đề, ai đúng trước được 1 điểm. Ai đạt {0} điểm trước thì thắng.",
       m_net: "Phòng online", m_create: "Tạo phòng", m_join: "Vào phòng", m_code_ph: "Mã phòng",
       m_net_create: "Bạn tạo phòng rồi gửi mã (hoặc link) cho bạn bè. Chủ phòng chọn độ khó.",
       m_net_join: "Nhập mã 5 ký tự bạn bè gửi. Độ khó do chủ phòng chọn.",
       m_level: "Độ khó", lv_easy: "Dễ", lv_normal: "Vừa", lv_hard: "Khó",
-      m_start: "Bắt đầu", m_back: "Đóng", cancel: "Huỷ",
+      m_start: "Bắt đầu", m_back: "Xem lại Luật chơi", cancel: "Huỷ",
       n_title_host: "Tạo phòng", n_title_join: "Vào phòng", n_title_err: "Có lỗi kết nối",
       n_connecting: "Đang kết nối máy chủ...", n_wait: "Gửi mã này (hoặc link) cho bạn bè. Đang chờ người vào phòng...",
       n_joining: "Đang vào phòng {0}...", n_copy: "Chép link", n_copied: "Đã chép", n_close: "Đóng",
@@ -55,15 +58,16 @@
       g_view: "Xem đề", g_menu: "Chọn chế độ", s_vs: "Tỉ số",
     },
     en: {
-      b_rules: "Rules", b_new: "New game",
+      b_rules: "Rules", b_new: "New game", r_ok: "Got it", cv_idle: "Not started", cv_idle_p: "Press New game to choose a mode and start.",
       m_title: "Game mode", m_solo: "Solo", m_online: "Online 2 players",
       m_solo_note: "Clear {0} stages from easy to hard. The clock only runs while you solve, and each wrong answer adds 5 seconds.",
+      m_solo_note_lv: "Clear {0} stages at the difficulty you pick. The clock only runs while you solve, and each wrong answer adds 5 seconds.",
       m_online_note: "Both players solve the same puzzle and the first correct answer scores a point. First to {0} points wins.",
       m_net: "Online room", m_create: "Create room", m_join: "Join room", m_code_ph: "Room code",
       m_net_create: "Create a room, then send the code (or link) to a friend. The host picks the difficulty.",
       m_net_join: "Enter the 5-character code your friend sent. The host picks the difficulty.",
       m_level: "Difficulty", lv_easy: "Easy", lv_normal: "Medium", lv_hard: "Hard",
-      m_start: "Start", m_back: "Close", cancel: "Cancel",
+      m_start: "Start", m_back: "Back to Game rules", cancel: "Cancel",
       n_title_host: "Create room", n_title_join: "Join room", n_title_err: "Connection problem",
       n_connecting: "Connecting to the server...", n_wait: "Send this code (or the link) to a friend. Waiting for them to join...",
       n_joining: "Joining room {0}...", n_copy: "Copy link", n_copied: "Copied", n_close: "Close",
@@ -192,7 +196,7 @@
   </main>
 </div>
 <div class="pk-modal" id="pkRules" hidden><div class="card"><h2 id="pkRulesTitle"></h2><div id="pkRulesBody"></div>
-  <div class="foot"><button class="btn primary" id="pkRulesOk">OK</button></div></div></div>
+  <div class="foot"><span class="note tb-credit"></span><button class="btn primary" id="pkRulesOk"></button></div></div></div>
 <div class="pk-modal" id="pkMode" hidden><div class="card">
   <h2 data-k="m_title"></h2>
   <div class="seg" id="pkSegVs"><button data-v="solo" data-k="m_solo"></button><button data-v="online" data-k="m_online"></button></div>
@@ -213,15 +217,22 @@
   <p id="pkNetMsg"></p><div class="foot"><button class="btn" id="pkNetCancel"></button></div></div></div>`;
     while (app.firstElementChild) document.body.appendChild(app.firstElementChild);
   }
+  function ruleCardsHtml() {   // thẻ minh hoạ luật (game tự vẽ hình), đặt trên các mục luật dạng chữ
+    if (!G.ruleCards || !G.ruleCards.length) return "";
+    return `<div class="pk-rc"${G.ruleCardsBg ? ` style="--rc-bg:${G.ruleCardsBg}"` : ""}>` + G.ruleCards.map((c, i) =>
+      `<div class="pk-rc-card"><div class="pk-rc-fig">${c.fig({ tr, lang: LANG })}</div><div class="pk-rc-h"><span class="pk-rc-n">${i + 1}</span><span>${tr(c.h)}</span></div><p>${tr(c.p)}</p></div>`).join("") + `</div>`;
+  }
   function applyStatic() {
     document.title = tr("brand") + " · Twistboard";
     $("#pkTitle").textContent = tr("brand");
+    $("#pkRulesOk").textContent = tr("r_ok");
+    if (window.TB && TB.paintCredits) TB.paintCredits();
     $("#pkRulesBtn").textContent = tr("b_rules"); $("#pkNewBtn").textContent = tr("b_new");
     document.querySelectorAll("[data-k]").forEach(el => { if (el.tagName !== "BUTTON" || !el.closest("#pkKeys")) el.textContent = tr(el.dataset.k); });
     $('#pkKeys [data-k="ok"]').textContent = tr("k_ok");
     $('#pkKeys [data-k="del"]').setAttribute("aria-label", tr("k_del"));
     $("#pkRulesTitle").textContent = tr("brand");
-    $("#pkRulesBody").innerHTML = `<p>${tr("r_intro")}</p>` + G.rules.map(([h, list]) =>
+    $("#pkRulesBody").innerHTML = `<p>${tr("r_intro")}</p>` + ruleCardsHtml() + G.rules.map(([h, list]) =>
       `<h3>${esc(tr(h))}</h3><ul>${[].concat(...list.map(k => { const v = tr(k); return Array.isArray(v) ? v : [v]; })).map(x => `<li>${x}</li>`).join("")}</ul>`).join("") +
       (tr("r_note") !== "r_note" ? `<p class="note">${tr("r_note")}</p>` : "");
     $("#pkNetCopy").textContent = tr("n_copy");
@@ -589,7 +600,8 @@
     const bar = $("#pkBar");
     if (ST.mode === "solo") {
       const b = loadBest();
-      const head = G.solo.stages > 1 ? `<span class="pk-chip">${tr("c_stage")} <b>${ST.stage}</b><small>/ ${G.solo.stages}</small></span>`
+      const lvChip = G.solo.useLevel ? `<span class="pk-chip">${tr("m_level")} <b>${tr("lv_" + ST.level)}</b></span>` : "";
+      const head = G.solo.stages > 1 ? lvChip + `<span class="pk-chip">${tr("c_stage")} <b>${ST.stage}</b><small>/ ${G.solo.stages}</small></span>`
         : G.solo.useLevel ? `<span class="pk-chip">${tr("m_level")} <b>${tr("lv_" + ST.level)}</b></span>` : "";
       bar.innerHTML = `${head}
         <span class="pk-chip">${tr("c_time")} <b id="pkClock">${fmtTime(curTime())}</b></span>
@@ -607,7 +619,10 @@
   function renderCover() {
     const cv = $("#pkCover");
     let html = "", dim = false;
-    if (ST.mode === "solo" && ST.phase === "ready") {
+    if (!ST.mode) {   // chưa chọn chế độ (đã tắt hết popup bằng nút ×): nhắc bấm Chơi mới
+      html = `<div><div class="kicker">${esc(tr("brand"))}</div><h2>${tr("cv_idle")}</h2><p>${tr("cv_idle_p")}</p>
+        <div class="row"><button class="btn primary" id="pkIdleNew">${tr("b_new")}</button></div></div>`;
+    } else if (ST.mode === "solo" && ST.phase === "ready") {
       html = `<div><div class="kicker">${esc(tr("brand"))}</div><h2>${G.solo.stages > 1 ? tr("cv_stage", ST.stage, G.solo.stages) : G.solo.useLevel ? tr("lv_" + ST.level) : ""}</h2>
         <p>${G.stageNote ? G.stageNote(ST.puzzle, ST.stage) + "<br>" : ""}${tr("cv_hint")}</p><div class="row"><button class="btn primary" id="pkGo">${tr("cv_start")}</button></div></div>`;
     } else if (ST.mode === "online" && ST.phase === "countdown") {
@@ -627,6 +642,7 @@
     cv.hidden = !html; cv.classList.toggle("dim", dim);
     if (html && cv.dataset.html !== html) {
       cv.innerHTML = html; cv.dataset.html = html;
+      const idle = $("#pkIdleNew"); if (idle) idle.addEventListener("click", openMode);
       const go = $("#pkGo"); if (go) { go.addEventListener("click", beginPlay); setTimeout(() => go.focus(), 30); }
       const rm = $("#pkRematch"); if (rm) rm.addEventListener("click", requestRematch);
       const mn = $("#pkMenu"); if (mn) mn.addEventListener("click", openMode);
@@ -701,7 +717,7 @@
     for (const [id, key] of [["#pkSegVs", "vs"], ["#pkSegNet", "net"], ["#pkSegLevel", "level"]])
       document.querySelectorAll(id + " button").forEach(b => b.classList.toggle("on", b.dataset.v === draft[key]));
     const online = draft.vs === "online", join = online && draft.net === "join";
-    $("#pkVsNote").textContent = online ? tr("m_online_note", G.online.target) : tr("m_solo_note", G.solo.stages);
+    $("#pkVsNote").textContent = online ? tr("m_online_note", G.online.target) : tr(G.solo.useLevel && G.solo.stages > 1 ? "m_solo_note_lv" : "m_solo_note", G.solo.stages);
     $("#pkNetOpts").classList.toggle("off", !online);
     $("#pkSegNet").querySelectorAll("button").forEach(b => { b.disabled = !online; });
     $("#pkCode").disabled = !join; $("#pkCode").placeholder = tr("m_code_ph");
@@ -752,7 +768,6 @@
     $("#pkRulesBtn").addEventListener("click", () => { $("#pkRules").hidden = false; });
     $("#pkRulesOk").addEventListener("click", () => {
       $("#pkRules").hidden = true;
-      try { localStorage.setItem("twistboard." + G.id + ".seenRules", "1"); } catch (e) {}
       if (!ST.mode) openMode();
     });
     $("#pkNewBtn").addEventListener("click", openMode);
@@ -795,6 +810,7 @@
       if (m.id === "pkRules") return $("#pkRulesOk").click();
       m.hidden = true;
     }));
+    if (window.TB && TB.closeX) TB.closeX({ "#pkRules": "#pkRulesOk", "#pkMode": "#pkModeCancel", "#pkNet": "#pkNetCancel" });
     window.addEventListener("resize", () => { if (ST.view && ST.view.resize) ST.view.resize(); });
     if (window.TB) TB.onLang(l => { if (l !== LANG) setLang(l); });
   }
@@ -809,8 +825,7 @@
       draft = loadPrefs();
       startOnline("join", room);
     } else {
-      let seen = false; try { seen = !!localStorage.getItem("twistboard." + G.id + ".seenRules"); } catch (e) {}
-      if (seen) openMode(); else $("#pkRules").hidden = false;
+      $("#pkRules").hidden = false;   // như các game khác: mở trang là hiện Luật chơi, bấm OK mới tới bảng Ván mới
     }
     window.game = { get state() { return ST; }, get net() { return NET; }, G, RNG, tr, submitAnswer(v) { ST.input = String(v); submit(); } };
   }

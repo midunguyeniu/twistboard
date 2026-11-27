@@ -212,7 +212,7 @@ body.portrait .side{width:var(--S)}
     <h3 data-i18n="r_h_opp"></h3>
     <ul><li data-i18n="r_ai"></li><li data-i18n="r_online"></li></ul>
     <p class="note" data-i18n="r_inspired"></p>
-    <div class="foot"><span class="note credit" data-i18n="r_credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok"></button></div>
+    <div class="foot"><span class="note credit tb-credit"></span><button class="btn primary" id="rulesOk" data-i18n="r_ok"></button></div>
   </div>
 </div>
 
@@ -288,7 +288,7 @@ vi: {
   r_ai: "<b>AI</b> có 7 mức, từ IQ 40 đến IQ 160. AI chỉ thấy bàn cờ, kết quả các vòng và cược của chính nó, không thấy cược hay số điểm của bạn.",
   r_online: "<b>Chơi online</b>: một người tạo phòng rồi gửi mã 5 ký tự hoặc link mời. Cược được niêm phong trên cả hai máy rồi mới gửi số thật, nên không ai nhìn trộm được.",
   r_inspired: "Lấy cảm hứng từ trò Point Gomoku trong The Devil's Plan.",
-  r_credit: "Game được làm bởi Gary Duc Nguyen", r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
+  r_ok: "Đã hiểu", m_back: "Xem lại Luật chơi",
   m_title: "Ván mới", m_vs: "Đối thủ", m_bot: "Chơi với AI", m_online: "Chơi online",
   m_net: "Phòng online", m_create: "Tạo phòng", m_join: "Vào phòng", m_code_ph: "Mã phòng",
   m_net_create: "Bạn cầm quân Đen, khách cầm quân Trắng. Người chọn ô vòng đầu được bốc thăm.",
@@ -363,7 +363,7 @@ en: {
   r_ai: "The <b>AI</b> has 7 levels, from IQ 40 to IQ 160. It sees the board, past results and its own bids, never your bids or points.",
   r_online: "<b>Online</b>: one player creates a room and sends the 5-letter code or invite link. Bids are sealed on both devices before the real numbers are sent, so nobody can peek.",
   r_inspired: "Inspired by Point Gomoku from The Devil's Plan.",
-  r_credit: "Game made by Gary Duc Nguyen", r_ok: "Got it", m_back: "Back to Rules",
+  r_ok: "Got it", m_back: "Back to Rules",
   m_title: "New Game", m_vs: "Opponent", m_bot: "Play vs AI", m_online: "Play online",
   m_net: "Online room", m_create: "Create room", m_join: "Join room", m_code_ph: "Room code",
   m_net_create: "You play Black, your guest plays White. The first chooser is drawn at random.",
@@ -1299,6 +1299,7 @@ window.addEventListener("resize", fit);
     modeDraft = { ...clone(PREFS), vs: "online", net: "join", code: room };
     startOnline();
   } else openRules();
+  if (window.TB && TB.closeX) TB.closeX({ "#mRules": "#rulesOk", "#mMode": "#modeCancel", "#mNet": "#netCancel", "#gameover": "#goView" });   // nút × góc trên phải mỗi popup, bấm = nút đóng/huỷ sẵn có
   window.game = {   // tiện debug ở console
     get mode() { return MODE; }, get G() { return G; }, get bd() { return bd; }, get ai() { return AIS; },
     clickCell, confirmSelection, lockBid, applyTriple, stateHash, fives, aiBid, aiChooseTriple, legalTriples,

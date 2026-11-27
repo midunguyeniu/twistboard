@@ -32,6 +32,15 @@
 .kt-board.won{box-shadow:0 0 0 5px #fff,0 0 0 8px var(--tb-green),0 12px 28px rgba(20,30,60,.2)}
 .kt-board.won .kt-path polyline{stroke:var(--tb-green);stroke-opacity:.6}
 .kt-board.off .kt-cell.can::after{display:none}
+/* bàn nhỏ trong thẻ Luật chơi */
+.ktr-b{position:relative;display:grid;grid-template-columns:repeat(5,22px);grid-template-rows:repeat(5,22px);box-shadow:0 0 0 2px #fff,0 0 0 3px #b9a684}
+.ktr-b span{display:grid;place-items:center;font-weight:900;font-size:10.5px;color:#6b5636;font-variant-numeric:tabular-nums}
+.ktr-b .lt{background:#f3e7cf}.ktr-b .dk{background:#d9c19a}
+.ktr-b .v.lt{background:#dde6f8}.ktr-b .v.dk{background:#c2d0ee}.ktr-b .v{color:#2c3e6e}
+.ktr-b .cur{background:#fff6d8}.ktr-b .cur.stuck{background:#f5c4bf}
+.ktr-b .can::after{content:"";width:30%;height:30%;border-radius:50%;background:#2ea65a;box-shadow:0 0 0 2px rgba(46,166,90,.25)}
+.ktr-b img{width:110%;height:110%;object-fit:contain;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.ktr-undo{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1.5px solid #2b2f3a;border-radius:8px;padding:1px 9px;font-weight:900;font-size:12px;color:#1d2330}
 @media (max-width:780px){.kt-board{width:min(100%,calc(100vh - 250px));box-shadow:0 0 0 3px #fff,0 0 0 4px var(--tb-border),0 8px 18px rgba(20,30,60,.18)}}
 </style>
 </head>
@@ -151,8 +160,30 @@ function mountKT(el, pz, ctx) {
   };
 }
 
+/* ---------- THẺ LUẬT CHƠI ---------- */
+/* path: các ô đã đi [hàng, cột], ô cuối là chỗ Mã đang đứng; dots: ô có chấm xanh */
+function ktrBoard(path, dots, stuck) {
+  const at = new Map(path.map(([r, c], i) => [r * 5 + c, i])), dot = new Set(dots.map(([r, c]) => r * 5 + c));
+  let h = "";
+  for (let i = 0; i < 25; i++) {
+    const r = Math.floor(i / 5), c = i % 5, k = at.get(i), cls = [(r + c) % 2 ? "dk" : "lt"];
+    if (k === path.length - 1) cls.push("cur", stuck ? "stuck" : "");
+    else if (k !== undefined) cls.push("v");
+    if (dot.has(i)) cls.push("can");
+    h += `<span class="${cls.join(" ").trim()}">${k === path.length - 1 ? `<img src="${KNIGHT_IMG}" alt="">` : k !== undefined ? k + 1 : ""}</span>`;
+  }
+  return `<div class="ktr-b">${h}</div>`;
+}
+const KT_CARDS = [
+  { h: "c1_h", p: "c1_p", fig: () => ktrBoard([[2, 2]], [[0, 1], [0, 3], [1, 0], [1, 4], [3, 0], [3, 4], [4, 1], [4, 3]]) },
+  { h: "c2_h", p: "c2_p", fig: () => ktrBoard([[0, 0], [1, 2], [0, 4], [2, 3], [4, 4], [3, 2], [4, 0], [2, 1], [0, 2]], [[1, 0], [1, 4]]) },
+  { h: "c3_h", p: "c3_p", fig: ({ tr }) => ktrBoard([[0, 1], [1, 3], [3, 4], [4, 2], [2, 3], [4, 4], [3, 2], [2, 4], [4, 3], [3, 1], [1, 2], [0, 4]], [], true) +
+      `<span class="ktr-undo">↶ ${tr("t_undo")}</span>` },
+];
+
 PK.start({
   id: "knight-tour", peerPrefix: "knighttour-", proto: 2, kind: "self",   // proto 2: online đổi sang chọn kích thước bàn
+  ruleCards: KT_CARDS, ruleCardsBg: "#d5dae3",
   solo: { stages: 1, useLevel: true, gen: ktSolo },
   online: { target: 2, maxRounds: 3, roundMs: 0, levels: KT_SIZES, defaultLevel: "5", wrong: null, gen: ktOnline },
   mount: mountKT,
@@ -167,6 +198,9 @@ PK.start({
     vi: {
       brand: "Knight's Tour", tagline: "Cho quân Mã nhảy qua mọi ô trên bàn, mỗi ô đúng một lần.",
       r_intro: "Bài toán Mã đi tuần: quân Mã nhảy hình chữ L và phải ghé mọi ô của bàn cờ, mỗi ô đúng một lần.",
+      c1_h: "Mã đi hình chữ L", c1_p: "2 ô theo một hướng rồi 1 ô sang ngang. Chỉ nhảy được vào ô có chấm xanh.",
+      c2_h: "Đi qua mỗi ô đúng một lần", c2_p: "Ô đã đi giữ số thứ tự và không đi vào lại được. Đi kín bàn là xong.",
+      c3_h: "Bí đường thì lùi lại", c3_p: "Hết chỗ nhảy thì bấm Đi lại để lùi rồi thử đường khác. Lùi không bị phạt nhưng đồng hồ vẫn chạy.",
       h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
       r_rules: ["Mã nhảy hình chữ L: 2 ô theo một hướng rồi 1 ô sang ngang. Ô có chấm xanh là ô Mã nhảy tới được.",
         "Ô đã đi giữ số thứ tự và không được đi vào lần nữa. Không cần quay về ô xuất phát.",
@@ -190,6 +224,9 @@ PK.start({
     en: {
       brand: "Knight's Tour", tagline: "Land the knight on every square of the board, once each.",
       r_intro: "The classic knight's tour: the knight jumps in an L and must land on every square of the board exactly once.",
+      c1_h: "The knight moves in an L", c1_p: "Two squares one way, then one sideways. Only the squares with a green dot can be reached.",
+      c2_h: "Land on every square once", c2_p: "Each square you land on keeps its number and can't be used again. Fill the board to finish.",
+      c3_h: "Stuck? Undo", c3_p: "With nowhere to go, press Undo to step back and try another way. Undoing has no penalty, but the clock keeps running.",
       h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
       r_rules: ["The knight jumps in an L: two squares one way, then one sideways. Green dots mark the squares it can reach.",
         "Each square you land on keeps its number and can't be used again. You don't need to return to the start.",

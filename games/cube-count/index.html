@@ -14,6 +14,16 @@
 .cc{width:100%;display:grid;place-items:center}
 .cc canvas{display:block;max-width:100%;touch-action:none;cursor:grab;border-radius:12px;background:radial-gradient(ellipse at 50% 40%,#fbfcff,#e9eef7 75%)}
 .cc canvas:active{cursor:grabbing}
+/* hình nhỏ trong thẻ Luật chơi */
+.ccr-svg{display:block;overflow:visible}
+.ccr-t{background:#1d2330;color:#fff;border-radius:99px;padding:1px 12px;font-family:var(--tb-font-brand);font-weight:800;font-size:15px;line-height:1.35;align-self:flex-end;margin-right:4px}
+.ccr-in{display:flex;align-items:center;justify-content:space-between;gap:10px;width:118px;background:#fff;border:2px solid #2b2f3a;border-radius:9px;padding:4px 8px 4px 12px;
+  font-family:var(--tb-font-brand);font-weight:800;font-size:22px;line-height:1.1;color:#1d2330}
+.ccr-ic{width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-size:11px;font-family:var(--tb-font);font-weight:900;line-height:1}
+.ccr-row{display:flex;gap:6px}
+.ccr-pill{display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:3px 8px;font-weight:900;font-size:13px;line-height:1.2;border:1.5px solid #2b2f3a;background:#fff;color:#1d2330}
+.ccr-pill.bad{background:#fde3e1;border-color:#e57d74;color:#c0392b}
+.ccr-pill.bad s{text-decoration-thickness:2px}
 </style>
 </head>
 <body>
@@ -23,16 +33,26 @@
 "use strict";
 /* RULES-START: sinh đề, không đụng DOM (cắt ra chạy bằng Node được)
    Đề là một "bản đồ chiều cao": lưới w×d, mỗi ô là một cột khối xếp chồng (h[y*w+x] khối). Không khối nào lơ lửng. */
-function ccTarget(stage) { return Math.round(3 + Math.pow(stage - 1, 1.55) * 1.01); }   // số khối mục tiêu: màn 1 = 3, màn 10 ≈ 33, màn 20 ≈ 100
-function ccMaxH(stage) { return Math.min(2 + Math.floor((stage - 1) / 3), 7); }
-function ccGen(stage, rng) {
-  const T = ccTarget(stage), lo = Math.max(3, Math.floor(T * 0.85)), hi = Math.max(lo + 1, Math.ceil(T * 1.15)), maxH = ccMaxH(stage);
+/* Độ khó: mỗi mức là một dải số khối mục tiêu (đề đầu → đề cuối, tăng theo cấp số nhân) và chiều cao cột tối đa.
+   Dễ/Vừa theo các tầng của Cube Count gốc (DUVA: 3-12, 11-23, 22-55), Khó theo Cube Count 2 (khoảng 35 tới 175 khối, khối rộng và cao hơn). */
+const CC_LEVELS = {
+  easy:   { t: [6, 26],   h: [2, 4] },
+  normal: { t: [30, 65],  h: [4, 6] },
+  hard:   { t: [80, 175], h: [6, 9] },
+};
+const CC_SOLO = 5;   // chơi một mình: 5 câu mỗi mức
+function ccSpec(level, i, n) {   // đề thứ i (1..n) của mức level
+  const L = CC_LEVELS[level] || CC_LEVELS.normal, f = n > 1 ? (i - 1) / (n - 1) : 0;
+  return { T: Math.round(L.t[0] * Math.pow(L.t[1] / L.t[0], f)), maxH: Math.round(L.h[0] + (L.h[1] - L.h[0]) * f) };
+}
+function ccBuild(T, maxH, rng) {
+  const lo = Math.max(3, Math.floor(T * 0.85)), hi = Math.max(lo + 1, Math.ceil(T * 1.15));
   let best = null, bestD = Infinity;
   for (let t = 0; t < 600; t++) {
     const fill = 0.42 + rng() * 0.25, area = Math.max(2, T / (maxH * fill));
-    const w0 = Math.max(2, Math.min(8, Math.round(Math.sqrt(area) * (0.75 + rng() * 0.5))));
-    const d0 = Math.max(2, Math.min(8, Math.round(area / w0)));
-    const np = 1 + Math.floor(rng() * Math.min(3, 1 + stage / 6)), peaks = [];
+    const w0 = Math.max(2, Math.min(10, Math.round(Math.sqrt(area) * (0.75 + rng() * 0.5))));
+    const d0 = Math.max(2, Math.min(10, Math.round(area / w0)));
+    const np = 1 + Math.floor(rng() * Math.min(3, 1 + T / 20)), peaks = [];
     for (let p = 0; p < np; p++) peaks.push({ x: rng() * (w0 - 1), y: rng() * (d0 - 1), h: maxH * (0.6 + rng() * 0.4), f: 0.55 + rng() * 1.0 });
     const raw = [];
     for (let y = 0; y < d0; y++) for (let x = 0; x < w0; x++) {
@@ -50,15 +70,15 @@ function ccGen(stage, rng) {
     const h = [];
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) h.push(raw[y * w0 + x]);
     const total = h.reduce((a, b) => a + b, 0);
-    const pz = { w, d, h, total, stage };
+    const pz = { w, d, h, total };
     if (total >= lo && total <= hi) return pz;
     const dist = Math.abs(total - T); if (dist < bestD) { bestD = dist; best = pz; }
   }
   return best;
 }
-/* Online: đề k (1..7) lấy độ khó của màn tương ứng theo mức chủ phòng chọn */
-const CC_LEVELS = { easy: [3, 5, 6, 7, 8, 9, 10], normal: [7, 9, 10, 11, 12, 13, 14], hard: [12, 14, 15, 16, 17, 18, 20] };
-function ccOnline(k, level, rng) { const L = CC_LEVELS[level] || CC_LEVELS.normal; return ccGen(L[Math.min(k, L.length) - 1], rng); }
+function ccGen(stage, rng, level) { const sp = ccSpec(level, stage, CC_SOLO); return { ...ccBuild(sp.T, sp.maxH, rng), stage, level }; }
+/* Online: 7 đề trải đều cùng dải số khối của mức chủ phòng chọn */
+function ccOnline(k, level, rng) { const sp = ccSpec(level, k, 7); return { ...ccBuild(sp.T, sp.maxH, rng), stage: k, level }; }
 /* RULES-END */
 
 /* ---------- VẼ 3D (phép chiếu song song, xoay quanh trục đứng, vẽ từ xa tới gần) ---------- */
@@ -89,13 +109,9 @@ function mountCC(el, pz, ctx) {
     const P = (x, y, z) => { const X = x - cx0, Y = y - cy0, Z = z - cz0; return [ox + s * (X * cy - Y * sy), oy - s * (Z * cp + (X * sy + Y * cy) * sp)]; };
     const depth = (x, y, z) => -((x - cx0) * sy + (y - cy0) * cy) * cp + (z - cz0) * sp;
     g.lineJoin = "round"; g.lineCap = "round";
-    // nền: ô lưới dưới chân khối (giúp đếm cột)
+    // nền: tấm sàn dưới chân khối (không kẻ lưới bên trong, chủ game chọn)
     const floor = [P(-.25, -.25, 0), P(W + .25, -.25, 0), P(W + .25, D + .25, 0), P(-.25, D + .25, 0)];
     poly(floor, "rgba(74,111,216,.07)", "rgba(74,111,216,.25)", Math.max(1, s * .02));
-    g.strokeStyle = "rgba(74,111,216,.18)"; g.lineWidth = Math.max(1, s * .015); g.beginPath();
-    for (let x = 0; x <= W; x++) { const a = P(x, 0, 0), b = P(x, D, 0); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); }
-    for (let y = 0; y <= D; y++) { const a = P(0, y, 0), b = P(W, y, 0); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); }
-    g.stroke();
     const cubes = [];
     for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) for (let z = 0; z < ht(x, y); z++) cubes.push([depth(x + .5, y + .5, z + .5), x, y, z]);
     cubes.sort((a, b) => a[0] - b[0]);
@@ -153,25 +169,64 @@ function mountCC(el, pz, ctx) {
   };
 }
 
+/* ---------- THẺ LUẬT CHƠI ---------- */
+/* Vẽ khối isometric từ bản đồ chiều cao H[y][x] (cùng màu với game); labels: ghi chiều cao lên đỉnh mỗi cột */
+const CCR_H = [[3, 2, 1], [2, 2, 1], [1, 1, 1]];   // 14 khối, cột cao ở phía sau nên đỉnh nào cũng thấy
+function ccrIso(H, labels, arrow) {
+  const s = 17, kx = s * .866, ky = s * .5, P = (x, y, z) => [(x - y) * kx, (x + y) * ky - z * s];
+  const cubes = [];
+  H.forEach((row, y) => row.forEach((h, x) => { for (let z = 0; z < h; z++) cubes.push([x, y, z, z === h - 1 ? h : 0]); }));
+  cubes.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]) || a[2] - b[2]);
+  const pts = [], poly = (cs, fill) => { const q = cs.map(c => P(...c)); pts.push(...q); return `<polygon points="${q.map(p => p.map(v => v.toFixed(1)).join(",")).join(" ")}" fill="${fill}"/>`; };
+  let g = "", txt = "";
+  for (const [x, y, z, top] of cubes) {
+    g += poly([[x, y, z + 1], [x + 1, y, z + 1], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]], "#f8efdc")
+       + poly([[x, y + 1, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]], "rgb(236,220,188)")
+       + poly([[x + 1, y, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x + 1, y, z + 1]], "rgb(176,150,112)");
+    if (labels && top) { const [cx, cy] = P(x + .5, y + .5, z + 1); txt += `<text x="${cx.toFixed(1)}" y="${(cy + 4).toFixed(1)}">${top}</text>`; }
+  }
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  let x0 = Math.min(...xs) - 3, y0 = Math.min(...ys) - 3, w = Math.max(...xs) - x0 + 3, h = Math.max(...ys) - y0 + 3, arr = "";
+  if (arrow) {   // mũi tên cong bên dưới: khối đang xoay
+    const by = y0 + h + 4, l = x0 + 2, r = x0 + w - 2;
+    arr = `<path d="M${l} ${by} Q${(l + r) / 2} ${by + 16} ${r - 2} ${by}" fill="none" stroke="#1d2330" stroke-width="2.2" stroke-linecap="round"/>`
+        + `<path d="M${r - 9} ${by - 2} L${r} ${by - 2} L${r - 4} ${by + 7}" fill="none" stroke="#1d2330" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    h += 20;
+  }
+  return `<svg class="ccr-svg" width="${w.toFixed(0)}" height="${h.toFixed(0)}" viewBox="${x0.toFixed(1)} ${y0.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" aria-hidden="true">`
+    + `<g stroke="#3a2f26" stroke-width="1.1" stroke-linejoin="round">${g}</g>`
+    + `<g fill="#c0392b" font-family="Nunito,sans-serif" font-weight="900" font-size="10.5" text-anchor="middle">${txt}</g>${arr}</svg>`;
+}
+const CC_CARDS = [
+  { h: "c1_h", p: "c1_p", fig: () => ccrIso(CCR_H, false, true) },
+  { h: "c2_h", p: "c2_p", fig: () => `<span class="ccr-t">= 14</span>` + ccrIso(CCR_H, true) },
+  { h: "c3_h", p: "c3_p", fig: () => `<div class="ccr-in">14<span class="ccr-ic" style="background:#1e9e57">✓</span></div>`
+      + `<div class="ccr-row"><span class="ccr-pill bad"><s>13</s><span class="ccr-ic" style="background:#e74c3c;width:16px;height:16px;font-size:9px">✕</span></span><span class="ccr-pill">⏱ +5</span></div>` },
+];
+
 PK.start({
-  id: "cube-count", peerPrefix: "cubecount-", proto: 1, kind: "number",
-  solo: { stages: 20, gen: ccGen },
-  online: { target: 3, maxRounds: 7, roundMs: 150000, levels: ["easy", "normal", "hard"], wrong: "lock", lockMs: 20000, gen: ccOnline },
+  id: "cube-count", peerPrefix: "cubecount-", proto: 2, kind: "number",
+  ruleCards: CC_CARDS, ruleCardsBg: "#d5ddd6",
+  solo: { stages: CC_SOLO, gen: ccGen, useLevel: true },
+  online: { target: 3, maxRounds: 7, roundMs: 150000, levels: ["easy", "normal", "hard"], defaultLevel: "easy", wrong: "lock", lockMs: 20000, gen: ccOnline },
   answer: pz => pz.total,
   mount: mountCC,
   prompt: (pz, ctx) => `<span class="q">${ctx.tr("prompt_q")}</span>${ctx.tr("prompt")}<span class="hint">${ctx.tr("hint")}</span>`,
-  stageNote: (pz, stage) => PK.tr(stage <= 4 ? "sn_1" : stage <= 8 ? "sn_2" : stage <= 14 ? "sn_3" : "sn_4"),
+  stageNote: pz => PK.tr("sn_" + (pz.level || "normal")),
   rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
   i18n: {
     vi: {
       brand: "Cube Count", tagline: "Đếm hết khối lập phương trong khối hình đang xoay, kể cả khối bị che.",
       r_intro: "Một khối hình xếp từ các khối lập phương bằng nhau đang xoay trên màn hình. Hãy đếm xem có tất cả bao nhiêu khối, kể cả những khối nằm khuất phía sau và bên dưới.",
+      c1_h: "Đếm khối đang xoay", c1_p: "Khối hình tự xoay. Đếm hết các khối, kể cả khối khuất phía sau và bên dưới.",
+      c2_h: "Cộng chiều cao các cột", c2_p: "Thấy đỉnh một cột thì bên dưới đầy khối. Cộng chiều cao các cột là ra đáp án.",
+      c3_h: "Nhập số khối", c3_p: "Đúng thì sang màn sau. Sai bị cộng 5 giây, đồng hồ vẫn chạy.",
       h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
       r_rules: ["Không khối nào lơ lửng: mỗi khối nằm trên sàn hoặc ngay trên một khối khác. Thấy đỉnh một cột cao 3 thì dưới đó có đủ 3 khối.",
         "Hình tự xoay. Kéo ngang để xoay, kéo dọc để nghiêng nhìn từ trên xuống. Nút Dừng xoay để giữ yên.",
         "Nhập số khối bằng bàn phím số rồi bấm Trả lời (hoặc gõ phím số + Enter)."],
-      r_solo: ["20 màn, số khối tăng dần từ khoảng 3 tới khoảng 100.", "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một màn thì phải chờ lâu dần mới được trả lời lại.",
-        "Tính tổng thời gian cả 20 màn. Kỷ lục (màn cao nhất, thời gian ngắn nhất) lưu trên máy này."],
+      r_solo: ["Chọn độ khó Dễ, Vừa hoặc Khó. Mỗi mức có 5 câu, khối to dần: Dễ khoảng 6 tới 26 khối, Vừa 30 tới 65, Khó 80 tới 175 (khối rộng và cao hơn).", "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một câu thì phải chờ lâu dần mới được trả lời lại.",
+        "Tính tổng thời gian cả 5 câu. Kỷ lục (câu xa nhất, thời gian ngắn nhất) lưu riêng từng mức trên máy này."],
       r_online: ["Hai người cùng xem một khối hình, ai trả lời đúng trước được 1 điểm. Ai đạt 3 điểm trước thì thắng.",
         "Trả lời sai bị khoá 20 giây, trong lúc đó đối thủ vẫn trả lời được.", "Mỗi đề có 2 phút 30 giây. Hết giờ mà không ai đúng thì không ai được điểm.",
         "Thứ tự đúng tính theo thời gian giải trên máy mỗi người, nên mạng chậm không bị thiệt."],
@@ -181,18 +236,21 @@ PK.start({
       r_note: "Lấy cảm hứng từ trò đếm khối lập phương trong show The Devil's Plan (Netflix). Game không liên kết với Netflix.",
       prompt_q: "Đếm khối", prompt: "Có tất cả bao nhiêu khối lập phương?", hint: "Kéo ngang để xoay, kéo dọc để nghiêng. Thấy đỉnh cột thì bên dưới đầy khối.",
       t_pause: "Dừng xoay", t_play: "Xoay tiếp", t_view: "Góc nhìn chuẩn",
-      sn_1: "Khối hình nhỏ để làm quen.", sn_2: "Khối hình vừa, bắt đầu có cột bị che.", sn_3: "Khối hình lớn, cần đếm có hệ thống.", sn_4: "Khối hình rất lớn, khoảng 55 tới 100 khối.",
-      lvn_easy: "Khối hình nhỏ, khoảng 5 tới 35 khối.", lvn_normal: "Khối hình vừa, khoảng 20 tới 60 khối.", lvn_hard: "Khối hình lớn, khoảng 45 tới 100 khối.",
+      sn_easy: "Khối hình nhỏ, đếm từng cột là ra.", sn_normal: "Khối hình vừa, có cột bị che phía sau.", sn_hard: "Khối hình lớn và cao, cần đếm có hệ thống.",
+      lvn_easy: "Khối hình nhỏ, khoảng 6 tới 26 khối.", lvn_normal: "Khối hình vừa, khoảng 30 tới 65 khối.", lvn_hard: "Khối hình lớn và cao, khoảng 80 tới 175 khối.",
     },
     en: {
       brand: "Cube Count", tagline: "Count every cube in the turning stack, hidden ones too.",
       r_intro: "A stack of identical cubes turns on the screen. Work out how many cubes it holds, including the ones hidden at the back and underneath.",
+      c1_h: "Count the turning cubes", c1_p: "The figure keeps turning. Count every cube, even the ones hidden at the back and bottom.",
+      c2_h: "Add up the columns", c2_p: "A column whose top you can see is full below it. Add the column heights to get the answer.",
+      c3_h: "Enter the count", c3_p: "Get it right to move on. A wrong answer adds 5 seconds while the clock keeps running.",
       h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
       r_rules: ["No cube floats: each one sits on the floor or right on top of another. If you see the top of a column 3 high, it holds 3 cubes.",
         "The stack turns by itself. Drag sideways to turn it, drag up or down to tilt and look from above. Press Pause to hold it still.",
         "Type the count on the keypad and press Answer (or use the number keys and Enter)."],
-      r_solo: ["20 stages, growing from about 3 cubes to about 100.", "A wrong answer adds 5 seconds. From the 3rd miss on the same stage you wait longer and longer before you can answer again.",
-        "Your total time over the 20 stages counts. Your best (highest stage, shortest time) is saved on this device."],
+      r_solo: ["Pick Easy, Medium or Hard. Each level has 5 puzzles that grow as you go: Easy about 6 to 26 cubes, Medium 30 to 65, Hard 80 to 175 (wider, taller stacks).", "A wrong answer adds 5 seconds. From the 3rd miss on the same puzzle you wait longer and longer before you can answer again.",
+        "Your total time over the 5 puzzles counts. Your best (furthest puzzle, shortest time) is saved per level on this device."],
       r_online: ["Both players see the same stack and the first correct answer scores a point. First to 3 points wins.",
         "A wrong answer locks you out for 20 seconds while your opponent can still answer.", "Each puzzle has 2 minutes 30 seconds. If nobody gets it, nobody scores.",
         "Who answered first is decided by each player's own solving time, so a slow connection doesn't cost you."],
@@ -202,8 +260,8 @@ PK.start({
       r_note: "Inspired by the cube counting game on The Devil's Plan (Netflix). Not affiliated with Netflix.",
       prompt_q: "Cube count", prompt: "How many cubes are there in total?", hint: "Drag sideways to turn, up or down to tilt. A visible top means the column is full below it.",
       t_pause: "Pause", t_play: "Spin", t_view: "Reset view",
-      sn_1: "A small stack to warm up.", sn_2: "A medium stack, with some columns hidden.", sn_3: "A big stack: count it step by step.", sn_4: "A huge stack, about 55 to 100 cubes.",
-      lvn_easy: "Small stacks, about 5 to 35 cubes.", lvn_normal: "Medium stacks, about 20 to 60 cubes.", lvn_hard: "Big stacks, about 45 to 100 cubes.",
+      sn_easy: "A small stack: count it column by column.", sn_normal: "A medium stack, with some columns hidden at the back.", sn_hard: "A big, tall stack: count it step by step.",
+      lvn_easy: "Small stacks, about 6 to 26 cubes.", lvn_normal: "Medium stacks, about 30 to 65 cubes.", lvn_hard: "Big, tall stacks, about 80 to 175 cubes.",
     },
   },
 });

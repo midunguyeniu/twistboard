@@ -120,6 +120,16 @@ body.tb-home .tb-search:focus-within{background:#fff}
 .tb-soon .acts{display:flex;gap:10px;flex-wrap:wrap}
 .tb-more{margin-top:22px}
 
+/* ---------- dòng ghi công "Game được làm bởi..." (class tb-credit, chữ do platform.js điền) ---------- */
+.tb-credit{margin-right:auto;align-self:center}
+
+/* ---------- nút × đóng popup (TB.closeX) ---------- */
+/* nổi góc trên phải, dính khi cuộn trong popup dài */
+.tb-x{position:sticky;top:0;float:right;z-index:4;width:34px;height:34px;margin:-10px -14px 0 10px;padding:0;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--tb-muted);font:400 28px/1 Arial,sans-serif;cursor:pointer}
+.go-card{position:relative}
+.go-card > .tb-x{position:absolute;top:8px;right:8px;float:none;margin:0}   /* thẻ hết ván canh giữa: × không đẩy chữ */
+.tb-x:hover{background:var(--tb-hover);color:var(--tb-text)}
+
 /* ---------- màn hình nhỏ ---------- */
 @media (max-width:720px){
   :root{--tb-header-h:auto}

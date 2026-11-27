@@ -31,6 +31,22 @@
 .bx-hl{position:absolute;border:4px solid var(--hc,#e74c3c);border-radius:8px;background:color-mix(in srgb,var(--hc,#e74c3c) 14%,transparent);pointer-events:none;
   box-shadow:0 0 0 2px #fff;transition:all .22s ease-out;z-index:2}
 .bx-count{font-size:14px;font-weight:800;color:var(--tb-muted);min-height:1.4em}
+/* hình nhỏ trong thẻ Luật chơi */
+.bxr-t{background:#1d2330;color:#fff;border-radius:99px;padding:1px 12px;font-family:var(--tb-font-brand);font-weight:800;font-size:15px;line-height:1.35}
+.bxr-wrap{display:flex;align-items:flex-start;gap:5px;--m:27px}
+.bxr-marks{display:grid;grid-template-rows:repeat(var(--r),var(--m))}
+.bxr-marks i{display:grid;place-items:center;font-style:normal}
+.bxr-marks b{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:10px;line-height:1}
+.bxr-marks .no b{background:#e74c3c}.bxr-marks .ok b{background:#1e9e57}
+.bxr-g{position:relative;display:grid;grid-template-columns:repeat(var(--c),var(--m));grid-template-rows:repeat(var(--r),var(--m));outline:2px solid #2b2f3a}
+.bxr-g span{background:#fffdf8;border:.7px solid #2b2f3a;display:grid;place-items:center;font-family:var(--tb-font-brand);font-weight:800;font-size:14px;color:#1d2330;line-height:1}
+.bxr-g span.neg{color:#c0392b}
+.bxr-g span.hole{background:#d6b994;border-color:#c09f7a}
+.bxr-g em{position:absolute;border:2.5px solid var(--bc);border-radius:6px;background:color-mix(in srgb,var(--bc) 16%,transparent);pointer-events:none}
+.bxr-g em.dash{border-style:dashed}
+.bxr-cap{font-weight:900;font-size:13px;color:#1d2330}
+.bxr-sp{width:22px}
+@media (max-width:560px){.bxr-sp{display:none}}
 </style>
 </head>
 <body>
@@ -251,8 +267,10 @@ const BX_STAGES = [
   [5, 6, 12, 22, .28, 5, 0, .12, 5, 10], [6, 6, 12, 24, .28, 5, 0, .12, 6, 10], [6, 6, 12, 24, .30, 6, 0, .12, 6, 11], [6, 7, 14, 26, .30, 6, 0, .12, 6, 12], [6, 7, 14, 26, .32, 7, 0, .14, 7, 12],
   [6, 6, 6, 20, .25, 4, .15, .10, 6, 12], [6, 7, 6, 20, .28, 5, .15, .10, 6, 13], [6, 7, 6, 22, .30, 6, .18, .10, 7, 13], [7, 7, 6, 22, .30, 7, .18, .12, 7, 14], [7, 7, 6, 24, .32, 8, .20, .12, 8, 15], [7, 8, 6, 24, .32, 9, .20, .12, 8, 16],
 ];
-const BX_SPECIAL = [3, 6, 9, 12, 15, 18, 20];   // các màn lấy đề đặc biệt
-const bxTier = stage => stage <= 4 ? 1 : stage <= 9 ? 2 : stage <= 14 ? 3 : 4;
+const BX_SPECIAL = [3, 6, 9, 12, 15, 18, 20];   // các dòng BX_STAGES ứng với đề đặc biệt khi online (bxOnline bỏ qua chúng)
+/* Chơi một mình: mỗi mức 5 câu. Số = dòng trong BX_STAGES (đề thường), "sN" = đề đặc biệt bậc N */
+const BX_SOLO = { easy: [2, 4, "s1", 7, "s2"], normal: [8, 10, "s2", 13, "s3"], hard: [16, 17, "s3", 19, "s4"] };
+const BX_SOLO_N = 5;
 function bxShape(R, C, missing, rng) {   // khoét `missing` ô từ mép vào, giữ các ô còn lại liền nhau
   const alive = new Array(R * C).fill(true);
   const edge = i => { const r = Math.floor(i / C), c = i % C; return r === 0 || c === 0 || r === R - 1 || c === C - 1 || !alive[i - C] || !alive[i + C] || !alive[i - 1] || !alive[i + 1]; };
@@ -300,9 +318,10 @@ function bxSpecial(tier, rng) {
   pz.answer = bxCount(pz); pz.special = true;
   return pz;
 }
-function bxGen(stage, rng) {
-  const pz = BX_SPECIAL.includes(stage) ? bxSpecial(bxTier(stage), rng) : bxBase(stage, rng);
-  pz.stage = stage; return pz;
+function bxGen(stage, rng, level) {
+  const L = BX_SOLO[level] || BX_SOLO.easy, s = L[Math.min(stage, L.length) - 1];
+  const pz = typeof s === "string" ? bxSpecial(+s.slice(1), rng) : bxBase(s, rng);
+  pz.stage = stage; pz.level = BX_SOLO[level] ? level : "easy"; return pz;
 }
 /* Online: đề chẵn là đề đặc biệt (bậc theo độ khó chủ phòng chọn), đề lẻ là đề thường */
 const BX_LEVELS = { easy: [3, 4, 5, 6, 7, 8, 9], normal: [7, 8, 10, 11, 12, 13, 14], hard: [12, 14, 15, 16, 17, 18, 20] };
@@ -372,27 +391,48 @@ function mountBX(el, pz, ctx) {
   };
 }
 
+/* ---------- THẺ LUẬT CHƠI ---------- */
+/* cells: số, "" (ô trắng = 0) hoặc null (chỗ khuyết); boxes: [r1, c1, r2, c2, màu, nét đứt?]; marks: dấu ✗/✓ đầu mỗi hàng */
+function bxrGrid(rows, cols, cells, boxes, marks) {
+  const cellHtml = cells.map(v => v === null ? `<span class="hole"></span>` : `<span${typeof v === "number" && v < 0 ? ` class="neg"` : ""}>${typeof v === "number" && v < 0 ? "−" + -v : v}</span>`).join("");
+  const boxHtml = boxes.map(([r1, c1, r2, c2, col, dash]) =>
+    `<em class="${dash ? "dash" : ""}" style="--bc:${col};left:calc(var(--m) * ${c1} + 1px);top:calc(var(--m) * ${r1} + 1px);width:calc(var(--m) * ${c2 - c1 + 1} - 2px);height:calc(var(--m) * ${r2 - r1 + 1} - 2px)"></em>`).join("");
+  const markHtml = marks ? `<div class="bxr-marks" style="--r:${rows}">${marks.map(m => m ? `<i class="${m}"><b>${m === "ok" ? "✓" : "✕"}</b></i>` : "<i></i>").join("")}</div>` : "";
+  return `<div class="bxr-wrap">${markHtml}<div class="bxr-g" style="--r:${rows};--c:${cols}">${cellHtml}${boxHtml}</div>${marks ? `<div class="bxr-sp"></div>` : ""}</div>`;
+}
+const BX_CARDS = [
+  { h: "c1_h", p: "c1_p", fig: ({ tr }) => `<span class="bxr-t">= 5</span>` +
+      bxrGrid(3, 3, [2, 3, 1, 1, 6, 4, 7, 5, 2], [[0, 0, 0, 1, "#e74c3c"], [0, 2, 1, 2, "#2f6fd6"], [2, 1, 2, 1, "#8e44ad"]]) + `<span class="bxr-cap">${tr("c1_cap")}</span>` },
+  { h: "c2_h", p: "c2_p", fig: () => `<span class="bxr-t">= 5</span>` +
+      bxrGrid(3, 3, [2, 3, 1, 1, null, 4, "", 5, 2], [[1, 0, 1, 2, "#e74c3c", true], [2, 0, 2, 1, "#1e9e57"]], [null, "no", "ok"]) },
+  { h: "c3_h", p: "c3_p", fig: () => `<span class="bxr-t">= 5</span>` +
+      bxrGrid(2, 3, [4, -2, 3, 2, 6, -1], [[0, 0, 0, 2, "#2f6fd6"], [1, 1, 1, 2, "#e74c3c"]]) + `<span class="bxr-cap">4 − 2 + 3 = 5</span>` },
+];
+
 PK.start({
-  id: "box-count", peerPrefix: "boxcount-", proto: 2, kind: "number",
-  solo: { stages: 20, gen: bxGen },
-  online: { target: 3, maxRounds: 7, roundMs: 180000, levels: ["easy", "normal", "hard"], wrong: "out", gen: bxOnline },
+  id: "box-count", ruleCards: BX_CARDS, ruleCardsBg: "#ecd8c0", peerPrefix: "boxcount-", proto: 2, kind: "number",
+  solo: { stages: BX_SOLO_N, gen: bxGen, useLevel: true },
+  online: { target: 3, maxRounds: 7, roundMs: 180000, levels: ["easy", "normal", "hard"], defaultLevel: "easy", wrong: "out", gen: bxOnline },
   answer: pz => pz.answer,
   mount: mountBX,
   prompt: (pz, ctx) => `<span class="q">${ctx.tr("prompt_q", bxTargetText(pz))}</span>${ctx.tr("prompt", bxTargetText(pz))}<span class="hint">${ctx.tr("hint")}</span>`,
-  stageNote: (pz, stage) => PK.tr(stage <= 4 ? "sn_1" : stage <= 9 ? "sn_2" : stage <= 14 ? "sn_3" : "sn_4"),
+  stageNote: pz => PK.tr("sn_" + (pz.level || "easy")),
   rules: [["h_rules", ["r_rules"]], ["h_solo", ["r_solo"]], ["h_online", ["r_online"]], ["h_tips", ["r_tips"]]],
   i18n: {
     vi: {
       brand: "Box Count", tagline: "Đếm mọi hình chữ nhật trên lưới số có tổng đúng bằng số đích.",
       r_intro: "Trên bảng là một lưới số và một số đích. Hãy đếm có bao nhiêu hình chữ nhật (gồm các ô liền nhau) mà tổng các số bên trong đúng bằng số đích.",
+      c1_h: "Đếm hình có tổng bằng đích", c1_p: "Gom các ô liền nhau thành hình chữ nhật rồi cộng lại. Một ô đứng riêng cũng tính, các hình chồng lên nhau tính riêng từng hình.", c1_cap: "Đáp án: 3",
+      c2_h: "Chỗ khuyết chặn hình", c2_p: "Chỗ không có ô là lỗ, hình không đi qua được. Ô trắng không ghi số là 0, nên hình chứa nó vẫn tính.",
+      c3_h: "Số âm cộng bình thường", c3_p: "Số âm có thể xuất hiện, nhất là ở mức Khó. Nhập số hình đếm được, trả lời sai bị cộng 5 giây.",
       h_rules: "Luật", h_solo: "Chơi một mình", h_online: "Online 2 người", h_tips: "Mẹo",
       r_rules: ["Chỉ tính hình chữ nhật (hình vuông cũng là hình chữ nhật). Hình chéo hay hình chữ L không tính.",
         "Một ô đứng riêng cũng là một hình. Các hình chồng lên nhau vẫn tính riêng từng hình.",
         "<b>Ô trắng không ghi số tính là 0</b>: hình chứa nó vẫn được tính. Bàn có thể khuyết hình: hình chữ nhật không được đi ra chỗ không có ô.",
         "Số âm và phân số cộng bình thường. Đáp án có thể là 0.",
         "Nhập số hình đếm được rồi bấm Trả lời. Hết đề sẽ hiện lần lượt từng hình đúng."],
-      r_solo: ["20 màn: bàn lớn dần, nhiều ô trắng và ô mồi hơn, từ màn 15 có số âm.",
-        "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một màn thì phải chờ lâu dần.", "Tính tổng thời gian cả 20 màn. Kỷ lục lưu trên máy này."],
+      r_solo: ["Chọn độ khó Dễ, Vừa hoặc Khó. Mỗi mức có 5 câu, lưới lớn dần: Dễ là lưới nhỏ, Vừa là lưới vừa có nhiều ô trắng và ô mồi, Khó là lưới lớn có số âm.",
+        "Trả lời sai bị cộng 5 giây. Sai từ lần thứ 3 trong cùng một câu thì phải chờ lâu dần.", "Tính tổng thời gian cả 5 câu. Kỷ lục lưu riêng từng mức trên máy này."],
       r_online: ["Hai người cùng giải một lưới, ai trả lời đúng trước được 1 điểm. Ai đạt 3 điểm trước thì thắng.",
         "Trả lời sai là mất quyền trả lời đề đó. Cả hai cùng sai thì không ai được điểm.", "Mỗi đề có 3 phút.",
         "Thứ tự đúng tính theo thời gian giải trên máy mỗi người, nên mạng chậm không bị thiệt."],
@@ -404,20 +444,23 @@ PK.start({
       prompt_q: "Đích = {0}", prompt: "Có bao nhiêu hình chữ nhật có tổng bằng <b>{0}</b>?",
       hint: "Ô trắng tính là 0. Hình không được đi ra chỗ không có ô.",
       t_label: "Đích", hl: "Hình {0}/{1}", hl_none: "Không có hình nào: đáp án là 0.",
-      sn_1: "Lưới nhỏ để làm quen.", sn_2: "Lưới vừa, bàn bắt đầu khuyết hình.", sn_3: "Lưới lớn, nhiều ô trắng và ô mồi.", sn_4: "Lưới lớn, có cả số âm.",
+      sn_easy: "Lưới nhỏ, đếm cẩn thận là ra.", sn_normal: "Lưới vừa, bàn khuyết hình, nhiều ô trắng và ô mồi.", sn_hard: "Lưới lớn, có cả số âm.",
       lvn_easy: "Lưới nhỏ và vừa, ít bẫy.", lvn_normal: "Lưới vừa và lớn, nhiều ô trắng và bẫy hơn.", lvn_hard: "Lưới lớn có số âm, bẫy khó nhất.",
     },
     en: {
       brand: "Box Count", tagline: "Count every rectangle in the number grid that adds up to the target.",
       r_intro: "You get a grid of numbers and a target. Count how many rectangles of adjacent cells add up exactly to the target.",
+      c1_h: "Count boxes that hit the target", c1_p: "Group adjacent cells into a rectangle and add them up. Single cells and overlapping boxes each count.", c1_cap: "Answer: 3",
+      c2_h: "Holes break a box", c2_p: "A spot with no cell is a hole, so no box can cross it. An empty white cell is 0, so a box can include it.",
+      c3_h: "Negatives add as they are", c3_p: "Negative numbers can show up, mostly on Hard. Enter the count; a wrong answer adds 5 seconds.",
       h_rules: "Rules", h_solo: "Solo", h_online: "Online 2 players", h_tips: "Tips",
       r_rules: ["Only rectangles count (squares are rectangles too). Diagonal or L-shaped groups don't.",
         "A single cell is a rectangle on its own. Overlapping rectangles each count separately.",
         "<b>An empty white cell counts as 0</b>: rectangles containing it still count. The board can have an odd shape: a rectangle can't cover a spot with no cell.",
         "Negatives and fractions add as usual. The answer can be 0.",
         "Enter your count and press Answer. After each puzzle, every matching rectangle is shown in turn."],
-      r_solo: ["20 stages: the board grows, with more empty cells and decoys, and negatives from stage 15.",
-        "A wrong answer adds 5 seconds. From the 3rd miss on the same stage you wait longer and longer.", "Your total time over the 20 stages counts. Your best is saved on this device."],
+      r_solo: ["Pick Easy, Medium or Hard. Each level has 5 puzzles that grow as you go: Easy uses small grids, Medium medium grids with more empty cells and decoys, Hard big grids with negatives.",
+        "A wrong answer adds 5 seconds. From the 3rd miss on the same puzzle you wait longer and longer.", "Your total time over the 5 puzzles counts. Your best is saved per level on this device."],
       r_online: ["Both players solve the same grid and the first correct answer scores a point. First to 3 points wins.",
         "A wrong answer loses you the right to answer that puzzle. If both answer wrong, nobody scores.", "Each puzzle has 3 minutes.",
         "Who answered first is decided by each player's own solving time, so a slow connection doesn't cost you."],
@@ -429,7 +472,7 @@ PK.start({
       prompt_q: "Target = {0}", prompt: "How many rectangles add up to <b>{0}</b>?",
       hint: "Empty cells count as 0. A box can't cover a spot with no cell.",
       t_label: "Target", hl: "Box {0}/{1}", hl_none: "No box at all: the answer is 0.",
-      sn_1: "A small grid to warm up.", sn_2: "A medium grid; the board starts to take odd shapes.", sn_3: "A big grid with many empty cells and decoys.", sn_4: "A big grid with negatives too.",
+      sn_easy: "A small grid: count carefully and you will get it.", sn_normal: "A medium grid with odd shapes, many empty cells and decoys.", sn_hard: "A big grid with negatives too.",
       lvn_easy: "Small and medium grids, few traps.", lvn_normal: "Medium and big grids, more empty cells and traps.", lvn_hard: "Big grids with negatives, the trickiest traps.",
     },
   },

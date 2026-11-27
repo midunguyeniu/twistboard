@@ -20,20 +20,20 @@
 
   const I18N = {
     vi: {
-      home_title: "Twistboard · Game cờ biến thể", search_ph: "Nhập tên game...", search_btn: "Tìm",
+      home_title: "Twistboard · Game cờ biến thể", search_ph: "Nhập tên game...", search_btn: "Tìm", close: "Đóng", credit: "Game được làm bởi Gary Duc Nguyen",
       all_games: "Tất cả game", games_n: "{0} game", empty: "Không tìm thấy game nào khớp với “{0}”.", empty_cat: "Chưa có game nào trong mục này.",
       play: "Chơi ngay", home: "Trang chủ", soon: "Sắp ra mắt", soon_dev: "Game đang được phát triển",
       soon_desc_todo: "Mô tả luật chơi sẽ được cập nhật sớm.", back_home: "Về trang chủ", try_other: "Trong lúc chờ, thử {0}",
       footer: "Twistboard · Game được làm bởi Gary Duc Nguyen",
-      cat_all: "Tất cả", cat_online: "Chơi online", cat_ai: "Đấu với máy", cat_soon: "Sắp ra mắt", cat_chess: "Cờ", cat_caro: "Cờ ca-rô", cat_puzzle: "Đố trí", cat_2p: "2 người",
+      cat_all: "Tất cả", cat_online: "Chơi online", cat_ai: "Đấu với máy", cat_soon: "Sắp ra mắt", cat_chess: "Cờ", cat_caro: "Cờ ca-rô", cat_puzzle: "Đố trí", cat_card: "Bài", cat_2p: "2 người",
     },
     en: {
-      home_title: "Twistboard · Board games with a twist", search_ph: "Search games...", search_btn: "Search",
+      home_title: "Twistboard · Board games with a twist", search_ph: "Search games...", search_btn: "Search", close: "Close", credit: "Game made by Gary Duc Nguyen",
       all_games: "All games", games_n: "{0} games", empty: "No games match “{0}”.", empty_cat: "No games in this category yet.",
       play: "Play now", home: "Home", soon: "Coming soon", soon_dev: "This game is in development",
       soon_desc_todo: "The rules will be announced soon.", back_home: "Back to home", try_other: "Meanwhile, try {0}",
       footer: "Twistboard · Games made by Gary Duc Nguyen",
-      cat_all: "All games", cat_online: "Online", cat_ai: "Vs AI", cat_soon: "Coming soon", cat_chess: "Chess", cat_caro: "Gomoku", cat_puzzle: "Puzzles", cat_2p: "2 players",
+      cat_all: "All games", cat_online: "Online", cat_ai: "Vs AI", cat_soon: "Coming soon", cat_chess: "Chess", cat_caro: "Gomoku", cat_puzzle: "Puzzles", cat_card: "Cards", cat_2p: "2 players",
     },
   };
   const t = (key, ...a) => String(I18N[LANG][key] ?? I18N.vi[key] ?? key).replace(/\{(\d)\}/g, (m, i) => a[i]);
@@ -85,6 +85,27 @@
       desc: null,   // TODO: như trên
     },
     {
+      id: "sliding-tictactoe", status: "live", path: "games/sliding-tictactoe/", thumb: "assets/thumbs/sliding-tictactoe.svg",
+      name: { vi: "Sliding Tic Tac Toe", en: "Sliding Tic Tac Toe" },
+      meta: { vi: "Đấu máy · Online", en: "Vs AI · Online" },
+      tagline: { vi: "Mỗi bên chỉ 3 quân, hết quân thì kéo quân cũ đi", en: "Only 3 pieces each, then slide your old ones around" },
+      tags: ["caro", "online", "ai"], aliases: ["sliding tic tac toe", "tic tac toe", "tictactoe", "ca ro 3x3", "caro 3x3", "co ca ro", "caro", "xo", "x o", "keo quan"],
+    },
+    {
+      id: "ultimate-tictactoe", status: "live", path: "games/ultimate-tictactoe/", thumb: "assets/thumbs/ultimate-tictactoe.svg",
+      name: { vi: "Ultimate Tic Tac Toe", en: "Ultimate Tic Tac Toe" },
+      meta: { vi: "Đấu máy · Online", en: "Vs AI · Online" },
+      tagline: { vi: "9 bàn ca-rô lồng nhau, nước của bạn chọn bàn cho đối thủ", en: "Nine boards in one, your move picks your opponent's board" },
+      tags: ["caro", "online", "ai"], aliases: ["ultimate tic tac toe", "super tic tac toe", "meta tic tac toe", "tic tac toe", "tictactoe", "ca ro long nhau", "caro 9 ban", "co ca ro", "caro", "xo"],
+    },
+    {
+      id: "equation-hilo", status: "live", path: "games/equation-hilo/", thumb: "assets/thumbs/equation-hilo.svg",
+      name: { vi: "Poker Phép Tính", en: "Equation Hi-Lo" },
+      meta: { vi: "Đấu máy · Online 2-5 người", en: "Vs AI · Online 2-5 players" },
+      tagline: { vi: "Ghép phép tính sát 1 hoặc 20, cược như poker", en: "Build an equation close to 1 or 20, bet like poker" },
+      tags: ["card", "online", "ai"], aliases: ["equation hi-lo", "equation hilo", "poker phep tinh", "math poker", "poker toan", "poker", "phep tinh", "devils plan", "bai"],
+    },
+    {
       id: "knight-tour", status: "live", path: "games/knight-tour/", thumb: "assets/thumbs/knight-tour.svg",
       name: { vi: "Knight's Tour", en: "Knight's Tour" },
       meta: { vi: "Một mình · Online 2 người", en: "Solo · Online 2 players" },
@@ -108,12 +129,10 @@
   ];
   const CATS = [
     { id: "all", fill: "blue", icon: "grid" },
-    { id: "online", fill: "red", icon: "globe" },
-    { id: "ai", fill: "yellow", icon: "bot" },
-    { id: "soon", fill: "green", icon: "clock" },
     { id: "chess", icon: "pawn", ic: "ic-pink" },
     { id: "caro", icon: "xo", ic: "ic-blue" },
     { id: "puzzle", icon: "bulb", ic: "ic-orange" },
+    { id: "card", icon: "cards", ic: "ic-red" },
     { id: "2p", icon: "users", ic: "ic-green" },
   ];
 
@@ -129,6 +148,7 @@
     xo: S('<path d="m4 4 6 6M10 4 4 10"/><circle cx="17" cy="17" r="3.6"/><path d="M14 4h6M4 17h6" opacity=".5"/>'),
     users: S('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5 5.5-5s4.9 1.7 5.5 5"/><circle cx="17" cy="9" r="2.6"/><path d="M15.8 14.2c2.4-.3 4.3 1.2 4.9 4.3"/>'),
     bulb: S('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z"/>'),
+    cards: S('<rect x="3.5" y="6" width="10" height="14" rx="2" transform="rotate(-10 8.5 13)"/><rect x="10.5" y="4" width="10" height="14" rx="2" transform="rotate(8 15.5 11)"/><path d="M15.5 9v4M13.5 11h4"/>'),
     star: S('<path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.2 9.4l6.1-.8z" fill="currentColor"/>'),
     play: S('<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>'),
     home: S('<path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5"/>'),
@@ -179,15 +199,19 @@
   }
   function paintHeader() {
     const input = document.querySelector(".tb-search input"); if (!input) return;
+    document.querySelectorAll(".tb-x").forEach(b => { b.setAttribute("aria-label", t("close")); b.title = t("close"); });
     input.placeholder = t("search_ph"); document.querySelector(".tb-search button").setAttribute("aria-label", t("search_btn"));
     document.querySelectorAll(".tb-lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === LANG));
   }
+  /* dòng ghi công chuẩn của mọi game: phần tử có class "tb-credit" (thường ở chân hộp Luật chơi), tự đổi theo ngôn ngữ */
+  function paintCredits() { document.querySelectorAll(".tb-credit").forEach(e => { e.textContent = t("credit"); }); }
+  document.addEventListener("DOMContentLoaded", paintCredits);
   function setLang(l) {
     if (l !== "vi" && l !== "en") return;
     if (l === LANG) { paintHeader(); return; }
     LANG = l; try { localStorage.setItem("lang", l); } catch (e) {}
     document.documentElement.lang = l;
-    paintHeader();
+    paintHeader(); paintCredits();
     for (const cb of listeners) try { cb(l); } catch (e) { console.error(e); }
   }
 
@@ -257,8 +281,30 @@
     document.body.appendChild(f);
   }
 
+  /* nút × đóng popup ở góc trên phải: map { "#idPopup": "#idNútĐóngSẵnCó" | hàm }.
+     Bấm × chạy nút đóng/huỷ sẵn có (để giữ tác dụng phụ như huỷ kết nối online), rồi tắt hẳn mọi popup:
+     không quay lại Luật chơi hay bảng Ván mới như nút Huỷ/Đã hiểu (chủ game chọn). Thẻ hết ván trên bàn không bị tắt theo. */
+  function closeX(map) {
+    for (const [box, act] of Object.entries(map)) {
+      const m = document.querySelector(box); if (!m) continue;
+      const card = m.querySelector(".card, .go-card") || m;
+      if (card.querySelector(":scope > .tb-x")) continue;
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tb-x"; b.innerHTML = "&times;";
+      b.setAttribute("aria-label", t("close")); b.title = t("close");
+      b.addEventListener("click", e => {
+        e.stopPropagation();
+        if (typeof act === "function") act(); else { const o = document.querySelector(act); if (o) o.click(); }
+        m.hidden = true;
+        document.querySelectorAll(".modal, .pk-modal").forEach(x => { x.hidden = true; });
+      });
+      card.insertBefore(b, card.firstChild);
+    }
+  }
+
   document.documentElement.lang = LANG;
   window.TB = {
+    closeX, paintCredits,
     get lang() { return LANG; }, setLang, onLang: cb => listeners.push(cb), t, GAMES, ROOT,
     mountHeader,
     mountHome() { document.body.classList.add("tb-home"); renderHome(document.getElementById("tb-main")); footer(); },

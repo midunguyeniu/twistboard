@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a5c"/><stop offset="1" stop-color="#ef4b7f"/></linearGradient>
+  <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#5a0b2a" flood-opacity=".4"/></filter>
+  <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#f6f7fb"/><rect width="5" height="10" fill="#e4e7ef"/></pattern>
+  <g id="x"><path d="M-22-22 22 22M22-22-22 22" stroke="#ef4b5f" stroke-width="13" stroke-linecap="round"/></g>
+  <g id="o"><circle r="24" fill="none" stroke="#2f7de1" stroke-width="12"/></g>
+  <marker id="ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4.2" markerHeight="4.2" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#ffc928"/></marker>
+</defs>
+<rect width="400" height="400" fill="url(#bg)"/>
+<circle cx="40" cy="360" r="90" fill="#fff" opacity=".1"/><circle cx="380" cy="30" r="70" fill="#fff" opacity=".1"/>
+<g transform="rotate(-6 200 210)" filter="url(#sh)">
+  <rect x="62" y="72" width="276" height="276" rx="30" fill="#2c3550"/>
+  <g fill="#f6f7fb">
+    <rect x="76" y="86" width="78" height="78" rx="16" fill="url(#hatch)"/><rect x="161" y="86" width="78" height="78" rx="16"/><rect x="246" y="86" width="78" height="78" rx="16"/>
+    <rect x="76" y="171" width="78" height="78" rx="16"/><rect x="161" y="171" width="78" height="78" rx="16"/><rect x="246" y="171" width="78" height="78" rx="16"/>
+    <rect x="76" y="256" width="78" height="78" rx="16"/><rect x="161" y="256" width="78" height="78" rx="16"/><rect x="246" y="256" width="78" height="78" rx="16"/>
+  </g>
+  <rect x="246" y="86" width="78" height="78" rx="16" fill="#fde3e6" stroke="#1fae4b" stroke-width="5"/>
+  <use href="#o" x="200" y="125"/><use href="#o" x="115" y="210"/><use href="#o" x="285" y="295"/>
+  <use href="#x" x="285" y="125"/><use href="#x" x="200" y="210"/><use href="#x" x="115" y="295"/>
+  <path d="M118 112 Q190 40 262 104" fill="none" stroke="#ffc928" stroke-width="9" stroke-linecap="round" stroke-dasharray="2 16" marker-end="url(#ah)"/>
+  <path d="M100 318 L300 102" stroke="#1fae4b" stroke-width="9" stroke-linecap="round" opacity=".85"/>
+</g>
+</svg>

@@ -15,6 +15,7 @@
 | [Chinese Chess · Cờ Tướng](https://midunguyeniu.github.io/twistboard/games/chinese-chess/) | Playable: vs AI, 2 players on one device, online · Chơi được: đấu máy, 2 người chung máy, online |
 | [Blind Gomoku · Cờ Ca-rô Mù](https://midunguyeniu.github.io/twistboard/games/blind-gomoku/) ([rules · luật chơi](games/blind-gomoku/README.md)) | Playable: vs AI, online · Chơi được: đấu máy, online |
 | [Point Gomoku · Cờ Ca-rô Cược Điểm](https://midunguyeniu.github.io/twistboard/games/point-gomoku/) ([rules · luật chơi](games/point-gomoku/README.md)) | Playable: vs AI, online · Chơi được: đấu máy, online |
+| [Equation Hi-Lo · Poker Phép Tính](https://midunguyeniu.github.io/twistboard/games/equation-hilo/) | Playable: vs AI, online 2-5 players · Chơi được: đấu máy, online 2-5 người |
 
 No account and no game server needed. Online play connects the two browsers directly (WebRTC via PeerJS).
 Không cần tài khoản hay game server. Chơi online nối thẳng hai trình duyệt với nhau (WebRTC qua PeerJS).
