@@ -157,3 +157,8 @@ body.tb-home .tb-search:focus-within{background:#fff}
 .tb-rlogo{width:40px;height:40px;flex:none;border-radius:10px;object-fit:cover;box-shadow:0 1px 3px rgba(20,30,60,.18);user-select:none}
 .tb-rtitle{padding-right:34px}
 @media (max-width:560px){.tb-rlogo{width:34px;height:34px;border-radius:9px}}
+
+/* điện thoại: tắt chạm đúp để phóng to (chủ game yêu cầu 11/2026). "manipulation" vẫn cho cuộn và chụm 2 ngón để phóng;
+   đặt cho mọi phần tử vì trong khung cuộn riêng (popup dài...) trình duyệt không xét tới html/body.
+   Phần tử nào đã khai touch-action riêng (vd. none khi kéo thả) vẫn giữ của nó vì "*" có độ ưu tiên thấp nhất. */
+*{touch-action:manipulation}
