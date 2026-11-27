@@ -12,6 +12,40 @@
   const ON_DISK = location.protocol === "file:";
   const link = p => { const u = ROOT + p; return ON_DISK && (u === "" || u.endsWith("/")) ? u + "index.html" : (u || "./"); };
 
+  /* ---------- MÁY CHỦ KẾT NỐI CHO CHƠI ONLINE (PeerJS) ----------
+     Hai máy ở hai mạng khác nhau thường không nối thẳng được, phải đi vòng qua máy chủ trung chuyển TURN.
+     TURN công cộng của PeerJS (eu-0/us-0.turn.peerjs.com) đã chết (11/2026), nên dùng Metered Open Relay (20 GB/tháng
+     miễn phí) của chủ game. Mọi game gọi `new Peer(...)` sau khi nạp PeerJS; ở đây chặn lúc PeerJS gán window.Peer và
+     bọc lại để mọi Peer tự dùng danh sách ICE_SERVERS này, nên không phải sửa từng game. */
+  const TURN_USER = "", TURN_PASS = "";   // tài khoản Metered (TURN Server → Credentials) — điền khi chủ game gửi
+  const ICE_SERVERS = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun.cloudflare.com:3478" },
+  ].concat(TURN_USER ? [{
+    urls: ["turn:global.relay.metered.ca:80", "turn:global.relay.metered.ca:80?transport=tcp",
+      "turn:global.relay.metered.ca:443", "turns:global.relay.metered.ca:443?transport=tcp"],
+    username: TURN_USER, credential: TURN_PASS,
+  }] : []);
+  (function hookPeer() {
+    let Wrapped;
+    try {
+      Object.defineProperty(window, "Peer", {
+        configurable: true,
+        get() { return Wrapped; },
+        set(P) {
+          Wrapped = typeof P !== "function" ? P : class extends P {
+            constructor(id, opt) {
+              if (id && typeof id === "object") { opt = id; id = undefined; }
+              opt = Object.assign({}, opt);
+              opt.config = Object.assign({}, opt.config, { iceServers: (opt.config && opt.config.iceServers) || ICE_SERVERS });
+              super(id, opt);
+            }
+          };
+        },
+      });
+    } catch (e) {}
+  })();
+
   /* ---------- NGÔN NGỮ (dùng chung khoá localStorage "lang" với game) ---------- */
   let LANG = "vi";
   try { const s = localStorage.getItem("lang"); LANG = s === "vi" || s === "en" ? s : ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"); }
