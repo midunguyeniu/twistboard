@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+  <radialGradient id="bg" cx="50%" cy="42%" r="75%"><stop offset="0" stop-color="#3f74c4"/><stop offset=".65" stop-color="#1f4485"/><stop offset="1" stop-color="#132a55"/></radialGradient>
+  <radialGradient id="cloth" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></radialGradient>
+  <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#06142e" flood-opacity=".5"/></filter>
+  <clipPath id="c1"><rect x="-60" y="-45" width="120" height="90"/></clipPath>
+  <clipPath id="c2"><rect x="-96" y="-72" width="192" height="144"/></clipPath>
+</defs>
+<rect width="400" height="400" fill="url(#bg)"/>
+<!-- đường kinh tuyến, vĩ tuyến mờ của quả địa cầu phía sau -->
+<g fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="3">
+  <circle cx="200" cy="205" r="168"/>
+  <ellipse cx="200" cy="205" rx="84" ry="168"/>
+  <path d="M200 37v336M32 205h336M52 125h296M52 285h296"/>
+</g>
+<!-- lá sau trái: sọc ngang xanh lá, trắng, đỏ -->
+<g transform="translate(92 150) rotate(-14)" filter="url(#sh)">
+  <g clip-path="url(#c1)"><rect x="-60" y="-45" width="120" height="30" fill="#2e9b57"/><rect x="-60" y="-15" width="120" height="30" fill="#f7f4ec"/><rect x="-60" y="15" width="120" height="30" fill="#d23b33"/><rect x="-60" y="-45" width="120" height="90" fill="url(#cloth)"/></g>
+  <rect x="-60" y="-45" width="120" height="90" fill="none" stroke="#0e1d3a" stroke-width="2.5"/>
+</g>
+<!-- lá sau phải: nền trắng, chấm tròn đỏ -->
+<g transform="translate(312 148) rotate(13)" filter="url(#sh)">
+  <g clip-path="url(#c1)"><rect x="-60" y="-45" width="120" height="90" fill="#f7f4ec"/><circle r="24" fill="#d23b33"/><rect x="-60" y="-45" width="120" height="90" fill="url(#cloth)"/></g>
+  <rect x="-60" y="-45" width="120" height="90" fill="none" stroke="#0e1d3a" stroke-width="2.5"/>
+</g>
+<!-- lá giữa: sọc dọc xanh dương, vàng, đỏ -->
+<g transform="translate(200 212)" filter="url(#sh)">
+  <g clip-path="url(#c2)"><rect x="-96" y="-72" width="64" height="144" fill="#1f4fa3"/><rect x="-32" y="-72" width="64" height="144" fill="#f6c326"/><rect x="32" y="-72" width="64" height="144" fill="#d23b33"/><rect x="-96" y="-72" width="192" height="144" fill="url(#cloth)"/></g>
+  <rect x="-96" y="-72" width="192" height="144" fill="none" stroke="#0e1d3a" stroke-width="3.5"/>
+</g>
+<!-- vòng tròn vẽ tay đánh dấu đã chọn -->
+<path d="M196 122C128 121 84 156 86 210c2 56 54 92 120 90 66-2 110-40 108-94C312 152 266 118 200 124 172 126 150 134 134 146" fill="none" stroke="#ff4a3d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- nhãn ×3 -->
+<g transform="translate(300 300) rotate(-6)">
+  <rect x="-34" y="-22" width="68" height="44" rx="6" fill="#f6c326" stroke="#0e1d3a" stroke-width="3"/>
+  <text x="0" y="12" text-anchor="middle" font-family="Baloo 2,Nunito,Arial,sans-serif" font-weight="800" font-size="32" fill="#0e1d3a">×3</text>
+</g>
+</svg>

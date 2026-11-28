@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="vi" data-tb-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nhớ cờ thế giới · Twistboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../../assets/platform.css">
+<script src="../../assets/platform.js"></script>
+<script src="data.js"></script>
+<style>
+:root{
+  --bg:var(--tb-bg); --panel:var(--tb-surface); --line:var(--tb-border); --text:var(--tb-text); --muted:var(--tb-muted);
+  --btn:#fff; --btn-hover:var(--tb-hover); --btn-line:var(--tb-border-strong); --field:var(--tb-surface-2); --gold:#ffc928; --gold-ink:var(--tb-gold-ink);
+  /* khung chơi: giấy kem, mực xanh đen, điểm vàng (bám bố cục bản gốc) */
+  --paper:#f5f1e7; --paper-2:#ebe5d6; --ink:#15284a; --ink-2:#56627c; --blue:#2f5fa8; --yel:#f2bd2c; --red:#c8312b;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--tb-font);min-height:100vh;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;transition:transform .12s ease-out,background-color .15s,filter .15s,opacity .15s}
+button:active:not(:disabled){transform:scale(.96)}
+#app{max-width:1200px;margin:0 auto;padding:14px 14px 16px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{margin:0;font-family:var(--tb-font-brand);font-size:26px;line-height:1.1}
+.brand span{color:var(--muted);font-size:13.5px;font-weight:700}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:var(--btn);color:var(--text);border:1.5px solid var(--btn-line);border-radius:10px;padding:8px 15px;font-size:14px;font-weight:800;cursor:pointer}
+.btn:hover{background:var(--btn-hover)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.primary{background:var(--tb-primary);color:var(--tb-primary-ink);border-color:transparent}
+.btn.primary:hover{background:var(--tb-primary-hover)}
+.note{color:var(--muted);font-size:12.5px}
+
+#stage{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+#stage.online{grid-template-columns:minmax(0,1fr) 270px}
+.card2{padding:12px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--tb-shadow)}
+.h3{margin:0 0 8px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink);font-weight:800;display:flex;justify-content:space-between;gap:8px}
+.h3 span{color:var(--muted);letter-spacing:0;text-transform:none}
+
+/* ---------- KHUNG CHƠI ---------- */
+#board{background:var(--paper);color:var(--ink);border:1px solid #d9d1bf;border-radius:16px;box-shadow:var(--tb-shadow);display:flex;flex-direction:column;min-height:calc(100vh - 156px);overflow:hidden}
+#bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:8px 18px;border-bottom:2px solid var(--ink);min-height:58px}
+#bar .bc{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+#barMode{font-weight:900;font-size:14px;white-space:nowrap}
+#barRound{color:var(--blue);font-family:var(--tb-font-brand);font-weight:700;font-size:17px;line-height:1.15;white-space:nowrap}
+#barL{font-weight:800;font-size:13px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#timer{justify-self:end;font-family:var(--tb-font-brand);font-weight:800;font-size:22px;font-variant-numeric:tabular-nums}
+#timer.low{color:var(--red)}
+#screen{flex:1;display:flex;align-items:center;justify-content:center;padding:22px 20px 26px}
+.go{display:block;width:100%;background:var(--ink);color:var(--yel);border:2px solid var(--ink);border-radius:4px;padding:13px 16px;font-size:18px;font-weight:900;cursor:pointer;font-family:var(--tb-font-brand);letter-spacing:.01em}
+.go:hover{filter:brightness(1.15)}
+.go:disabled{background:transparent;color:var(--ink-2);border-color:var(--ink-2);cursor:default;filter:none;opacity:.85}
+.go.ghost{background:transparent;color:var(--ink)}
+.go.ghost:hover{background:rgba(21,40,74,.06)}
+
+/* lá cờ: viền mảnh + lớp bóng như vải (tự làm) */
+.fl{position:relative;display:block;aspect-ratio:4/3;background:#ddd;box-shadow:0 0 0 1px rgba(21,40,74,.55);overflow:hidden}
+.fl img{display:block;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none;user-select:none;pointer-events:none}
+.fl::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 45%,rgba(255,255,255,.12) 0,rgba(255,255,255,0) 45%,rgba(0,0,0,.16) 100%)}
+
+/* màn giới thiệu vòng */
+.intro{width:min(580px,100%)}
+.ihead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.big{font-family:var(--tb-font-brand);font-weight:800;font-size:76px;line-height:.82}
+.big small{font-size:24px;color:var(--ink-2);margin-left:4px}
+.tags{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.tags span{border:1.5px solid var(--ink);padding:1px 6px;font-weight:800;font-size:12.5px;white-space:nowrap}
+.rboxes{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:20px 0 16px}
+.rboxes div{border:2px solid var(--ink);padding:9px 12px;display:flex;justify-content:space-between;align-items:center;font-weight:900;font-family:var(--tb-font-brand);font-size:18px;min-height:46px}
+.rboxes div span{font-size:16px}
+.rboxes div.cur{background:rgba(242,189,44,.22)}
+.rboxes div.x{border-style:dashed}
+.idesc{font-weight:700;font-size:15px;line-height:1.55;margin:0 0 20px}
+.rec{margin:12px 0 0;font-weight:800;font-size:13.5px;color:var(--ink-2);text-align:center}
+.rec b{color:var(--ink)}
+
+/* màn chiếu cờ */
+.flash{display:flex;flex-direction:column;align-items:center;width:100%}
+.flash .pass{color:var(--blue);font-weight:800;font-size:14px;height:20px}
+.flash .fno{font-weight:900;font-size:16px;margin:4px 0 22px;height:22px}
+.fbig{width:var(--fw,480px)}
+.fbig .fl{box-shadow:0 0 0 1.5px var(--ink),0 10px 24px rgba(21,40,74,.18)}
+.fbig.blank .fl{visibility:hidden}
+.fbig.pop .fl{animation:fpop .16s ease-out}
+@keyframes fpop{from{opacity:.25;transform:scale(.985)}to{opacity:1;transform:none}}
+.prog{width:min(1000px,100%);margin-top:40px;position:relative;height:12px}
+.prog::before{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--ink)}
+.prog i{position:absolute;left:0;top:0;height:5px;background:var(--ink);width:0}
+.prog b{position:absolute;top:0;height:5px;width:3px;background:var(--paper)}
+.prog .rail{position:absolute;left:0;right:0;top:0;height:5px;background:var(--paper-2)}
+.ready{font-family:var(--tb-font-brand);font-weight:800;font-size:22px;text-align:center}
+.ready big{display:block;font-size:84px;line-height:1;margin-top:8px}
+
+/* màn chọn */
+.pick{display:flex;gap:30px;align-items:flex-start;justify-content:center;width:100%}
+.pick h2{margin:0 0 10px;font-size:20px;font-weight:900}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gg,10px);width:var(--gw,600px)}
+.ft{position:relative;border:0;background:none;padding:4px;cursor:pointer;border-radius:4px}
+.ft:hover{background:rgba(21,40,74,.07)}
+.ft:disabled{cursor:default}
+.ft .ring{position:absolute;left:-9%;top:-14%;width:118%;height:128%;pointer-events:none;opacity:0;transform:scale(.8) rotate(-4deg);transition:opacity .12s,transform .16s}
+.ft.on .ring{opacity:1;transform:rotate(-4deg)}
+.ft.full:not(.on) .fl{opacity:.74}
+.pr{width:280px;flex:none;padding-top:30px}
+.pcount{font-weight:900;font-size:13px;margin-bottom:6px}
+.slots{display:grid;grid-template-columns:repeat(var(--n,5),1fr);gap:6px;margin-bottom:12px}
+.slot{border:2px solid var(--ink);background:rgba(255,255,255,.4);height:44px;display:grid;place-items:center;padding:4px;cursor:pointer}
+.slot.empty{border-style:dashed;border-color:rgba(21,40,74,.35);cursor:default;background:none}
+.slot .fl{height:100%;aspect-ratio:4/3}
+.phint{margin:12px 0 0;font-size:12.5px;font-weight:700;color:var(--ink-2);line-height:1.5}
+
+/* màn kết quả */
+.res{display:flex;gap:30px;align-items:flex-start;justify-content:center;width:100%}
+.rl{flex:1 1 0;max-width:640px;min-width:0}
+.scorebox{background:var(--yel);text-align:center;font-family:var(--tb-font-brand);font-weight:800;font-size:72px;line-height:1;padding:16px 10px 10px;color:var(--ink)}
+.scorebox small{font-size:30px;margin-left:8px}
+.scorebox.low{background:#e7dfcb}
+.mypk{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 6px}
+.mypk .pk{width:118px;text-align:center}
+.mypk .pk.bad .fl{opacity:.45}
+.mypk .pk i{display:block;font-style:normal;font-weight:900;font-size:17px;line-height:1.5;margin-top:4px}
+.mypk .pk.ok i{color:var(--blue)} .mypk .pk.bad i{color:var(--red)}
+.mypk .pk small{display:block;font-size:11.5px;font-weight:800;color:var(--ink-2);line-height:1.25;min-height:15px}
+.miss{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 18px;font-weight:900;font-size:15px}
+.miss .fl{width:46px}
+.miss.none{color:var(--ink-2);font-size:13.5px}
+.allh{font-weight:900;font-size:13px;margin:0 0 6px}
+.allg{display:grid;grid-template-columns:repeat(var(--ac,5),1fr);gap:8px}
+.allg .it small{display:block;font-size:11.5px;font-weight:800;line-height:1.25;margin-top:4px;color:var(--ink)}
+.allg .it.ask small::before{content:"● ";color:var(--blue)}
+.legend{font-size:11.5px;font-weight:700;color:var(--ink-2);margin:6px 0 0}
+.legend b{color:var(--blue)}
+.rr{width:280px;flex:none}
+.rr p{margin:0 0 10px;font-weight:900;font-size:14px}
+.rr .sub{font-weight:700;color:var(--ink-2);font-size:13px;margin-top:10px}
+.rtab{width:100%;border-collapse:collapse;margin-top:16px;font-size:14px}
+.rtab td{padding:6px 6px;border-bottom:1px solid rgba(21,40,74,.18);font-weight:800}
+.rtab td.n{text-align:right;font-family:var(--tb-font-brand);font-size:16px;white-space:nowrap}
+.rtab td.t{text-align:right;color:var(--ink-2);font-size:12.5px;white-space:nowrap}
+.rtab tr.me td{background:rgba(242,189,44,.2)}
+.rtab td.nm{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rtab th{text-align:left;font-size:11.5px;color:var(--ink-2);font-weight:800;padding:0 6px 4px;border-bottom:2px solid var(--ink)}
+.rtab th.r{text-align:right}
+
+/* màn tổng kết */
+.fin{width:min(600px,100%)}
+.fin h2{margin:0 0 12px;font-size:20px;font-weight:900;text-align:center}
+.fin .btns{display:grid;gap:9px;margin-top:18px}
+.fin .btns.two{grid-template-columns:1fr 1fr}
+.newrec{display:inline-block;background:var(--red);color:#fff;font-size:12px;font-weight:900;padding:1px 7px;border-radius:3px;margin-left:6px;vertical-align:2px}
+.place{font-family:var(--tb-font-brand);font-size:18px;width:28px;color:var(--gold-ink)}
+
+/* chờ */
+.waitbox{text-align:center;max-width:460px}
+.waitbox h2{margin:0 0 8px;font-size:22px;font-weight:900}
+.waitbox p{margin:0 0 12px;font-weight:700;color:var(--ink-2);line-height:1.5}
+.waitbox .mypk{justify-content:center}
+.spin{width:34px;height:34px;border:4px solid rgba(21,40,74,.18);border-top-color:var(--ink);border-radius:50%;margin:0 auto 14px;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* bảng điểm online */
+#side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.plist li{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:11px;background:var(--field);border:1px solid var(--line);font-weight:800;font-size:14px}
+.plist li.me{background:#fffbea;border-color:var(--gold)}
+.plist li.left{opacity:.5}
+.plist li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plist li .st{font-size:12px;color:var(--muted);white-space:nowrap}
+.plist li .st.ok{color:var(--tb-green)}
+.plist li b{font-family:var(--tb-font-brand);font-size:19px;min-width:22px;text-align:right}
+.av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:900;font-size:13px;flex:none}
+.youtag{font-weight:700;opacity:.6;white-space:nowrap}
+
+/* ---------- MODAL ---------- */
+.modal{position:fixed;inset:0;background:rgba(20,25,40,.5);display:grid;place-items:center;z-index:50;padding:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:20px 24px;box-shadow:var(--tb-shadow-lg);position:relative}
+.card h2{margin:0 0 10px;font-family:var(--tb-font-brand);font-size:26px;line-height:1.15}
+.card h3{margin:16px 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink)}
+.card p,.card li{font-size:14.5px;line-height:1.55}
+.card ul{margin:6px 0;padding-left:20px}
+.card .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;align-items:center}
+.credit{margin-right:auto}
+.seg{display:flex;gap:8px;flex-wrap:nowrap}
+.seg button{flex:1;min-width:0;background:var(--btn);color:var(--text);border:2px solid var(--line);border-radius:10px;padding:10px 8px;font:inherit;font-weight:800;cursor:pointer}
+.seg button:hover{background:var(--btn-hover)}
+.seg button.on{background:var(--gold);color:var(--tb-primary-ink);border-color:var(--gold)}
+.seg.small button{padding:7px 8px}
+.field{width:100%;background:#fff;color:var(--text);border:2px solid var(--btn-line);border-radius:10px;padding:9px 12px;font:inherit;font-weight:800;font-size:15px}
+.netrow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.netrow .seg{flex:2 1 240px}
+#joinCode{flex:1 1 140px;min-width:0;letter-spacing:.2em;text-transform:uppercase;text-align:center;font-size:18px}
+#joinCode::placeholder{letter-spacing:normal;font-weight:600;font-size:14px;color:var(--muted);text-transform:none}
+.netcode{font-family:var(--tb-font-brand);font-size:42px;font-weight:800;letter-spacing:.22em;padding-left:.22em;color:var(--gold-ink);margin:2px 0 8px;user-select:all;text-align:center}
+.netlink{display:flex;gap:8px}
+.netlink input{flex:1;min-width:0;background:var(--field);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px}
+#mLobby .card{max-width:520px}
+.card .lseats{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.lseats li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:12px;background:var(--field);border:1px solid var(--line);min-height:44px}
+.lseats li b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lseats li small{color:var(--muted);font-weight:800;font-size:12px}
+.lseats li button{border:none;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1}
+.lseats li.empty{justify-content:center;color:var(--muted);font-size:13px;border-style:dashed;background:none}
+#netMsg,#lobbyMsg{color:var(--muted);margin:12px 0 0;text-align:center}
+/* chọn mức: thẻ ★/★★/★★★ tô màu vàng / xanh dương / đỏ như các game đố khác */
+.lvcards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lvc{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:#fff;border:2px solid var(--line);border-radius:12px;padding:10px 11px;cursor:pointer;font:inherit;color:var(--text);min-width:0}
+.lvc .stars{font-size:17px;letter-spacing:-1px;font-weight:900;line-height:1.1}
+.lvc span{font-size:12.5px;font-weight:800;line-height:1.35}
+.lvc small{font-size:11.5px;font-weight:700;color:var(--muted);line-height:1.35}
+.lvc em{font-style:normal;font-size:11.5px;font-weight:900;margin-top:2px;color:var(--tb-green)}
+.lvc[data-v="easy"]{border-color:#ffd24a;background:rgba(255,210,74,.12)}
+.lvc[data-v="normal"]{border-color:#3d8bff;background:rgba(61,139,255,.08)}
+.lvc[data-v="hard"]{border-color:#e5453b;background:rgba(229,69,59,.08)}
+.lvc.on[data-v="easy"]{background:#ffd24a;color:#3a2a00}
+.lvc.on[data-v="normal"]{background:#3d8bff;color:#fff}
+.lvc.on[data-v="hard"]{background:#e5453b;color:#fff}
+.lvc.on small,.lvc.on em{color:inherit;opacity:.9}
+#segLvL button[data-v="easy"].on{background:#ffd24a;border-color:#ffd24a;color:#3a2a00}
+#segLvL button[data-v="normal"].on{background:#3d8bff;border-color:#3d8bff;color:#fff}
+#segLvL button[data-v="hard"].on{background:#e5453b;border-color:#e5453b;color:#fff}
+#segLvL button{letter-spacing:-1px}
+#segLvL button:disabled{cursor:default}
+/* Luật chơi: 4 bước có hình nhỏ */
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 4px}
+.step{background:var(--paper);color:var(--ink);border:1px solid #ddd4c0;border-radius:12px;padding:10px 12px}
+.step h4{margin:0 0 6px;font-size:14.5px;font-weight:900;display:flex;gap:8px;align-items:center}
+.step h4 b{font-family:var(--tb-font-brand);font-size:22px;line-height:1;color:var(--blue)}
+.step p{margin:6px 0 0;font-size:13px;line-height:1.5}
+.step .fig{display:flex;gap:6px;align-items:center;justify-content:center;min-height:52px}
+.step .fig .fl{width:52px}
+.step .fig .ar{font-weight:900;color:var(--ink-2)}
+.step .fig .mk{font-weight:900;font-size:15px}
+.step .fig .mk.o{color:var(--blue)} .step .fig .mk.x{color:var(--red)}
+.step .fig .sc{border:1.5px solid var(--ink);padding:2px 7px;font-weight:900;font-family:var(--tb-font-brand);font-size:15px}
+.lvtab{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px}
+.lvtab td,.lvtab th{border-bottom:1px solid var(--line);padding:6px 6px;text-align:left;vertical-align:top}
+.lvtab th{font-size:12px;color:var(--muted)}
+.lvtab td:first-child{white-space:nowrap;font-weight:900;letter-spacing:-1px}
+.lvtab td:nth-child(3){white-space:nowrap}
+
+@media (max-width:1000px){#stage.online{grid-template-columns:1fr}}
+/* màn hẹp: cột phải xuống dưới lưới */
+body.narrow .pick,body.narrow .res{flex-direction:column;align-items:center;gap:16px}
+body.narrow .rl{flex:none;width:100%}
+body.narrow .pr,body.narrow .rr{width:var(--gw,100%);max-width:100%;padding-top:0}
+body.portrait #app{padding:8px 8px 24px}
+body.portrait .brand{display:none}   /* điện thoại: ẩn logo + tên game cho đỡ tốn chỗ */
+body.portrait .actions .btn{padding:7px 11px;font-size:13px}
+body.portrait #board{border-radius:12px;min-height:calc(100vh - 134px)}
+body.portrait #bar{padding:6px 10px;min-height:52px}
+body.portrait #barL{font-size:12px}
+body.portrait #screen{padding:14px 10px 18px}
+body.portrait .pick h2{font-size:16px}
+body.portrait .grid{--gg:4px}
+body.portrait .ft{padding:3px}
+body.portrait .slot{height:36px}
+body.portrait .big{font-size:60px}
+body.portrait .rboxes{gap:6px}
+body.portrait .rboxes div{padding:7px 8px;font-size:16px}
+body.portrait .scorebox{font-size:56px;padding:12px 8px 8px}
+body.portrait .mypk .pk{width:calc((100% - 24px) / 5)}
+body.portrait .allg{gap:5px}
+body.portrait .allg .it small{font-size:10.5px}
+body.portrait .lvcards{grid-template-columns:1fr}
+body.portrait .steps{grid-template-columns:1fr}
+body.portrait .flash .fno{margin-bottom:14px}
+body.portrait .prog{margin-top:26px}
+</style>
+</head>
+<body>
+<div id="tb-header"></div>
+<script>TB.mountHeader({ page: "game", gameId: "flags-around-the-world" });</script>
+<div id="app">
+  <header class="top">
+    <div class="brand"><h1 data-i18n="brand"></h1><span data-i18n="tagline"></span></div>
+    <div class="actions">
+      <button class="btn" id="btnRules" data-i18n="b_rules"></button>
+      <button class="btn primary" id="btnNew" data-i18n="b_new"></button>
+    </div>
+  </header>
+  <main id="stage">
+    <section id="board">
+      <div id="bar"><div id="barL"></div><div class="bc"><span id="barMode"></span><span id="barRound"></span></div><span id="timer"></span></div>
+      <div id="screen"></div>
+    </section>
+    <aside id="side" hidden>
+      <section class="card2"><h3 class="h3"><span data-i18n="h_score" style="color:inherit;text-transform:uppercase;letter-spacing:.1em"></span><span id="sideInfo"></span></h3><ul class="plist" id="plist"></ul></section>
+    </aside>
+  </main>
+</div>
+
+<div class="modal" id="mRules" hidden>
+  <div class="card">
+    <h2 data-i18n="brand"></h2>
+    <p data-i18n="r_intro"></p>
+    <div class="steps" id="steps"></div>
+    <h3 data-i18n="r_h_lv"></h3>
+    <table class="lvtab" id="lvtab"></table>
+    <h3 data-i18n="r_h_modes"></h3>
+    <ul><li data-i18n="r_solo"></li><li data-i18n="r_daily"></li><li data-i18n="r_online"></li><li data-i18n="r_tie"></li></ul>
+    <p class="note" data-i18n="r_inspired"></p>
+    <p class="note" data-i18n="r_flags"></p>
+    <div class="foot"><span class="note credit tb-credit"></span><button class="btn primary" id="rulesOk" data-i18n="ok"></button></div>
+  </div>
+</div>
+
+<div class="modal" id="mMode" hidden>
+  <div class="card">
+    <h2 data-i18n="m_title"></h2>
+    <h3 data-i18n="m_mode"></h3>
+    <div class="seg" id="segMode"><button data-v="daily" data-i18n="m_daily"></button><button data-v="solo" data-i18n="m_solo"></button><button data-v="online" data-i18n="m_online"></button></div>
+    <div id="lvBox">
+      <h3 id="lvTitle" data-i18n="m_level"></h3>
+      <div class="lvcards" id="lvCards"></div>
+      <p class="note" id="lvNote"></p>
+    </div>
+    <div id="netBox">
+      <h3 data-i18n="m_name"></h3>
+      <input class="field" id="myName" maxlength="12" autocomplete="off" spellcheck="false">
+      <h3 data-i18n="m_net"></h3>
+      <div class="netrow">
+        <div class="seg" id="segNet"><button data-v="create" data-i18n="m_create"></button><button data-v="join" data-i18n="m_join"></button></div>
+        <input class="field" id="joinCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+      <p class="note" data-i18n="m_net_note"></p>
+    </div>
+    <div class="foot">
+      <button class="btn" id="modeCancel" data-i18n="cancel"></button>
+      <button class="btn primary" id="modeStart" data-i18n="m_start"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mLobby" hidden>
+  <div class="card">
+    <h2 id="lobbyTitle"></h2>
+    <div id="lobbyCode" hidden>
+      <div class="netcode" id="netCode"></div>
+      <div class="netlink"><input id="netLink" readonly><button class="btn" id="netCopy" data-i18n="n_copy"></button></div>
+    </div>
+    <h3 data-i18n="n_seats"></h3>
+    <ul class="lseats" id="lobbySeats"></ul>
+    <h3 data-i18n="m_level"></h3>
+    <div class="seg small" id="segLvL"><button data-v="easy">★</button><button data-v="normal">★★</button><button data-v="hard">★★★</button></div>
+    <p class="note" id="lobbyLvNote" style="margin:6px 0 0"></p>
+    <p id="lobbyMsg"></p>
+    <div class="foot">
+      <button class="btn" id="lobbyLeave" data-i18n="n_leave"></button>
+      <button class="btn primary" id="lobbyStart" hidden></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mNet" hidden>
+  <div class="card" style="max-width:440px;text-align:center">
+    <h2 id="netTitle"></h2>
+    <p id="netMsg"></p>
+    <div class="foot" style="justify-content:center">
+      <button class="btn" id="netRetry" data-i18n="n_retry" hidden></button>
+      <button class="btn primary" id="netClose" data-i18n="ok"></button>
+    </div>
+  </div>
+</div>
+
+<!-- vòng tròn vẽ tay đánh dấu lá cờ đã chọn -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="ring" viewBox="0 0 120 100"><path d="M58 8C28 7 6 24 7 49c1 26 26 43 56 42 30-1 51-19 50-44C112 22 90 6 60 9 47 10 37 14 30 19" fill="none" stroke="#c8312b" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<script>
+"use strict";
+/* ============================================================
+   NHỚ CỜ THẾ GIỚI / FLAGS AROUND THE WORLD
+   Thứ tự: tiện ích, chữ (I18N), âm thanh, LUẬT (thuần, cắt ra chạy bằng Node được), trạng thái,
+   luồng một vòng (giới thiệu → chiếu cờ → chọn → kết quả), chủ phòng + mạng (PeerJS), vẽ, sự kiện, khởi động.
+   Dữ liệu nước + nhóm cờ na ná nằm ở data.js (FLAG_DATA, FLAG_LOOK); ảnh cờ ở flags/<mã>.svg (flag-icons, MIT).
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const escH = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- CHỮ ---------- */
+const I18N = {
+  vi: {
+    title: "Nhớ cờ thế giới", brand: "Nhớ cờ thế giới", tagline: "Cờ các nước chiếu qua thật nhanh, nhớ rồi chọn lại cho đúng",
+    b_rules: "Luật chơi", b_new: "Ván mới", ok: "Đã hiểu", cancel: "Huỷ", m_back: "Xem lại Luật chơi", you: "Bạn", n_you: " (bạn)",
+    lv_easy: "★", lv_normal: "★★", lv_hard: "★★★",
+    lvd_easy: "6 cờ · chọn 3 trong 15", lvs_easy: "2 giây mỗi lá · chiếu 2 lần",
+    lvd_normal: "10 cờ · chọn 5 trong 25", lvs_normal: "1 giây mỗi lá · chiếu 3 lần · như trong show",
+    lvd_hard: "10 cờ · chọn 5 trong 25", lvs_hard: "1 giây · chiếu 3 lần · cờ na ná nhau chiếu liền nhau và trộn vào trang chọn",
+    md_solo: "Một mình", md_daily: "Đề hôm nay", md_online: "Online",
+    m_title: "Chọn cách chơi", m_mode: "Chế độ", m_daily: "Đề hôm nay", m_solo: "Một mình", m_online: "Online", m_level: "Mức độ",
+    m_name: "Tên của bạn", m_net: "Phòng chơi", m_create: "Tạo phòng", m_join: "Vào phòng", m_code_ph: "Mã phòng", m_start: "Bắt đầu", def_name: "Người chơi",
+    m_net_note: "Phòng 2 đến 6 người, chủ phòng chọn mức. Bạn bè mở link mời là vào phòng ngay.",
+    n_solo: "Mỗi ván 3 vòng, cộng điểm. Bằng điểm thì ai trả lời nhanh hơn xếp trên. Kỷ lục lưu trên máy này.",
+    n_daily: "Đề hôm nay ({0}): ai cũng gặp cùng một bộ cờ. Chỉ ván đầu tiên mỗi mức được tính, chơi lại chỉ để luyện.",
+    d_done: "Hôm nay: {0}/{1} · {2}", rec: "Kỷ lục: <b>{0}/{1}</b> · {2}", rec_none: "Chưa có kỷ lục ở mức này.",
+    tag_flags: "{0} cờ", tag_pick: "chọn {0} trong {1}", tag_sec: "{0} giây", tag_x: "×{0}",
+    i_desc: "{0} lá cờ chiếu lần lượt, mỗi lá {1} giây, cả bộ chiếu {2} lần theo cùng thứ tự. Sau đó bạn có 60 giây để chọn ra {3} lá đã xuất hiện trong {4} lá.",
+    i_desc_hard: " Mức này các cờ na ná nhau được chiếu liền nhau, và trang chọn trộn thêm cờ na ná.",
+    b_start_r: "Bắt đầu vòng {0}", round: "Vòng {0}/{1}", round_x: "Vòng phụ {0}", d_note: "Đề hôm nay đã tính điểm ở mức này. Ván này chỉ để luyện.",
+    f_pass: "Lượt {0}/{1}", f_flag: "Cờ {0}/{1}", f_load: "Đang tải cờ...", f_ready: "Chuẩn bị", f_count: "Vòng {0} bắt đầu sau",
+    p_title: "Chọn {0} lá cờ đã xuất hiện", p_count: "Đã chọn {0}/{1}", p_more: "Còn {0} lá", p_submit: "Nộp",
+    p_hint: "Bấm lá cờ để chọn, bấm lần nữa để bỏ. Chọn sai không bị trừ điểm. Hết giờ thì tính những lá đang chọn.",
+    r_time: "Trả lời trong {0}", r_timeout: "Hết giờ ({0})", r_missed: "Bỏ sót", r_nomiss: "Không bỏ sót lá nào.", r_all: "{0} lá cờ của vòng này",
+    r_legend: "<b>●</b> có mặt trong trang chọn", b_next: "Vòng tiếp", b_final: "Xem tổng kết", r_next_in: "Vòng tiếp sau {0} giây", r_final_in: "Tổng kết sau {0} giây",
+    r_wait_host: "Chờ chủ phòng", r_tab_round: "Vòng này", r_tab_total: "Tổng", r_not: "không nộp",
+    fin_title: "Tổng kết", fin_time: "Tổng thời gian trả lời: <b>{0}</b>", fin_new: "Kỷ lục mới", fin_again: "Chơi lại", fin_mode: "Đổi chế độ",
+    fin_daily_done: "Kết quả hôm nay đã được lưu.", fin_practice: "Ván luyện (đề hôm nay đã tính từ trước).", fin_copy: "Sao chép kết quả", fin_copied: "Đã chép",
+    share: "Nhớ cờ thế giới · Đề {0} · {1} {2}/{3} · {4}",
+    fin_win: "Bạn thắng!", fin_won: "{0} thắng", fin_share: "Đồng hạng nhất: {0}", fin_back: "Ván mới (về phòng chờ)", fin_leave: "Rời phòng", fin_wait: "Chờ chủ phòng mở ván mới.",
+    w_sent: "Đã nộp", w_sent_sub: "Chờ người khác nộp ({0}/{1}).", w_spect: "Vòng phụ", w_spect_sub: "{0} bằng điểm cao nhất nên đấu thêm một vòng. Bạn xem kết quả sau.",
+    w_join: "Chờ vòng sau", w_join_sub: "Bạn vào lại giữa vòng. Vòng này tính 0 điểm.",
+    idle_h: "Chưa bắt đầu", idle_p: "Bấm Ván mới để chọn cách chơi.",
+    h_score: "Bảng điểm", s_picking: "đang chọn", s_done: "đã nộp", s_left: "đã rời", s_watch: "đang xem",
+    x_tie: "Vòng phụ {0}", sec: "{0} giây",
+    n_title_host: "Phòng của bạn", n_title_guest: "Phòng {0}", n_copy: "Sao chép", n_copied: "Đã chép", n_seats: "Người chơi",
+    n_leave: "Rời phòng", n_start: "Bắt đầu ({0} người)", n_host: "Chủ phòng", n_human: "Người chơi",
+    n_empty: "Ghế trống", n_wait_host: "Gửi mã hoặc link cho bạn bè. Cần ít nhất 2 người để bắt đầu.",
+    n_wait_guest: "Chờ chủ phòng bắt đầu...", n_connecting: "Đang tạo phòng...", n_joining: "Đang vào phòng {0}...", n_retry: "Vào lại",
+    n_title_err: "Không kết nối được", n_err_lib: "Không tải được thư viện PeerJS. Kiểm tra mạng rồi thử lại.",
+    n_err_nopeer: "Không tìm thấy phòng {0}. Kiểm tra lại mã.", n_err_net: "Lỗi mạng ({0}).", n_err_full: "Phòng đã đủ 6 người.",
+    n_err_started: "Phòng đang chơi dở, không vào thêm được.", n_err_version: "Hai bên đang dùng phiên bản game khác nhau. Tải lại trang (Ctrl+F5) rồi thử lại.",
+    n_err_timeout: "Chủ phòng không phản hồi.", n_err_kicked: "Chủ phòng đã mời bạn ra khỏi phòng.", n_err_hostleft: "Chủ phòng đã rời đi. Ván dừng tại đây.",
+    n_err_lost: "Mất kết nối với chủ phòng. Bấm Vào lại để lấy lại chỗ.", n_err_code: "Nhập mã phòng 5 ký tự.",
+    r_intro: "Cờ các nước hiện lên lần lượt, mỗi lá chỉ một chốc. Sau đó là một trang nhiều lá cờ, chỉ một vài lá trong đó đã xuất hiện. Biết cờ thì có lợi, nhưng trí nhớ mới là chính.",
+    st1_h: "Nhớ", st1_p: "Cờ hiện từng lá một, mỗi lá 1 giây. Cả bộ chiếu 3 lần theo cùng thứ tự rồi biến mất.",
+    st2_h: "Chọn", st2_p: "Trang chọn hiện ra, chỉ một số lá đã xuất hiện. Bấm để chọn, bấm lần nữa để bỏ, chọn đủ thì Nộp. Có 60 giây; hết giờ thì tính những lá đang chọn.",
+    st3_h: "Mỗi lá 1 điểm", st3_p: "Mỗi lá đúng 1 điểm, chọn sai không bị trừ. Nộp xong sẽ thấy lá nào đã chiếu, lá nào bạn bỏ sót.",
+    st4_h: "Ba vòng", st4_p: "Một ván 3 vòng, cộng dồn điểm. Bằng điểm thì ai trả lời nhanh hơn xếp trên (thời gian chiếu cờ không tính).",
+    r_h_lv: "Mức độ", r_lv_c1: "Mức", r_lv_c2: "Cờ chiếu", r_lv_c3: "Trang chọn", r_lv_c4: "Chiếu",
+    lvt_easy: ["6 lá", "chọn 3 trong 15", "2 giây mỗi lá, 2 lần"], lvt_normal: ["10 lá", "chọn 5 trong 25", "1 giây mỗi lá, 3 lần (như show)"],
+    lvt_hard: ["10 lá", "chọn 5 trong 25", "1 giây, 3 lần; cờ na ná nhau (vd Tchad và Romania) chiếu liền nhau và trộn vào trang chọn"],
+    r_h_modes: "Chế độ",
+    r_solo: "<b>Một mình</b>: chọn mức, chơi 3 vòng, kỷ lục lưu trên máy này.",
+    r_daily: "<b>Đề hôm nay</b>: mỗi ngày một bộ cờ cho mỗi mức, ai cũng gặp cùng đề. Chỉ ván đầu tiên trong ngày được tính.",
+    r_online: "<b>Online</b>: 2 đến 6 người cùng xem một bộ cờ, mỗi vòng có 60 giây để chọn. Ai không nộp được 0 điểm.",
+    r_tie: "Online mà người dẫn đầu bằng điểm sau 3 vòng thì những người đó đấu thêm một vòng phụ: nhiều lá đúng hơn thắng, bằng thì ai trả lời nhanh hơn thắng. Vẫn bằng thì thêm vòng nữa, tối đa 3 vòng phụ.",
+    r_inspired: "Lấy cảm hứng từ trò nhớ cờ ở khu lưu đày, tập 12 The Devil's Plan mùa 3.",
+    r_flags: "Ảnh cờ: flag-icons (giấy phép MIT). Bộ cờ gồm 193 nước thành viên Liên Hợp Quốc cùng Vatican và Palestine.",
+    fig_pick: "chọn",
+  },
+  en: {
+    title: "Flags Around the World", brand: "Flags Around the World", tagline: "Flags flash by fast: remember them, then pick them out",
+    b_rules: "Rules", b_new: "New game", ok: "Got it", cancel: "Cancel", m_back: "Back to the rules", you: "You", n_you: " (you)",
+    lv_easy: "★", lv_normal: "★★", lv_hard: "★★★",
+    lvd_easy: "6 flags · pick 3 of 15", lvs_easy: "2 s per flag · shown twice",
+    lvd_normal: "10 flags · pick 5 of 25", lvs_normal: "1 s per flag · shown 3 times · as on the show",
+    lvd_hard: "10 flags · pick 5 of 25", lvs_hard: "1 s · 3 times · look-alikes flash in a row and are mixed into the choices",
+    md_solo: "Solo", md_daily: "Daily puzzle", md_online: "Online",
+    m_title: "Choose a mode", m_mode: "Mode", m_daily: "Daily", m_solo: "Solo", m_online: "Online", m_level: "Level",
+    m_name: "Your name", m_net: "Room", m_create: "Create room", m_join: "Join room", m_code_ph: "Room code", m_start: "Start", def_name: "Player",
+    m_net_note: "2 to 6 players; the host picks the level. Friends join straight from the invite link.",
+    n_solo: "A game is 3 rounds and the scores add up; ties go to the faster answers. Records are saved on this device.",
+    n_daily: "Today's puzzle ({0}): everyone gets the same flags. Only your first game at each level counts; replays are practice.",
+    d_done: "Today: {0}/{1} · {2}", rec: "Best: <b>{0}/{1}</b> · {2}", rec_none: "No record at this level yet.",
+    tag_flags: "{0} flags", tag_pick: "pick {0} of {1}", tag_sec: "{0} s", tag_x: "×{0}",
+    i_desc: "{0} flags flash by {2} times in the same order, {1} s each. Then you have 60 seconds to pick the {3} you saw out of {4}.",
+    i_desc_hard: " At this level look-alike flags flash in a row, and more look-alikes are mixed into the choices.",
+    b_start_r: "Start round {0}", round: "Round {0}/{1}", round_x: "Tiebreak {0}", d_note: "Today's puzzle at this level is already scored. This game is practice.",
+    f_pass: "Pass {0}/{1}", f_flag: "Flag {0}/{1}", f_load: "Loading flags...", f_ready: "Get ready", f_count: "Round {0} starts in",
+    p_title: "Pick the {0} flags that appeared", p_count: "Picked {0}/{1}", p_more: "{0} more", p_submit: "Submit",
+    p_hint: "Tap a flag to pick it, tap again to remove it. Wrong picks cost nothing. When time runs out, whatever you picked counts.",
+    r_time: "Answered in {0}", r_timeout: "Time's up ({0})", r_missed: "Missed", r_nomiss: "You didn't miss any.", r_all: "The {0} flags this round",
+    r_legend: "<b>●</b> was on the pick page", b_next: "Next round", b_final: "See results", r_next_in: "Next round in {0} s", r_final_in: "Results in {0} s",
+    r_wait_host: "Waiting for the host", r_tab_round: "This round", r_tab_total: "Total", r_not: "no answer",
+    fin_title: "Results", fin_time: "Total answer time: <b>{0}</b>", fin_new: "New record", fin_again: "Play again", fin_mode: "Change mode",
+    fin_daily_done: "Today's result is saved.", fin_practice: "Practice game (today's puzzle was already scored).", fin_copy: "Copy result", fin_copied: "Copied",
+    share: "Flags Around the World · Daily {0} · {1} {2}/{3} · {4}",
+    fin_win: "You win!", fin_won: "{0} wins", fin_share: "Shared first place: {0}", fin_back: "New game (back to the lobby)", fin_leave: "Leave room", fin_wait: "Waiting for the host to start a new game.",
+    w_sent: "Submitted", w_sent_sub: "Waiting for the others ({0}/{1}).", w_spect: "Tiebreak", w_spect_sub: "{0} are tied for the lead and play one more round. You'll see the result after.",
+    w_join: "Waiting for the next round", w_join_sub: "You rejoined mid-round. This round counts as 0.",
+    idle_h: "Not started", idle_p: "Press New game to choose a mode.",
+    h_score: "Scores", s_picking: "picking", s_done: "submitted", s_left: "left", s_watch: "watching",
+    x_tie: "Tiebreak {0}", sec: "{0} s",
+    n_title_host: "Your room", n_title_guest: "Room {0}", n_copy: "Copy", n_copied: "Copied", n_seats: "Players",
+    n_leave: "Leave", n_start: "Start ({0} players)", n_host: "Host", n_human: "Player",
+    n_empty: "Empty seat", n_wait_host: "Share the code or link. You need at least 2 players to start.",
+    n_wait_guest: "Waiting for the host to start...", n_connecting: "Creating the room...", n_joining: "Joining room {0}...", n_retry: "Rejoin",
+    n_title_err: "Connection problem", n_err_lib: "Couldn't load PeerJS. Check your connection and try again.",
+    n_err_nopeer: "Room {0} not found. Check the code.", n_err_net: "Network error ({0}).", n_err_full: "The room is full (6 players).",
+    n_err_started: "That game is already in progress.", n_err_version: "You're on different versions of the game. Reload (Ctrl+F5) and try again.",
+    n_err_timeout: "The host isn't responding.", n_err_kicked: "The host removed you from the room.", n_err_hostleft: "The host left. The game has ended.",
+    n_err_lost: "Lost connection to the host. Press Rejoin to get back in.", n_err_code: "Enter the 5-character room code.",
+    r_intro: "Flags of the world appear one at a time, each for just a moment. Then comes a page of flags, and only a few of them were shown. Knowing flags helps, but memory matters more.",
+    st1_h: "Remember", st1_p: "Flags flash by one at a time, 1 second each. The same set plays 3 times in the same order, then it's gone.",
+    st2_h: "Pick", st2_p: "A page of flags appears; only some of them were shown. Tap to pick, tap again to remove, and submit when you're done. You have 60 seconds; when time runs out, whatever you picked counts.",
+    st3_h: "One point each", st3_p: "Each right flag is 1 point; wrong picks cost nothing. After submitting you see which flags flashed and which you missed.",
+    st4_h: "Three rounds", st4_p: "A game is 3 rounds and the scores add up. Ties go to the faster answers (flash time doesn't count).",
+    r_h_lv: "Levels", r_lv_c1: "Level", r_lv_c2: "Flashed", r_lv_c3: "Pick page", r_lv_c4: "Flashing",
+    lvt_easy: ["6", "pick 3 of 15", "2 s each, twice"], lvt_normal: ["10", "pick 5 of 25", "1 s each, 3 times (as on the show)"],
+    lvt_hard: ["10", "pick 5 of 25", "1 s, 3 times; look-alikes (e.g. Chad and Romania) flash in a row and are mixed into the choices"],
+    r_h_modes: "Modes",
+    r_solo: "<b>Solo</b>: pick a level and play 3 rounds. Records are saved on this device.",
+    r_daily: "<b>Daily puzzle</b>: one set of flags per level each day, the same for everyone. Only your first game of the day counts.",
+    r_online: "<b>Online</b>: 2 to 6 players see the same flags, with 60 seconds per round to pick. No answer counts as 0.",
+    r_tie: "Online, if the lead is shared after 3 rounds, those players play one more round: more right flags wins, then the faster answer. Still tied, another round, up to 3 tiebreak rounds.",
+    r_inspired: "Inspired by the flag memory game in the exile zone, episode 12 of The Devil's Plan season 3.",
+    r_flags: "Flag images: flag-icons (MIT License). The set is the 193 UN member states plus Vatican City and Palestine.",
+    fig_pick: "pick",
+  },
+};
+let LANG = (() => { try { const s = localStorage.getItem("lang"); if (s === "vi" || s === "en") return s; } catch (e) {} return (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"; })();
+const trRaw = k => I18N[LANG][k] ?? I18N.vi[k] ?? k;
+const tr = (k, ...a) => String(trRaw(k)).replace(/\{(\d)\}/g, (m, i) => a[i] ?? "");
+const secTxt = ms => tr("sec", (ms / 1000).toFixed(1).replace(".", LANG === "vi" ? "," : "."));
+
+/* ---------- ÂM THANH (tổng hợp bằng Web Audio, không có file) ---------- */
+let AC = null;
+try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+const wakeAC = () => { if (AC && AC.state !== "running") AC.resume().catch(() => {}); };
+for (const ev of ["pointerdown", "keydown", "touchstart"]) addEventListener(ev, wakeAC, { passive: true });
+function tone(freq, start, dur, type = "sine", vol = .16) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
+  g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + .01); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.start(start); o.stop(start + dur + .02);
+}
+function noise(start, dur, freq, vol) {
+  const len = Math.floor(AC.sampleRate * dur), buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+  const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 1.1; g.gain.value = vol;
+  src.buffer = buf; src.connect(f); f.connect(g); g.connect(AC.destination); src.start(start);
+}
+function sfx(name, delay = 0) {
+  if (!AC) return;
+  try {
+    wakeAC();
+    const t = AC.currentTime + .01 + delay / 1000;
+    if (name === "flip") noise(t, .06, 2600, .16);                       // mỗi lá cờ hiện ra
+    else if (name === "pass") { tone(587, t, .09, "triangle", .08); }    // sang lượt chiếu mới
+    else if (name === "count") tone(660, t, .08, "triangle", .1);
+    else if (name === "go") { tone(880, t, .14, "triangle", .14); }
+    else if (name === "pick") { noise(t, .05, 1800, .22); tone(740, t, .06, "triangle", .07); }
+    else if (name === "unpick") tone(420, t, .07, "triangle", .07);
+    else if (name === "submit") { tone(523, t, .08, "triangle", .1); tone(784, t + .07, .12, "triangle", .1); }
+    else if (name === "tick") tone(1500, t, .03, "triangle", .06);
+    else if (name === "good") [523, 659, 784].forEach((f, i) => tone(f, t + i * .08, .2, "triangle", .14));
+    else if (name === "meh") [440, 392].forEach((f, i) => tone(f, t + i * .12, .22, "triangle", .12));
+    else if (name === "win") [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * .1, .28, "triangle", .18));
+    else if (name === "lose") [392, 330, 262].forEach((f, i) => tone(f, t + i * .14, .3, "triangle", .15));
+  } catch (e) {}
+}
+
+/* RULES-START */
+/* ---------- LUẬT ----------
+   Một vòng: chiếu n lá cờ (shown, theo thứ tự), mỗi lá ms mili giây, cả bộ chiếu passes lần.
+   Trang chọn (grid) có `pick` lá đã chiếu (ask) trộn với lá chưa chiếu; lá đã chiếu mà không vào trang chọn thì không xuất hiện.
+   Mỗi lá chọn đúng 1 điểm, chọn sai không trừ; chọn tối đa `pick` lá trong 60 giây.
+   Mức Khó: lấy vài nhóm cờ na ná (FLAG_LOOK), chiếu 2 lá cùng nhóm liền nhau; trang chọn trộn thêm các lá na ná chưa chiếu.
+   Một ván 3 vòng. Online: người dẫn đầu bằng điểm thì đấu vòng phụ (nhiều lá đúng hơn, rồi nhanh hơn), tối đa 3 vòng phụ. */
+const LEVELS = {
+  easy: { n: 6, pick: 3, grid: 15, ms: 2000, passes: 2 },
+  normal: { n: 10, pick: 5, grid: 25, ms: 1000, passes: 3 },
+  hard: { n: 10, pick: 5, grid: 25, ms: 1000, passes: 3, look: true, runs: 3, traps: 12 },
+};
+const LEVEL_IDS = ["easy", "normal", "hard"];
+const ROUNDS = 3, MAX_EXTRA = 3, PICK_MS = 60000, PASS_GAP = 700;
+const CODES = FLAG_DATA.map(s => s.split("|")[0]);
+const NAMES = {};
+FLAG_DATA.forEach(s => { const [c, vi, en] = s.split("|"); NAMES[c] = { vi, en }; });
+const LOOK_GROUPS = FLAG_LOOK.map(g => g.trim().split(/\s+/));
+const LOOK = {};   // mã → các mã na ná (một lá có thể nằm trong vài nhóm)
+for (const g of LOOK_GROUPS) for (const c of g) { LOOK[c] = LOOK[c] || []; for (const d of g) if (d !== c && !LOOK[c].includes(d)) LOOK[c].push(d); }
+
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function shuffle(a, rng) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15; return h >>> 0; }
+const mix = (seed, k) => (Math.imul((seed ^ Math.imul(k + 1, 0x9E3779B1)) >>> 0, 0x85EBCA6B) ^ (seed >>> 7)) >>> 0;
+const dailySeed = (date, level) => hashStr("flags|" + date + "|" + level);
+const flashMs = level => { const L = LEVELS[level]; return L.passes * L.n * L.ms + (L.passes - 1) * PASS_GAP; };
+
+function genRound(level, seed) {
+  const L = LEVELS[level], rng = mulberry32(seed);
+  let shown, ask, distract;
+  if (!L.look) {
+    const pool = shuffle(CODES.slice(), rng);
+    shown = pool.slice(0, L.n);
+    ask = shuffle(shown.slice(), rng).slice(0, L.pick);
+    distract = pool.slice(L.n, L.n + L.grid - L.pick);
+  } else {
+    const used = new Set(), near = c => (LOOK[c] || []).some(d => used.has(d));
+    const runs = [];
+    for (const g of shuffle(LOOK_GROUPS.filter(g => g.length >= 3), rng)) {   // nhóm từ 3 lá: chiếu 2, còn ít nhất 1 lá làm bẫy
+      if (runs.length >= L.runs) break;
+      if (g.some(c => used.has(c) || near(c))) continue;   // không lấy 2 nhóm chồng nhau
+      const run = shuffle(g.slice(), rng).slice(0, 2);
+      run.forEach(c => used.add(c)); runs.push(run);
+    }
+    const singles = [];
+    for (const c of shuffle(CODES.slice(), rng)) {
+      if (singles.length >= L.n - runs.length * 2) break;
+      if (used.has(c) || near(c)) continue;   // lá lẻ không na ná lá nào đã chiếu
+      singles.push(c); used.add(c);
+    }
+    shown = shuffle(runs.concat(singles.map(c => [c])), rng).flat();   // mỗi cặp na ná đứng liền nhau
+    ask = runs.map(r => r[rng() < .5 ? 0 : 1]);
+    ask = ask.concat(shuffle(singles.slice(), rng).slice(0, L.pick - ask.length));
+    const inShown = new Set(shown), traps = [];
+    for (const c of ask.concat(shown.filter(c => !ask.includes(c))))
+      for (const d of shuffle((LOOK[c] || []).slice(), rng)) if (!inShown.has(d) && !traps.includes(d)) traps.push(d);
+    const need = L.grid - L.pick;
+    distract = traps.slice(0, Math.min(need, L.traps));
+    for (const c of shuffle(CODES.slice(), rng)) { if (distract.length >= need) break; if (!inShown.has(c) && !distract.includes(c)) distract.push(c); }
+  }
+  return { level, shown, ask, grid: shuffle(ask.concat(distract), rng) };
+}
+const scoreOf = (rd, picks) => picks.filter(c => rd.ask.includes(c)).length;
+
+/* Xếp hạng online. hist[i] = {k, who: [ghế], ans: {ghế: {p: [mã], ms}}}; vòng k < 3 là vòng chính, k >= 3 là vòng phụ.
+   rdOf(k) trả về đề vòng k. Trả về {order, place, tot, tm, alive (còn đang bằng nhau ở đầu bảng)}. */
+function standings(nP, hist, rdOf) {
+  const tot = Array(nP).fill(0), tm = Array(nP).fill(0), seats = [...Array(nP).keys()];
+  for (const h of hist) if (h.k < ROUNDS) for (const s of seats) { const a = h.ans[s]; tot[s] += a ? scoreOf(rdOf(h.k), a.p) : 0; tm[s] += a ? a.ms : PICK_MS; }
+  const top = Math.max(...tot);
+  let alive = seats.filter(s => tot[s] === top);
+  const tail = [];   // bị loại ở vòng phụ: loại càng muộn xếp càng cao
+  const cmpX = (x, y) => y[0] - x[0] || x[1] - y[1];
+  for (const h of hist) {
+    if (h.k < ROUNDS || alive.length < 2) continue;
+    const sc = s => { const a = h.ans[s]; return a ? [scoreOf(rdOf(h.k), a.p), a.ms] : [0, PICK_MS + 1]; };
+    const ord = alive.slice().sort((a, b) => cmpX(sc(a), sc(b)));
+    const best = sc(ord[0]);
+    const surv = ord.filter(s => cmpX(sc(s), best) === 0);
+    tail.unshift(...ord.filter(s => !surv.includes(s)));
+    alive = surv;
+  }
+  const rest = seats.filter(s => tot[s] !== top).sort((a, b) => tot[b] - tot[a] || tm[a] - tm[b]);
+  const order = alive.concat(tail, rest), place = Array(nP).fill(0);
+  order.forEach((s, i) => {
+    if (alive.includes(s)) place[s] = 1;
+    else { const p = order[i - 1]; place[s] = i > 0 && rest.includes(s) && rest.includes(p) && tot[p] === tot[s] && tm[p] === tm[s] ? place[p] : i + 1; }
+  });
+  return { order, place, tot, tm, alive };
+}
+// sau các vòng đã có: chơi tiếp vòng nào (ai chơi) hay đã xong
+function plan(nP, hist, rdOf) {
+  if (hist.length < ROUNDS) return { done: false, k: hist.length, who: [...Array(nP).keys()] };
+  const S = standings(nP, hist, rdOf);
+  if (S.alive.length > 1 && hist.length - ROUNDS < MAX_EXTRA) return { done: false, k: hist.length, who: S.alive };
+  return { done: true };
+}
+/* RULES-END */
+
+/* ============================================================
+   TRẠNG THÁI
+   ============================================================ */
+const PREFS_KEY = "flagsworld.prefs", BEST_KEY = "flagsworld.best", DAILY_KEY = "flagsworld.daily";
+const PREFS = { name: "", mode: "solo", level: "normal", net: "create", id: "" };
+try { Object.assign(PREFS, JSON.parse(localStorage.getItem(PREFS_KEY) || "{}")); } catch (e) {}
+if (!PREFS.id) PREFS.id = Math.random().toString(36).slice(2, 12);
+if (!LEVEL_IDS.includes(PREFS.level)) PREFS.level = "normal";
+if (!["solo", "daily", "online"].includes(PREFS.mode)) PREFS.mode = "solo";
+const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch (e) {} };
+savePrefs();
+const loadJSON = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "null") || d; } catch (e) { return d; } };
+const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const SEAT_COLORS = ["#ef7a2e", "#4a6fd8", "#2ea65a", "#d6457a", "#8e5bd8", "#1f9aa5"];
+const cleanName = s => String(s || "").replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, 12);   // tên tối đa 12 ký tự
+const myName = () => cleanName(PREFS.name) || tr("def_name");
+const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const dateTxt = s => { const [y, m, d] = s.split("-"); return LANG === "vi" ? `${+d}/${+m}/${y}` : new Date(+y, +m - 1, +d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); };
+const dailyRes = () => { const D = loadJSON(DAILY_KEY, {}); return D.date === todayStr() ? D.res || {} : {}; };
+const flagName = c => NAMES[c] ? NAMES[c][LANG] : c;
+const flagSrc = c => "flags/" + c + ".svg";
+const flHTML = (c, title) => `<span class="fl"${title ? ` title="${escH(flagName(c))}"` : ""}><img src="${flagSrc(c)}" alt="" draggable="false"></span>`;
+
+let SPEED = 1;   // chỉ để test: rút ngắn thời gian chiếu (game.speed(0.05))
+/* G: ván đang chơi.
+   mode "solo" | "daily" | "online"; level; seed; players [{name}]; me (ghế mình); hist (các vòng đã xong);
+   k (vòng đang chơi); rd (đề vòng k); phase: idle | intro | load | count | flash | pick | sent | result | spect | wait | final;
+   picks (mã đã chọn); t0 (mốc bắt đầu pha hiện tại, performance.now()); ms (thời gian trả lời vòng này). */
+let G = null;
+let PLAYED = false;
+const RD_CACHE = new Map();
+function roundOf(k) {
+  const key = G.level + ":" + G.seed + ":" + k;
+  if (!RD_CACHE.has(key)) { if (RD_CACHE.size > 60) RD_CACHE.clear(); RD_CACHE.set(key, genRound(G.level, mix(G.seed, k))); }
+  return RD_CACHE.get(key);
+}
+const rdOf = k => roundOf(k);
+const L = () => LEVELS[G.level];
+const isOnline = () => G && G.mode === "online";
+
+/* ---------- tải trước ảnh cờ của vòng (để mỗi lá không bị trống trong 1 giây được chiếu) ---------- */
+const IMG_CACHE = {};
+function preload(codes) {
+  const one = c => new Promise(r => {
+    let im = IMG_CACHE[c];
+    if (im && im.complete && im.naturalWidth) return r();
+    im = IMG_CACHE[c] = new Image();
+    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).then(r, r); };
+    im.onerror = () => r();
+    im.src = flagSrc(c);
+  });
+  return Promise.race([Promise.all(codes.map(one)), new Promise(r => setTimeout(r, 5000))]);
+}
+
+/* ============================================================
+   LUỒNG MỘT VÒNG
+   ============================================================ */
+function newLocalGame(mode, level) {
+  leaveAll();
+  PLAYED = true;
+  const date = todayStr();
+  G = { mode, level, date, seed: mode === "daily" ? dailySeed(date, level) : (Math.random() * 4294967296) >>> 0, players: [{ name: myName() }], me: 0, hist: [], k: 0, phase: "intro", picks: [], t0: 0, ms: 0,
+    practice: mode === "daily" && !!dailyRes()[level] };
+  G.rd = roundOf(0);
+  preload(G.rd.shown.concat(G.rd.grid));
+  render();
+}
+// bấm "Bắt đầu vòng": tải cờ rồi chiếu
+function beginRound() {
+  if (!G || G.phase !== "intro") return;
+  G.rd = roundOf(G.k);
+  G.phase = "load"; G.t0 = performance.now(); render();
+  const k = G.k, g = G;
+  preload(G.rd.shown.concat(G.rd.grid)).then(() => {
+    if (G !== g || G.k !== k || G.phase !== "load") return;
+    G.phase = "count"; G.t0 = performance.now(); G.countMs = 1200; render();
+  });
+}
+// online: chủ phòng báo vòng mới
+function onlineRound(k, who) {
+  G.k = k; G.who = who; G.rd = roundOf(k); G.picks = []; G.ms = 0;
+  if (!who.includes(G.me)) { G.phase = "spect"; render(); return; }
+  G.phase = "count"; G.t0 = performance.now(); G.countMs = 3000; render();
+  preload(G.rd.shown.concat(G.rd.grid));
+}
+function startFlash() {
+  G.phase = "flash"; G.t0 = performance.now(); G.fi = -1; render();
+  requestAnimationFrame(flashLoop);
+}
+// vị trí trong dãy chiếu theo thời gian đã trôi (giữa hai lượt có khoảng nghỉ PASS_GAP)
+function flashAt(el) {
+  const Lv = L(), ms = Lv.ms * SPEED, gap = PASS_GAP * SPEED, per = Lv.n * ms + gap;
+  const pass = Math.floor(el / per), inPass = el - pass * per;
+  if (pass >= Lv.passes) return { done: true };
+  if (inPass >= Lv.n * ms) return { pass, gap: true };
+  return { pass, i: Math.floor(inPass / ms) };
+}
+function flashLoop() {
+  if (!G || G.phase !== "flash") return;
+  const el = performance.now() - G.t0, at = flashAt(el), Lv = L();
+  if (at.done) { enterPick(); return; }
+  const idx = at.gap ? -1 - at.pass : at.pass * Lv.n + at.i;
+  if (idx !== G.fi) {
+    G.fi = idx;
+    const box = $("#fbig");
+    if (box) {
+      if (at.gap) { box.classList.add("blank"); $("#fPass").textContent = tr("f_pass", Math.min(at.pass + 2, Lv.passes), Lv.passes); $("#fNo").textContent = ""; sfx("pass"); }
+      else {
+        box.classList.remove("blank", "pop"); void box.offsetWidth; box.classList.add("pop");
+        $("#fImg").src = flagSrc(G.rd.shown[at.i]);
+        $("#fPass").textContent = tr("f_pass", at.pass + 1, Lv.passes); $("#fNo").textContent = tr("f_flag", at.i + 1, Lv.n);
+        sfx("flip");
+      }
+    }
+  }
+  const pr = $("#fProg"); if (pr) pr.style.width = Math.min(100, el / (flashMs(G.level) * SPEED) * 100) + "%";
+  requestAnimationFrame(flashLoop);
+}
+function enterPick() {
+  G.phase = "pick"; G.t0 = performance.now(); G.picks = []; render(); sfx("go");
+}
+function togglePick(c) {
+  if (!G || G.phase !== "pick" || !G.rd.grid.includes(c)) return;
+  const i = G.picks.indexOf(c);
+  if (i >= 0) { G.picks.splice(i, 1); sfx("unpick"); }
+  else if (G.picks.length < L().pick) { G.picks.push(c); sfx("pick"); }
+  else return;
+  paintPick();
+}
+function submit(auto) {
+  if (!G || G.phase !== "pick") return;
+  if (!auto && G.picks.length < L().pick) return;
+  G.ms = Math.min(PICK_MS, Math.round(performance.now() - G.t0));
+  if (auto) G.ms = PICK_MS;
+  sfx("submit");
+  const ans = { p: G.picks.slice(), ms: G.ms };
+  if (isOnline()) {
+    G.phase = "sent"; render();
+    if (NET.role === "host") hostAnswer(0, G.k, ans); else netSend({ t: "ans", k: G.k, p: ans.p, ms: ans.ms });
+    return;
+  }
+  G.hist.push({ k: G.k, who: [0], ans: { 0: ans } });
+  showResult();
+}
+function showResult() {
+  G.phase = "result"; G.t0 = performance.now(); render();
+  const h = G.hist[G.hist.length - 1], a = h.ans[G.me];
+  if (a) { const sc = scoreOf(roundOf(h.k), a.p); sfx(sc >= L().pick - 1 ? "good" : "meh", 250); }
+}
+// một mình / đề hôm nay: sang vòng sau hoặc tổng kết
+function nextLocal() {
+  if (!G || isOnline() || G.phase !== "result") return;
+  if (G.hist.length >= ROUNDS) { finishLocal(); return; }
+  G.k = G.hist.length; G.rd = roundOf(G.k); G.phase = "intro"; G.picks = [];
+  preload(G.rd.shown.concat(G.rd.grid));
+  render();
+}
+function localTotals() {
+  let sc = 0, ms = 0;
+  for (const h of G.hist) { const a = h.ans[0]; sc += scoreOf(roundOf(h.k), a.p); ms += a.ms; }
+  return { sc, ms, max: L().pick * ROUNDS };
+}
+function finishLocal() {
+  const T = localTotals();
+  G.phase = "final"; G.newRec = false;
+  if (G.mode === "solo") {
+    const B = loadJSON(BEST_KEY, {}), b = B[G.level];
+    if (!b || T.sc > b.sc || T.sc === b.sc && T.ms < b.ms) { B[G.level] = { sc: T.sc, ms: T.ms }; saveJSON(BEST_KEY, B); G.newRec = true; }
+  } else if (G.mode === "daily" && !G.practice) {
+    const D = loadJSON(DAILY_KEY, {});
+    if (D.date !== G.date) { D.date = G.date; D.res = {}; }
+    if (!D.res[G.level]) { D.res[G.level] = { sc: T.sc, ms: T.ms }; saveJSON(DAILY_KEY, D); }
+  }
+  render();
+  sfx(T.sc >= T.max * .8 ? "win" : T.sc >= T.max * .5 ? "good" : "meh", 200);
+}
+// đồng hồ: hết giờ chọn, đếm ngược, chờ vòng sau
+setInterval(() => {
+  if (!G) return;
+  const now = performance.now();
+  if (G.phase === "count" && now - G.t0 >= G.countMs * (isOnline() ? 1 : Math.max(SPEED, .2))) startFlash();
+  else if (G.phase === "count") { const n = Math.ceil((G.countMs - (now - G.t0)) / 1000), el = $("#cnt"); if (el && el.textContent !== String(n)) { el.textContent = n; if (isOnline()) sfx("count"); } }
+  if (G.phase === "pick" && now - G.t0 >= PICK_MS) submit(true);
+  updateTimer();
+  if (G.phase === "result" && isOnline()) paintNextIn();
+}, 100);
+
+/* ============================================================
+   CHƠI ONLINE (PeerJS, WebRTC P2P; khung phòng chờ chép từ Heavy 13, hai file không tự đồng bộ)
+   Chủ phòng làm trọng tài: gửi start {seed, level, players, you}, rồi round {k, who} cho từng vòng.
+   Mọi máy tự sinh đề vòng k từ mix(seed, k) nên cùng bộ cờ. Khách gửi ans {k, p, ms}. Chủ phòng gom đủ (hoặc hết giờ)
+   thì gửi res {k, who, ans}; mỗi máy tự chấm điểm và xếp hạng bằng standings/plan (cùng kết quả).
+   Sau NEXT_MS chủ phòng mở vòng tiếp (hoặc vòng phụ) hoặc gửi fin. st {done, left} báo ai đã nộp / đã rời.
+   ============================================================ */
+const NET_PROTO = 1;
+const PEER_SRC = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+const PEER_SRI = "sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR";
+const PEER_PREFIX = "flagsworld-";
+const MAX_SEATS = 6, MIN_SEATS = 2, NEXT_MS = 10000, GRACE_MS = 5000;
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", CODE_LEN = 5;
+const NET = { role: null, peer: null, conn: null, code: "", gen: 0, lobby: [], started: false, got: false, lobbyView: null, seen: 0, done: [], left: [] };
+const HOST = { k: -1, who: [], ans: {}, skip: [], deadline: 0, nextAt: 0, phase: "" };   // skip: vào lại giữa vòng, vòng này không chờ
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
+const newCode = () => Array.from({ length: CODE_LEN }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+const inviteLink = code => location.href.split("#")[0] + "#room=" + code;
+const sendTo = (conn, d) => { if (conn && conn.open) try { conn.send(d); } catch (e) {} };
+const netSend = d => sendTo(NET.conn, d);
+const bcast = d => NET.lobby.forEach((x, i) => { if (i > 0 && x.conn) sendTo(x.conn, d); });
+let peerLoading = null;
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  return peerLoading || (peerLoading = new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = PEER_SRC; s.integrity = PEER_SRI; s.crossOrigin = "anonymous";
+    s.onload = () => (window.Peer ? ok() : fail());
+    s.onerror = () => { peerLoading = null; s.remove(); fail(); };
+    document.head.appendChild(s);
+  }));
+}
+function netClose(bye) {
+  NET.gen++;
+  if (bye) { if (NET.role === "host") bcast({ t: "bye" }); else netSend({ t: "bye" }); }
+  const peer = NET.peer;
+  NET.peer = NET.conn = null; NET.role = null; NET.code = ""; NET.lobby = []; NET.started = false; NET.got = false; NET.lobbyView = null; NET.done = []; NET.left = [];
+  HOST.phase = ""; HOST.deadline = HOST.nextAt = 0;
+  if (peer) setTimeout(() => { try { peer.destroy(); } catch (e) {} }, bye ? 400 : 0);
+}
+function leaveAll() {
+  netClose(true);
+  G = null;
+  for (const id of ["#mLobby", "#mNet"]) $(id).hidden = true;
+}
+function netFail(key, arg, retryCode) {
+  const wasGuest = NET.role === "guest";
+  netClose(false);
+  G = null;
+  $("#mLobby").hidden = true;
+  $("#netTitle").textContent = tr("n_title_err");
+  $("#netMsg").textContent = tr(key, arg);
+  $("#netRetry").hidden = !(wasGuest && retryCode);
+  $("#netRetry").onclick = () => { $("#mNet").hidden = true; startGuest(retryCode); };
+  $("#mNet").hidden = false;
+  render();
+}
+/* --- chủ phòng --- */
+async function startHost() {
+  leaveAll();
+  PLAYED = true;
+  const gen = ++NET.gen;
+  NET.role = "host"; NET.started = false;
+  NET.lobby = [{ id: PREFS.id, name: myName(), conn: null }];
+  showLobby();
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen === NET.gen) hostOpenPeer(gen, 0);
+}
+function hostOpenPeer(gen, tries) {
+  const code = newCode(), peer = new Peer(PEER_PREFIX + code);
+  NET.peer = peer;
+  peer.on("open", () => { if (gen !== NET.gen) return; NET.code = code; if (!NET.started) showLobby(); });
+  peer.on("connection", conn => {
+    if (gen !== NET.gen) return;
+    conn.on("data", d => { if (gen === NET.gen) hostData(conn, d); });
+    conn.on("close", () => { if (gen === NET.gen) hostLost(conn); });
+    conn.on("error", () => { if (gen === NET.gen) hostLost(conn); });
+  });
+  peer.on("disconnected", () => { if (gen === NET.gen && !peer.destroyed) setTimeout(() => { if (gen === NET.gen && !peer.destroyed) try { peer.reconnect(); } catch (e) {} }, 1500); });
+  peer.on("error", e => {
+    if (gen !== NET.gen) return;
+    if (e.type === "unavailable-id" && tries < 3) { try { peer.destroy(); } catch (x) {} hostOpenPeer(gen, tries + 1); return; }
+    if (!NET.code) netFail("n_err_net", e.type || String(e)); else console.warn("PeerJS:", e.type, e);
+  });
+}
+const startMsg = (i, extra) => ({ t: "start", v: NET_PROTO, seed: G.seed, level: G.level, players: G.players, you: i, ...extra });
+function hostData(conn, d) {
+  if (!d || typeof d !== "object") return;
+  const seenAt = NET.lobby.find(x => x.conn === conn);
+  if (seenAt) seenAt.seen = performance.now();
+  if (d.t === "ping") return;
+  if (d.t === "hello") {
+    if (d.v !== NET_PROTO) { sendTo(conn, { t: "err", code: "version" }); setTimeout(() => conn.close(), 400); return; }
+    const id = String(d.id || "").slice(0, 24), name = cleanName(d.name) || tr("def_name");
+    const i = NET.lobby.findIndex((x, k) => k > 0 && x.id === id);
+    if (i > 0) {   // người cũ quay lại (cùng id)
+      NET.lobby[i].conn = conn; NET.lobby[i].seen = performance.now();
+      if (!NET.started) { NET.lobby[i].name = name; lobbyUpdate(); }
+      else if (G) {
+        NET.left = NET.left.filter(s => s !== i);
+        if (HOST.phase === "round" && !HOST.ans[i] && !HOST.skip.includes(i)) HOST.skip.push(i);
+        sendTo(conn, startMsg(i, { hist: G.hist, k: HOST.k, phase: HOST.phase, who: HOST.who }));
+        hostStatus();
+      }
+      return;
+    }
+    if (NET.started) { sendTo(conn, { t: "err", code: "started" }); setTimeout(() => conn.close(), 400); return; }
+    if (NET.lobby.length >= MAX_SEATS) { sendTo(conn, { t: "err", code: "full" }); setTimeout(() => conn.close(), 400); return; }
+    NET.lobby.push({ id, name, conn, seen: performance.now() });
+    lobbyUpdate();
+    return;
+  }
+  const i = NET.lobby.findIndex(x => x.conn === conn);
+  if (i <= 0) return;
+  if (d.t === "bye") return hostLost(conn);
+  if (d.t === "ans") hostAnswer(i, Number(d.k), { p: Array.isArray(d.p) ? d.p.map(String).slice(0, 8) : [], ms: Number(d.ms) });
+}
+function hostLost(conn) {
+  const i = NET.lobby.findIndex(x => x.conn === conn);
+  if (i <= 0) return;
+  NET.lobby[i].conn = null;
+  try { conn.close(); } catch (e) {}
+  if (!NET.started) { NET.lobby.splice(i, 1); lobbyUpdate(); return; }
+  if (!NET.left.includes(i)) NET.left.push(i);
+  hostStatus();
+  hostCheckAll();
+}
+function lobbyUpdate() {
+  showLobby();
+  NET.lobby.forEach((x, i) => { if (i > 0) sendTo(x.conn, { t: "lobby", code: NET.code, seats: lobbySeats(), you: i, level: PREFS.level }); });
+}
+const lobbySeats = () => NET.lobby.map(x => ({ name: x.name }));
+function showLobby() {
+  if (NET.role === "host") renderLobby({ code: NET.code, seats: lobbySeats(), you: 0, host: true, level: PREFS.level });
+  else if (NET.lobbyView) renderLobby({ ...NET.lobbyView, host: false });
+  $("#mLobby").hidden = false;
+}
+function hostStart() {
+  if (NET.role !== "host" || NET.started || NET.lobby.length < MIN_SEATS) return;
+  NET.started = true; NET.left = []; NET.done = [];
+  $("#mLobby").hidden = true;
+  G = { mode: "online", level: PREFS.level, seed: (Math.random() * 4294967296) >>> 0, players: NET.lobby.map(x => ({ name: x.name })), me: 0, hist: [], k: -1, phase: "wait", picks: [], t0: 0, ms: 0 };
+  NET.lobby.forEach((x, i) => { if (i > 0) sendTo(x.conn, startMsg(i)); });
+  hostRound(plan(G.players.length, G.hist, rdOf));
+}
+function hostRound(p) {
+  HOST.k = p.k; HOST.who = p.who; HOST.ans = {}; HOST.skip = []; HOST.phase = "round"; HOST.nextAt = 0;
+  HOST.deadline = performance.now() + 3000 + flashMs(G.level) + PICK_MS + GRACE_MS;
+  NET.done = [];
+  bcast({ t: "round", k: p.k, who: p.who });
+  onlineRound(p.k, p.who);
+  hostStatus();
+}
+function hostAnswer(s, k, a) {
+  if (!G || HOST.phase !== "round" || k !== HOST.k || !HOST.who.includes(s) || HOST.ans[s]) return;
+  const rd = roundOf(k);
+  HOST.ans[s] = { p: [...new Set(a.p)].filter(c => rd.grid.includes(c)).slice(0, LEVELS[G.level].pick), ms: Math.max(0, Math.min(PICK_MS, Math.round(a.ms) || PICK_MS)) };
+  NET.done = Object.keys(HOST.ans).map(Number);
+  hostStatus();
+  hostCheckAll();
+}
+const seatOn = s => s === 0 || !!(NET.lobby[s] && NET.lobby[s].conn);
+function hostCheckAll() {
+  if (HOST.phase !== "round") return;
+  if (HOST.who.every(s => HOST.ans[s] || !seatOn(s) || HOST.skip.includes(s))) hostResolve();
+}
+function hostResolve() {
+  if (HOST.phase !== "round") return;
+  const res = { t: "res", k: HOST.k, who: HOST.who, ans: HOST.ans };
+  HOST.phase = "res"; HOST.deadline = 0; HOST.nextAt = performance.now() + NEXT_MS;
+  bcast(res);
+  applyRes(res);
+}
+function hostNext() {
+  if (NET.role !== "host" || !G || HOST.phase !== "res") return;
+  const p = plan(G.players.length, G.hist, rdOf);
+  if (p.done) { HOST.phase = "fin"; HOST.nextAt = 0; bcast({ t: "fin" }); showFinal(); }
+  else hostRound(p);
+}
+function hostStatus() {
+  const st = { t: "st", done: NET.done.slice(), left: NET.left.slice() };
+  bcast(st);
+  render();
+}
+function hostToLobby() {   // hết ván: về phòng chờ (bỏ người đã rời)
+  NET.started = false; G = null; HOST.phase = ""; NET.left = []; NET.done = [];
+  NET.lobby = NET.lobby.filter((x, i) => i === 0 || x.conn);
+  lobbyUpdate(); render();
+}
+// đồng hồ của chủ phòng: hết giờ nộp thì chốt vòng; hết giờ xem kết quả thì sang vòng tiếp
+setInterval(() => {
+  if (NET.role !== "host" || !G) return;
+  const now = performance.now();
+  if (HOST.phase === "round" && HOST.deadline && now > HOST.deadline) hostResolve();
+  else if (HOST.phase === "res" && HOST.nextAt && now > HOST.nextAt) hostNext();
+}, 250);
+/* Nhịp tim: WebRTC nhiều khi không báo khi máy bên kia đóng tab, nên hai bên gửi "ping" mỗi 3 giây;
+   im lặng quá 10 giây (chủ phòng) / 12 giây (khách) thì coi như rớt mạng. */
+setInterval(() => {
+  const now = performance.now();
+  if (NET.role === "host") NET.lobby.forEach((x, i) => {
+    if (i === 0 || !x.conn) return;
+    if (x.seen && now - x.seen > 10000) hostLost(x.conn); else sendTo(x.conn, { t: "ping" });
+  });
+  else if (NET.role === "guest" && NET.got) {
+    if (now - NET.seen > 12000) netFail("n_err_lost", null, NET.code); else netSend({ t: "ping" });
+  }
+}, 3000);
+/* --- khách --- */
+async function startGuest(code) {
+  leaveAll();
+  PLAYED = true;
+  const gen = ++NET.gen;
+  NET.role = "guest"; NET.code = code;
+  $("#netTitle").textContent = tr("n_title_guest", code); $("#netMsg").textContent = tr("n_joining", code);
+  $("#netRetry").hidden = true; $("#mNet").hidden = false;
+  try { await loadPeer(); } catch (e) { if (gen === NET.gen) netFail("n_err_lib"); return; }
+  if (gen !== NET.gen) return;
+  const peer = new Peer(); NET.peer = peer;
+  peer.on("open", () => {
+    if (gen !== NET.gen) return;
+    const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+    NET.conn = conn;
+    conn.on("open", () => { if (gen === NET.gen) conn.send({ t: "hello", v: NET_PROTO, id: PREFS.id, name: myName() }); });
+    conn.on("data", d => { if (gen === NET.gen) guestData(d); });
+    conn.on("close", () => { if (gen === NET.gen) netFail("n_err_lost", null, code); });
+    conn.on("error", () => { if (gen === NET.gen) netFail("n_err_lost", null, code); });
+    setTimeout(() => { if (gen === NET.gen && !NET.got) netFail("n_err_timeout", null, code); }, 20000);
+  });
+  peer.on("error", e => {
+    if (gen !== NET.gen) return;
+    if (e.type === "peer-unavailable") netFail("n_err_nopeer", code);
+    else if (!NET.got) netFail("n_err_net", e.type || String(e), code);
+    else console.warn("PeerJS:", e.type, e);
+  });
+}
+function guestData(d) {
+  if (!d || typeof d !== "object") return;
+  NET.got = true; NET.seen = performance.now();
+  if (d.t === "ping") return;
+  if (d.t === "lobby") {
+    NET.lobbyView = { code: NET.code, seats: d.seats, you: d.you, level: d.level };
+    G = null; $("#mNet").hidden = true;
+    showLobby(); render();
+  } else if (d.t === "start") {
+    $("#mLobby").hidden = true; $("#mNet").hidden = true;
+    G = { mode: "online", level: LEVEL_IDS.includes(d.level) ? d.level : "normal", seed: d.seed >>> 0, players: d.players || [], me: d.you, hist: d.hist || [], k: -1, phase: "wait", picks: [], t0: 0, ms: 0, rejoin: !!d.hist };
+    NET.done = []; NET.left = [];
+    if (d.hist && d.phase === "res" && d.hist.length) { G.k = d.hist[d.hist.length - 1].k; G.rd = roundOf(G.k); G.phase = "result"; G.t0 = performance.now(); }
+    else if (d.hist && d.phase === "fin") G.phase = "final";
+    else if (d.hist && d.phase === "round") { G.k = d.k; G.who = d.who || []; G.rd = roundOf(d.k); G.phase = "wait"; }
+    render();
+  } else if (d.t === "round" && G) onlineRound(Number(d.k), Array.isArray(d.who) ? d.who.map(Number) : []);
+  else if (d.t === "res" && G) applyRes(d);
+  else if (d.t === "fin" && G) showFinal();
+  else if (d.t === "st") { NET.done = d.done || []; NET.left = d.left || []; render(); }
+  else if (d.t === "err") netFail({ full: "n_err_full", started: "n_err_started", version: "n_err_version", kicked: "n_err_kicked" }[d.code] || "n_err_net", d.code);
+  else if (d.t === "bye") netFail("n_err_hostleft");
+}
+function applyRes(d) {
+  if (!G) return;
+  const ans = {};
+  for (const [s, a] of Object.entries(d.ans || {})) ans[+s] = { p: (a.p || []).map(String), ms: +a.ms };
+  if (!G.hist.some(h => h.k === d.k)) G.hist.push({ k: d.k, who: (d.who || []).map(Number), ans });
+  G.k = d.k; G.rd = roundOf(d.k);
+  NET.done = [];
+  if (G.phase === "pick") G.picks = [];   // vòng đã chốt mà mình chưa nộp
+  showResult();
+}
+function showFinal() {
+  if (!G) return;
+  G.phase = "final"; render();
+  const S = standings(G.players.length, G.hist, rdOf);
+  sfx(S.place[G.me] === 1 ? "win" : "lose", 200);
+}
+
+/* ============================================================
+   VẼ
+   ============================================================ */
+const avHTML = (i, name) => `<span class="av" style="background:${SEAT_COLORS[i % SEAT_COLORS.length]}">${escH((name || "?").trim().charAt(0).toUpperCase())}</span>`;
+const nameOf = s => s === G.me ? tr("you") : G.players[s] ? G.players[s].name : "?";
+const labelOf = s => s === G.me && cleanName(PREFS.name) ? `${escH(G.players[s].name)}<span class="youtag">${tr("n_you")}</span>` : escH(nameOf(s));
+let screenKey = "";
+function setScreen(key, html) {
+  if (key === screenKey) return false;
+  screenKey = key; $("#screen").innerHTML = html; return true;
+}
+function render() {
+  renderBar();
+  renderSide();
+  if (!G) {
+    setScreen("idle:" + LANG, `<div class="waitbox"><h2>${tr("idle_h")}</h2><p>${tr("idle_p")}</p><button class="go" data-a="mode" style="max-width:260px;margin:0 auto">${tr("b_new")}</button></div>`);
+    return;
+  }
+  const ph = G.phase, key = [ph, G.k, LANG, G.hist.length, G.level].join(":");
+  if (ph === "intro") renderIntro(key);
+  else if (ph === "load") setScreen(key, `<div class="ready">${tr("f_load")}<div class="spin" style="margin-top:16px"></div></div>`);
+  else if (ph === "count") setScreen(key, `<div class="ready">${isOnline() ? tr("f_count", roundLabel(G.k)) : tr("f_ready")}<big id="cnt">${Math.ceil(G.countMs / 1000)}</big></div>`);
+  else if (ph === "flash") renderFlash(key);
+  else if (ph === "pick") renderPick(key);
+  else if (ph === "sent") renderSent();
+  else if (ph === "result") renderResult(key);
+  else if (ph === "spect") setScreen(key + ":" + G.who.join(","), `<div class="waitbox"><div class="spin"></div><h2>${tr("w_spect")}</h2><p>${tr("w_spect_sub", G.who.map(s => escH(nameOf(s))).join(", "))}</p></div>`);
+  else if (ph === "wait") setScreen(key, `<div class="waitbox"><div class="spin"></div><h2>${tr("w_join")}</h2>${G.rejoin ? `<p>${tr("w_join_sub")}</p>` : ""}</div>`);
+  else if (ph === "final") renderFinal(key);
+  fit();
+}
+const roundLabel = k => k < ROUNDS ? String(k + 1) : tr("round_x", k - ROUNDS + 1);
+function renderBar() {
+  const mode = !G ? "" : tr("md_" + G.mode) + " · " + tr("lv_" + G.level);
+  $("#barMode").textContent = mode;
+  let r = "";
+  if (G && G.k >= 0) r = G.k < ROUNDS ? tr("round", Math.min(G.k + 1, ROUNDS), ROUNDS) : tr("round_x", G.k - ROUNDS + 1);
+  if (G && G.phase === "final") r = tr("fin_title");
+  $("#barRound").textContent = r;
+  $("#barL").textContent = G && G.mode === "daily" ? dateTxt(G.date) : G && isOnline() && NET.code ? "#" + NET.code : "";
+  updateTimer();
+}
+function updateTimer() {
+  const el = $("#timer");
+  let txt = "", low = false;
+  if (G && G.phase === "pick") { const left = Math.max(0, PICK_MS - (performance.now() - G.t0)); txt = Math.ceil(left / 1000) + (LANG === "vi" ? " giây" : "s"); low = left < 10000; }
+  if (el.textContent !== txt) el.textContent = txt;
+  el.classList.toggle("low", low);
+}
+function renderIntro(key) {
+  const Lv = L(), k = G.k;
+  const boxes = [0, 1, 2].map(i => {
+    const h = G.hist[i], sc = h ? scoreOf(roundOf(h.k), h.ans[0].p) + "/" + Lv.pick : "—";
+    return `<div class="${i === k ? "cur" : ""}"><b>${i + 1}</b><span>${sc}</span></div>`;
+  }).join("");
+  let rec = "";
+  if (G.mode === "solo") { const b = loadJSON(BEST_KEY, {})[G.level]; rec = b ? tr("rec", b.sc, Lv.pick * ROUNDS, secTxt(b.ms)) : tr("rec_none"); }
+  else if (G.practice) rec = tr("d_note");
+  setScreen(key, `<div class="intro">
+    <div class="ihead"><div class="big">${k + 1}<small>/${ROUNDS}</small></div><div class="tags"><span>${tr("tag_flags", Lv.n)}</span><span>${tr("tag_pick", Lv.pick, Lv.grid)}</span><span>${tr("tag_sec", Lv.ms / 1000)}</span><span>${tr("tag_x", Lv.passes)}</span></div></div>
+    <div class="rboxes">${boxes}</div>
+    <p class="idesc">${tr("i_desc", Lv.n, Lv.ms / 1000, Lv.passes, Lv.pick, Lv.grid)}${Lv.look ? tr("i_desc_hard") : ""}</p>
+    <button class="go" data-a="begin">${tr("b_start_r", k + 1)}</button>
+    ${rec ? `<p class="rec">${rec}</p>` : ""}
+  </div>`);
+}
+function renderFlash(key) {
+  const Lv = L();
+  const marks = Array.from({ length: Lv.passes - 1 }, (_, p) => { const x = ((p + 1) * Lv.n * Lv.ms + p * PASS_GAP) / flashMs(G.level) * 100; return `<b style="left:calc(${x}% - 1px)"></b>`; }).join("");
+  setScreen(key, `<div class="flash"><div class="pass" id="fPass">${tr("f_pass", 1, Lv.passes)}</div><div class="fno" id="fNo"></div>
+    <div class="fbig blank" id="fbig"><span class="fl"><img id="fImg" alt="" draggable="false"></span></div>
+    <div class="prog"><span class="rail"></span><i id="fProg"></i>${marks}</div></div>`);
+  G.fi = -9;
+}
+function renderPick(key) {
+  const Lv = L();
+  if (setScreen(key, `<div class="pick"><div class="pl"><h2>${tr("p_title", Lv.pick)}</h2>
+      <div class="grid" id="grid">${G.rd.grid.map(c => `<button class="ft" data-c="${c}">${flHTML(c)}<svg class="ring" viewBox="0 0 120 100"><use href="#ring"/></svg></button>`).join("")}</div></div>
+      <div class="pr"><div class="pcount" id="pCount"></div><div class="slots" id="slots" style="--n:${Lv.pick}"></div><button class="go" id="pSubmit" data-a="submit"></button><p class="phint">${tr("p_hint")}</p></div></div>`)) fitGrid();
+  paintPick();
+}
+function paintPick() {
+  if (!G || G.phase !== "pick") return;
+  const Lv = L(), n = G.picks.length, full = n >= Lv.pick;
+  $$("#grid .ft").forEach(b => { b.classList.toggle("on", G.picks.includes(b.dataset.c)); b.classList.toggle("full", full); });
+  $("#pCount").textContent = tr("p_count", n, Lv.pick);
+  $("#slots").innerHTML = Array.from({ length: Lv.pick }, (_, i) => G.picks[i] ? `<div class="slot" data-c="${G.picks[i]}">${flHTML(G.picks[i])}</div>` : `<div class="slot empty"></div>`).join("");
+  const b = $("#pSubmit"); b.disabled = !full; b.textContent = full ? tr("p_submit") : tr("p_more", Lv.pick - n);
+}
+function renderSent() {
+  const who = G.who || [], done = NET.done.filter(s => who.includes(s)).length, total = who.filter(s => !NET.left.includes(s)).length;
+  setScreen(["sent", G.k, LANG, done, total].join(":"), `<div class="waitbox"><div class="spin"></div><h2>${tr("w_sent")}</h2><p>${tr("w_sent_sub", done, total)}</p>
+    <div class="mypk">${G.picks.map(c => `<div class="pk">${flHTML(c)}</div>`).join("")}</div></div>`);
+}
+function renderResult(key) {
+  const h = G.hist.find(x => x.k === G.k) || G.hist[G.hist.length - 1];
+  const rd = roundOf(h.k), Lv = L(), a = h.ans[G.me], played = h.who.includes(G.me);
+  const picks = a ? a.p : [], sc = scoreOf(rd, picks), miss = rd.ask.filter(c => !picks.includes(c));
+  let left = "";
+  if (played) {
+    left += `<div class="scorebox${sc < Lv.pick / 2 ? " low" : ""}">${sc}<small>/ ${Lv.pick}</small></div>`;
+    left += `<div class="mypk">${picks.map(c => { const ok = rd.ask.includes(c); return `<div class="pk ${ok ? "ok" : "bad"}">${flHTML(c, true)}<i>${ok ? "○" : "✕"}</i><small>${escH(flagName(c))}</small></div>`; }).join("")}</div>`;
+    left += miss.length ? `<div class="miss">${tr("r_missed")} ${miss.map(c => flHTML(c, true)).join("")}</div>` : `<div class="miss none">${tr("r_nomiss")}</div>`;
+  }
+  left += `<p class="allh">${tr("r_all", rd.shown.length)}</p><div class="allg" style="--ac:${rd.shown.length === 6 ? 6 : 5}">${rd.shown.map(c => `<div class="it${rd.ask.includes(c) ? " ask" : ""}">${flHTML(c, true)}<small>${escH(flagName(c))}</small></div>`).join("")}</div><p class="legend">${tr("r_legend")}</p>`;
+  let right = "";
+  if (played) right += `<p>${a && a.ms < PICK_MS ? tr("r_time", secTxt(a.ms)) : tr("r_timeout", secTxt(PICK_MS))}</p>`;
+  if (!isOnline()) right += `<button class="go" data-a="next">${G.hist.length >= ROUNDS ? tr("b_final") : tr("b_next")}</button>`;
+  else {
+    const p = plan(G.players.length, G.hist, rdOf), host = NET.role === "host";
+    right += host ? `<button class="go" data-a="hnext">${p.done ? tr("b_final") : tr("b_next")}</button>` : `<button class="go" disabled>${tr("r_wait_host")}</button>`;
+    right += `<p class="sub" id="nextIn"></p>`;
+    right += resultTable(h);
+  }
+  setScreen(key + ":" + G.me, `<div class="res"><div class="rl">${left}</div><div class="rr">${right}</div></div>`);
+  if (isOnline()) paintNextIn();
+}
+function resultTable(h) {
+  const rd = roundOf(h.k), S = standings(G.players.length, G.hist, rdOf);
+  const rows = h.who.map(s => { const a = h.ans[s]; return { s, sc: a ? scoreOf(rd, a.p) : 0, ms: a ? a.ms : PICK_MS + 1, none: !a }; })
+    .sort((x, y) => y.sc - x.sc || x.ms - y.ms);
+  return `<table class="rtab"><tr><th></th><th class="r">${tr("r_tab_round")}</th><th class="r"></th><th class="r">${h.k < ROUNDS ? tr("r_tab_total") : ""}</th></tr>${rows.map(r =>
+    `<tr class="${r.s === G.me ? "me" : ""}"><td class="nm">${labelOf(r.s)}</td><td class="n">${r.sc}</td><td class="t">${r.none ? tr("r_not") : secTxt(r.ms)}</td><td class="n">${h.k < ROUNDS ? S.tot[r.s] : ""}</td></tr>`).join("")}</table>`;
+}
+function paintNextIn() {
+  const el = $("#nextIn");
+  if (!el || !G || G.phase !== "result") return;
+  const at = NET.role === "host" ? HOST.nextAt : G.t0 + NEXT_MS, left = Math.max(0, Math.ceil((at - performance.now()) / 1000));
+  const p = plan(G.players.length, G.hist, rdOf);
+  const txt = tr(p.done ? "r_final_in" : "r_next_in", left);
+  if (el.textContent !== txt) el.textContent = txt;
+}
+function renderFinal(key) {
+  if (!isOnline()) {
+    const T = localTotals(), Lv = L();
+    const boxes = G.hist.map((h, i) => `<div><b>${i + 1}</b><span>${scoreOf(roundOf(h.k), h.ans[0].p)}/${Lv.pick}</span></div>`).join("");
+    let rec = "";
+    if (G.mode === "solo") { const b = loadJSON(BEST_KEY, {})[G.level]; rec = b ? tr("rec", b.sc, T.max, secTxt(b.ms)) + (G.newRec && b.sc === T.sc && b.ms === T.ms ? `<span class="newrec">${tr("fin_new")}</span>` : "") : ""; }
+    else rec = G.practice ? tr("fin_practice") : tr("fin_daily_done");
+    setScreen(key, `<div class="fin"><h2>${tr("fin_title")}</h2><div class="scorebox${T.sc < T.max / 2 ? " low" : ""}">${T.sc}<small>/ ${T.max}</small></div>
+      <div class="rboxes">${boxes}</div><p class="rec" style="margin-top:0">${tr("fin_time", secTxt(T.ms))}</p>${rec ? `<p class="rec">${rec}</p>` : ""}
+      ${G.mode === "daily" ? `<div class="btns"><button class="go" data-a="copy" id="btnCopy">${tr("fin_copy")}</button></div>` : ""}
+      <div class="btns two"${G.mode === "daily" ? ' style="margin-top:9px"' : ""}><button class="go" data-a="again">${tr("fin_again")}</button><button class="go ghost" data-a="mode">${tr("fin_mode")}</button></div></div>`);
+    return;
+  }
+  const S = standings(G.players.length, G.hist, rdOf), winners = S.order.filter(s => S.place[s] === 1);
+  const title = winners.length > 1 ? tr("fin_share", winners.map(s => escH(nameOf(s))).join(", ")) : S.place[G.me] === 1 ? tr("fin_win") : tr("fin_won", escH(nameOf(winners[0])));
+  const host = NET.role === "host";
+  const rows = S.order.map(s => `<tr class="${s === G.me ? "me" : ""}"><td class="place">${S.place[s]}</td><td class="nm">${labelOf(s)}${NET.left.includes(s) ? ` <small class="note">(${tr("s_left")})</small>` : ""}</td><td class="n">${S.tot[s]}</td><td class="t">${secTxt(S.tm[s])}</td></tr>`).join("");
+  setScreen(key + ":" + NET.left.join(","), `<div class="fin"><h2>${title}</h2>
+    <table class="rtab"><tr><th></th><th></th><th class="r">${tr("r_tab_total")}</th><th class="r"></th></tr>${rows}</table>
+    ${G.hist.filter(h => h.k >= ROUNDS).map(h => `<p class="rec">${tr("x_tie", h.k - ROUNDS + 1)}: ${h.who.map(s => { const a = h.ans[s]; return `<b>${escH(G.players[s].name)}</b> ${a ? scoreOf(roundOf(h.k), a.p) : 0}/${L().pick} · ${a ? secTxt(a.ms) : tr("r_not")}`; }).join(" – ")}</p>`).join("")}
+    <div class="btns">${host ? `<button class="go" data-a="lobby">${tr("fin_back")}</button>` : `<button class="go" disabled>${tr("fin_wait")}</button>`}<button class="go ghost" data-a="leave">${tr("fin_leave")}</button></div></div>`);
+}
+function renderSide() {
+  const on = isOnline();
+  $("#stage").classList.toggle("online", on);
+  $("#side").hidden = !on;
+  if (!on) return;
+  const S = standings(G.players.length, G.hist, rdOf);
+  const inRound = ["count", "flash", "pick", "sent", "spect", "wait"].includes(G.phase);
+  const order = G.players.map((p, i) => i).sort((a, b) => S.tot[b] - S.tot[a] || a - b);
+  $("#plist").innerHTML = order.map(s => {
+    let st = "";
+    if (NET.left.includes(s)) st = `<span class="st">${tr("s_left")}</span>`;
+    else if (inRound && G.who && G.k >= 0) st = !G.who.includes(s) ? `<span class="st">${tr("s_watch")}</span>` : NET.done.includes(s) ? `<span class="st ok">✓ ${tr("s_done")}</span>` : `<span class="st">${tr("s_picking")}</span>`;
+    return `<li class="${s === G.me ? "me" : ""}${NET.left.includes(s) ? " left" : ""}">${avHTML(s, G.players[s].name)}<span class="nm">${labelOf(s)}</span>${st}<b>${S.tot[s]}</b></li>`;
+  }).join("");
+  $("#sideInfo").textContent = tr("lv_" + G.level);
+  if (G.phase === "sent") renderSent();
+}
+
+/* ---------- cỡ lá cờ theo màn hình (không phải cuộn ở màn chiếu và màn chọn) ---------- */
+let PORTRAIT = false;
+function fit() {
+  PORTRAIT = innerWidth < 700;
+  document.body.classList.toggle("portrait", PORTRAIT);
+  const sw = $("#screen").clientWidth;
+  document.body.classList.toggle("narrow", sw < 800);
+  const fb = $("#fbig");
+  if (fb) { const w = Math.max(200, Math.min(520, sw - 30, (innerHeight - (PORTRAIT ? 300 : 340)) / .75)); fb.style.setProperty("--fw", w + "px"); }
+  fitGrid();
+}
+function fitGrid() {
+  const g = $("#grid");
+  if (!g || !G) return;
+  const sw = $("#screen").clientWidth - (PORTRAIT ? 20 : 40), rows = LEVELS[G.level].grid / 5, narrow = sw < 760;
+  const gap = PORTRAIT ? 4 : 10, pad = PORTRAIT ? 6 : 8;
+  const top = $("#screen").getBoundingClientRect().top;
+  // chiều cao cho lưới: màn hình trừ thanh trên, tiêu đề, (màn hẹp: thêm khung đã chọn + nút ở dưới)
+  const availH = innerHeight - Math.max(0, top) - (narrow ? 230 : 110);
+  const byH = (availH - (rows - 1) * gap) / rows / .75 + pad;   // bề ngang mỗi ô theo chiều cao
+  const byW = ((narrow ? sw : sw - 310) - 4 * gap) / 5;
+  const cw = Math.max(narrow ? 56 : 80, Math.min(140, byW, byH));
+  const gw = Math.min(sw, cw * 5 + gap * 4);
+  g.style.setProperty("--gw", gw + "px"); g.style.setProperty("--gg", gap + "px");
+  $("#screen").style.setProperty("--gw", gw + "px");
+}
+
+/* ============================================================
+   BẢNG CHỌN CHẾ ĐỘ, PHÒNG CHỜ, LUẬT, CHỮ
+   ============================================================ */
+function syncModeUI() {
+  $$("#segMode button").forEach(b => b.classList.toggle("on", b.dataset.v === PREFS.mode));
+  const daily = PREFS.mode === "daily", DR = dailyRes();
+  $("#lvBox").hidden = PREFS.mode === "online";
+  $("#netBox").hidden = PREFS.mode !== "online";
+  $("#lvCards").innerHTML = LEVEL_IDS.map(l => {
+    const d = DR[l], b = loadJSON(BEST_KEY, {})[l], P = LEVELS[l].pick * ROUNDS;
+    const em = daily ? (d ? `<em>${tr("d_done", d.sc, P, secTxt(d.ms))}</em>` : "") : b ? `<em>${tr("rec", b.sc, P, secTxt(b.ms)).replace(/<\/?b>/g, "")}</em>` : "";
+    return `<button class="lvc${l === PREFS.level ? " on" : ""}" data-v="${l}"><b class="stars">${tr("lv_" + l)}</b><span>${tr("lvd_" + l)}</span><small>${tr("lvs_" + l)}</small>${em}</button>`;
+  }).join("");
+  $("#lvNote").textContent = daily ? tr("n_daily", dateTxt(todayStr())) : tr("n_solo");
+  $$("#segNet button").forEach(b => b.classList.toggle("on", b.dataset.v === PREFS.net));
+  $("#joinCode").hidden = PREFS.net !== "join";
+  $("#modeCancel").textContent = PLAYED ? tr("cancel") : tr("m_back");
+}
+function openMode() { $("#myName").value = cleanName(PREFS.name); syncModeUI(); $("#mMode").hidden = false; }
+function modeStart() {
+  PREFS.name = cleanName($("#myName").value); savePrefs();
+  if (PREFS.mode !== "online") { $("#mMode").hidden = true; newLocalGame(PREFS.mode, PREFS.level); return; }
+  if (PREFS.net === "create") { $("#mMode").hidden = true; startHost(); return; }
+  const code = normCode($("#joinCode").value);
+  if (code.length !== CODE_LEN) { $("#joinCode").focus(); $("#joinCode").placeholder = tr("n_err_code"); return; }
+  $("#mMode").hidden = true; startGuest(code);
+}
+function renderLobby(Lb) {
+  $("#lobbyTitle").textContent = Lb.host ? tr("n_title_host") : tr("n_title_guest", Lb.code || NET.code);
+  $("#lobbyCode").hidden = !Lb.code && !Lb.host;
+  if (!Lb.code) { $("#netCode").textContent = "·····"; $("#netLink").value = ""; }
+  $("#netCopy").disabled = !Lb.code;
+  if (Lb.code) { $("#netCode").textContent = Lb.code; $("#netLink").value = inviteLink(Lb.code); }
+  const seats = Lb.seats || [];
+  let h = seats.map((s, i) => `<li>${avHTML(i, s.name)}<b>${escH(s.name)}${i === Lb.you ? tr("n_you") : ""}</b><small>${i === 0 ? tr("n_host") : tr("n_human")}</small>${Lb.host && i > 0 ? `<button data-rm="${i}" aria-label="x">×</button>` : ""}</li>`).join("");
+  for (let i = seats.length; i < MAX_SEATS; i++) h += `<li class="empty">${tr("n_empty")}</li>`;
+  $("#lobbySeats").innerHTML = h;
+  const lv = LEVEL_IDS.includes(Lb.level) ? Lb.level : "normal";
+  $$("#segLvL button").forEach(b => { b.classList.toggle("on", b.dataset.v === lv); b.disabled = !Lb.host; });
+  $("#lobbyLvNote").textContent = tr("lvd_" + lv) + " · " + tr("lvs_" + lv);
+  $("#lobbyStart").hidden = !Lb.host;
+  $("#lobbyStart").disabled = seats.length < MIN_SEATS || !Lb.code;
+  $("#lobbyStart").textContent = tr("n_start", seats.length);
+  $("#lobbyMsg").textContent = Lb.host ? (Lb.code ? tr("n_wait_host") : tr("n_connecting")) : tr("n_wait_guest");
+}
+function ruleSteps() {
+  const f = c => flHTML(c);
+  const figs = [
+    `${f("ro")}<span class="ar">→</span>${f("jp")}<span class="ar">→</span>${f("br")}<span class="ar">×3</span>`,
+    `<span class="ft on" style="width:62px;padding:3px;position:relative;display:block">${f("jp")}<svg class="ring" viewBox="0 0 120 100" style="opacity:1;transform:rotate(-4deg)"><use href="#ring"/></svg></span>${f("se")}${f("ro")}`,
+    `<span style="text-align:center">${f("jp")}<span class="mk o">○</span></span><span style="text-align:center">${f("ro")}<span class="mk o">○</span></span><span style="text-align:center;opacity:.5">${f("td")}<span class="mk x">✕</span></span>`,
+    `<span class="sc">1 · 4/5</span><span class="sc">2 · 5/5</span><span class="sc">3 · 3/5</span>`,
+  ];
+  $("#steps").innerHTML = [1, 2, 3, 4].map(i => `<div class="step"><h4><b>${i}</b>${tr("st" + i + "_h")}</h4><div class="fig">${figs[i - 1]}</div><p>${tr("st" + i + "_p")}</p></div>`).join("");
+  $$("#steps .fig .mk").forEach(m => { m.style.display = "block"; });
+  $("#lvtab").innerHTML = `<tr><th>${tr("r_lv_c1")}</th><th>${tr("r_lv_c2")}</th><th>${tr("r_lv_c3")}</th><th>${tr("r_lv_c4")}</th></tr>` +
+    LEVEL_IDS.map(l => { const t = trRaw("lvt_" + l); return `<tr><td>${tr("lv_" + l)}</td><td>${t[0]}</td><td>${t[1]}</td><td>${t[2]}</td></tr>`; }).join("");
+}
+function applyLang() {
+  document.documentElement.lang = LANG; document.title = tr("title") + " · Twistboard";
+  $$("[data-i18n]").forEach(e => { e.innerHTML = tr(e.dataset.i18n); });
+  $("#joinCode").placeholder = tr("m_code_ph"); $("#myName").placeholder = tr("def_name");
+  ruleSteps();
+  screenKey = "";
+  if (!$("#mMode").hidden) syncModeUI();
+  if (NET.role && !$("#mLobby").hidden) showLobby();
+  render();
+}
+function setLang(l) {
+  if (l !== "vi" && l !== "en" || l === LANG && document.documentElement.lang === l) return;
+  LANG = l; try { localStorage.setItem("lang", l); } catch (e) {}
+  applyLang();
+  if (window.TB) TB.setLang(l);
+}
+if (window.TB) TB.onLang(l => setLang(l));
+function copyResult() {
+  const T = localTotals(), txt = tr("share", dateTxt(G.date), tr("lv_" + G.level), T.sc, T.max, secTxt(T.ms)) + "\n" + location.href.split("#")[0];
+  const done = () => { const b = $("#btnCopy"); if (b) { b.textContent = tr("fin_copied"); setTimeout(() => { if ($("#btnCopy")) $("#btnCopy").textContent = tr("fin_copy"); }, 1500); } };
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, done); else done();
+}
+
+/* ============================================================
+   SỰ KIỆN
+   ============================================================ */
+$("#btnNew").onclick = () => openMode();
+$("#btnRules").onclick = () => { $("#mRules").hidden = false; };
+$("#rulesOk").onclick = () => { $("#mRules").hidden = true; if (!PLAYED && !G && !NET.role) openMode(); };
+$("#segMode").onclick = e => { const b = e.target.closest("button"); if (b) { PREFS.mode = b.dataset.v; savePrefs(); syncModeUI(); } };
+$("#lvCards").onclick = e => { const b = e.target.closest("[data-v]"); if (b) { PREFS.level = b.dataset.v; savePrefs(); syncModeUI(); } };
+$("#lvCards").ondblclick = e => { if (e.target.closest("[data-v]")) modeStart(); };
+$("#segNet").onclick = e => { const b = e.target.closest("button"); if (b) { PREFS.net = b.dataset.v; syncModeUI(); if (PREFS.net === "join") $("#joinCode").focus(); } };
+$("#joinCode").oninput = e => { e.target.value = normCode(e.target.value); };
+$("#joinCode").onkeydown = e => { if (e.key === "Enter") modeStart(); };
+$("#myName").onkeydown = e => { if (e.key === "Enter") modeStart(); };
+$("#modeStart").onclick = modeStart;
+$("#modeCancel").onclick = () => { $("#mMode").hidden = true; if (!PLAYED) $("#mRules").hidden = false; };
+$("#netCopy").onclick = () => {
+  const inp = $("#netLink"), done = () => { $("#netCopy").textContent = tr("n_copied"); setTimeout(() => { $("#netCopy").textContent = tr("n_copy"); }, 1500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(done, () => { inp.select(); document.execCommand("copy"); done(); });
+  else { inp.select(); document.execCommand("copy"); done(); }
+};
+$("#segLvL").onclick = e => { const b = e.target.closest("button"); if (b && NET.role === "host" && !NET.started) { PREFS.level = b.dataset.v; savePrefs(); lobbyUpdate(); } };
+$("#lobbySeats").onclick = e => {
+  const b = e.target.closest("[data-rm]");
+  if (!b || NET.role !== "host" || NET.started) return;
+  const i = +b.dataset.rm, x = NET.lobby[i];
+  if (!x || i === 0) return;
+  if (x.conn) { const c = x.conn; sendTo(c, { t: "err", code: "kicked" }); setTimeout(() => { try { c.close(); } catch (er) {} }, 400); }
+  NET.lobby.splice(i, 1);
+  lobbyUpdate();
+};
+$("#lobbyStart").onclick = hostStart;
+$("#lobbyLeave").onclick = () => { leaveAll(); render(); openMode(); };
+$("#netClose").onclick = () => { $("#mNet").hidden = true; if (!G) openMode(); };
+$("#screen").onclick = e => {
+  const ft = e.target.closest(".ft[data-c]");
+  if (ft) { togglePick(ft.dataset.c); return; }
+  const sl = e.target.closest(".slot[data-c]");
+  if (sl) { togglePick(sl.dataset.c); return; }
+  const b = e.target.closest("[data-a]");
+  if (!b || b.disabled) return;
+  const a = b.dataset.a;
+  if (a === "begin") beginRound();
+  else if (a === "submit") submit(false);
+  else if (a === "next") nextLocal();
+  else if (a === "hnext") hostNext();
+  else if (a === "again") newLocalGame(G.mode, G.level);
+  else if (a === "mode") openMode();
+  else if (a === "copy") copyResult();
+  else if (a === "lobby") { if (NET.role === "host") hostToLobby(); }
+  else if (a === "leave") { leaveAll(); render(); openMode(); }
+};
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { for (const id of ["#mRules", "#mMode"]) if (!$(id).hidden) { $(id).hidden = true; return; } return; }
+  if (e.ctrlKey || e.metaKey || e.altKey || !G || $$(".modal").some(m => !m.hidden) || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key !== "Enter") return;
+  if (G.phase === "intro") beginRound();
+  else if (G.phase === "pick") submit(false);
+  else if (G.phase === "result" && !isOnline()) nextLocal();
+  else if (G.phase === "result" && NET.role === "host") hostNext();
+});
+let fitT = 0;
+window.addEventListener("resize", () => { clearTimeout(fitT); fitT = setTimeout(fit, 80); });
+window.addEventListener("beforeunload", () => { if (NET.role) netClose(true); });
+
+window.game = { get G() { return G; }, NET, HOST, genRound, standings, plan, scoreOf, LEVELS, CODES, togglePick, submit, beginRound, nextLocal, hostNext, newLocalGame, speed: x => { SPEED = x; } };
+
+/* ---------- KHỞI ĐỘNG ---------- */
+(function init() {
+  if (window.TB && TB.closeX) TB.closeX({ "#mRules": "#rulesOk", "#mMode": "#modeCancel", "#mLobby": "#lobbyLeave", "#mNet": "#netClose" });   // nút × góc trên phải mỗi popup
+  fit();
+  applyLang();
+  const room = normCode((location.hash.match(/room=([A-Za-z0-9]+)/) || [])[1]);
+  if (room.length === CODE_LEN) {
+    PLAYED = true;
+    if (PREFS.name) startGuest(room);
+    else { PREFS.mode = "online"; PREFS.net = "join"; openMode(); $("#joinCode").value = room; $("#myName").focus(); }
+  } else $("#mRules").hidden = false;   // mở trang: Luật chơi trước, "Đã hiểu" → bảng chọn cách chơi
+  render();
+})();
+</script>
+</body>
+</html>

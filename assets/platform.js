@@ -111,6 +111,13 @@
       tags: ["chess", "online", "ai"], aliases: ["nine mens morris", "nine men's morris", "9 mens morris", "morris", "mill", "muhle", "co coi xay", "coi xay", "cuu tu ky", "9 quan", "chess"],
     },
     {
+      id: "card-janggi", status: "live", path: "games/card-janggi/", thumb: "assets/thumbs/card-janggi.svg",
+      name: { vi: "Cờ Tướng Thẻ Bài", en: "Card Janggi" },
+      meta: { vi: "Đấu máy · Online", en: "Vs AI · Online" },
+      tagline: { vi: "5 thẻ con vật xếp úp quyết định nước đi: ăn Vua hoặc đưa Vua về đích", en: "Five face-down animal cards decide your moves: take the king or reach its square" },
+      tags: ["chess", "online", "ai", "2p"], aliases: ["card janggi", "cardjanggi", "janggi", "co tuong the bai", "co tuong", "the bai", "the con vat", "chuot ngua khi voi huou", "devils plan", "chess"],
+    },
+    {
       id: "blind-gomoku", status: "live", path: "games/blind-gomoku/", thumb: "assets/thumbs/blind-gomoku.svg",
       name: { vi: "Cờ Ca-rô Mù", en: "Blind Gomoku" },
       meta: { vi: "Đấu máy · Online", en: "Vs AI · Online" },
@@ -168,6 +175,13 @@
       tags: ["card", "online", "ai"], aliases: ["poker dice", "poker xuc xac", "xuc xac", "do xuc xac", "dice poker", "dice", "poker", "bai"],
     },
     {
+      id: "sniper-holdem", status: "live", path: "games/sniper-holdem/", thumb: "assets/thumbs/sniper-holdem.svg",
+      name: { vi: "Poker Bắn Tỉa", en: "Sniper Hold'em" },
+      meta: { vi: "Đấu máy · Online 2-5 người", en: "Vs AI · Online 2-5 players" },
+      tagline: { vi: "Tay mạnh nhất thắng, trừ khi bị bắn tỉa trúng", en: "The best hand wins, unless it gets sniped" },
+      tags: ["card", "online", "ai"], aliases: ["sniper holdem", "sniper hold'em", "snipe holdem", "snipe hold'em", "poker ban tia", "ban tia", "sniper", "hold em", "holdem", "poker", "devils plan", "bai"],
+    },
+    {
       id: "wall-go", status: "live", path: "games/wall-go/", thumb: "assets/thumbs/wall-go.svg",
       name: { vi: "Wall Go", en: "Wall Go" },
       meta: { vi: "Đấu máy · Online 2-4 người", en: "Vs AI · Online 2-4 players" },
@@ -187,6 +201,13 @@
       meta: { vi: "Đấu máy · Online 2 người", en: "Vs AI · Online 2 players" },
       tagline: { vi: "4 Hổ săn 20 Dê: Hổ ăn 5 con, hay Dê vây kín cả bầy Hổ", en: "4 tigers hunt 20 goats: capture 5, or trap every tiger" },
       tags: ["strategy", "online", "ai", "2p"], aliases: ["bagh chal", "baghchal", "bagh-chal", "tigers and goats", "tiger and goat", "ho va de", "ho de", "con ho", "con de", "nepal", "devils plan", "chien thuat", "strategy"],
+    },
+    {
+      id: "heavy-13", status: "live", path: "games/heavy-13/", thumb: "assets/thumbs/heavy-13.svg",
+      name: { vi: "Heavy 13", en: "Heavy 13" },
+      meta: { vi: "Đấu máy · Online 3-6 người", en: "Vs AI · Online 3-6 players" },
+      tagline: { vi: "Đặt đá lên cân, ai làm cân chạm 13 thì ôm hết đá về", en: "Load the scales; whoever tips one to 13 takes every rock" },
+      tags: ["strategy", "online", "ai"], aliases: ["heavy 13", "heavy13", "heavy", "can da", "can 13", "13", "da", "devils plan", "chien thuat", "strategy"],
     },
     {
       id: "equation-traffic-light", status: "live", path: "games/equation-traffic-light/", thumb: "assets/thumbs/equation-traffic-light.svg",
@@ -236,6 +257,13 @@
       meta: { vi: "Một mình · Online 2 người", en: "Solo · Online 2 players" },
       tagline: { vi: "Đọc gợi ý, tìm đúng 4 lá trong 26 lá", en: "Read the clues, find the 4 cards out of 26" },
       tags: ["puzzle", "online", "2p"], aliases: ["secret code","mat ma","mat ma bi mat","ma bi mat","giai ma","the bai","devils plan","do tri","puzzle"],
+    },
+    {
+      id: "flags-around-the-world", status: "live", path: "games/flags-around-the-world/", thumb: "assets/thumbs/flags-around-the-world.svg",
+      name: { vi: "Nhớ cờ thế giới", en: "Flags Around the World" },
+      meta: { vi: "Một mình · Đề hôm nay · Online 2-6 người", en: "Solo · Daily · Online 2-6 players" },
+      tagline: { vi: "Cờ các nước chiếu qua thật nhanh, nhớ rồi chọn lại cho đúng", en: "Flags flash by fast: remember them, then pick them out" },
+      tags: ["puzzle", "online"], aliases: ["flags around the world","flags","quoc ky","co cac nuoc","nho co","nho co the gioi","co the gioi","tri nho","memory","devils plan","do tri","puzzle"],
     },
   ];
   const CATS = [
@@ -450,9 +478,53 @@
     }
   }
 
+  /* Âm thanh dạng file dùng chung (chủ game gửi 11/2026): chip = đặt chip (cược, ante), pot = đẩy hết chip vào pot, check = gõ bàn khi check.
+     File gốc ở tools/sfx/*.mp3, đóng gói thành assets/sfx.js (base64, `node tools/build-sfx.js`) và nạp bằng thẻ <script> lúc game gọi
+     TB.preloadSfx, nên chạy được cả khi mở game trực tiếp bằng file:// (trình duyệt chặn fetch file mp3 khi mở như vậy; lỗi chủ game đã gặp).
+     TB.playSfx(ac, tên, lúc) phát và trả true; chưa nạp xong thì trả false để game phát tiếng tổng hợp thay.
+     skip: bỏ khoảng lặng đầu file để tiếng khớp đúng lúc chip chạm chỗ; vol: file chuẩn hoá tới 0 dB nên hạ xuống cho cân với tiếng khác. */
+  const SFX_FILES = { chip: { skip: .022, vol: .4 }, pot: { skip: .028, vol: .4 }, check: { skip: 0, vol: 1 } };   // check: 2 tiếng gõ bàn (cắt từ file 3 tiếng chủ game gửi)
+  const sfxCache = new WeakMap();   // AudioContext -> { tên: AudioBuffer | "loading" | "fail" }
+  let sfxData = null;   // Promise của window.TB_SFX (nạp assets/sfx.js một lần)
+  const loadSfxData = () => sfxData || (sfxData = new Promise((ok, no) => {
+    if (window.TB_SFX) return ok(window.TB_SFX);
+    const s = document.createElement("script");
+    s.src = ROOT + "assets/sfx.js"; s.async = true;
+    s.onload = () => window.TB_SFX ? ok(window.TB_SFX) : no();
+    s.onerror = () => { sfxData = null; no(); };   // lỗi mạng thì lần gọi sau thử lại
+    document.head.appendChild(s);
+  }));
+  function preloadSfx(ac, names = Object.keys(SFX_FILES)) {
+    if (!ac) return;
+    let c = sfxCache.get(ac);
+    if (!c) { c = {}; sfxCache.set(ac, c); }
+    names = names.filter(n => SFX_FILES[n] && !c[n]);
+    if (!names.length) return;
+    names.forEach(n => { c[n] = "loading"; });
+    loadSfxData().then(data => {
+      for (const n of names) {
+        if (!data[n]) { c[n] = "fail"; continue; }
+        const bin = atob(data[n]), u = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+        new Promise((ok, no) => { const p = ac.decodeAudioData(u.buffer, ok, no); if (p && p.catch) p.catch(no); })
+          .then(buf => { c[n] = buf; }, () => { c[n] = "fail"; });
+      }
+    }, () => { names.forEach(n => { delete c[n]; }); });
+  }
+  function playSfx(ac, name, when) {
+    const c = ac && sfxCache.get(ac), buf = c && c[name], d = SFX_FILES[name];
+    if (!buf || typeof buf === "string") return false;
+    try {
+      const src = ac.createBufferSource(), g = ac.createGain();
+      g.gain.value = d.vol; src.buffer = buf; src.connect(g); g.connect(ac.destination);
+      src.start(when || ac.currentTime, d.skip);
+      return true;
+    } catch (e) { return false; }
+  }
+
   document.documentElement.lang = LANG;
   window.TB = {
-    closeX, paintCredits,
+    closeX, paintCredits, preloadSfx, playSfx,
     get lang() { return LANG; }, setLang, onLang: cb => listeners.push(cb), t, GAMES, ROOT,
     mountHeader,
     mountHome() { document.body.classList.add("tb-home"); renderHome(document.getElementById("tb-main")); footer(); },

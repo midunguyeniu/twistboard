@@ -729,6 +729,7 @@ const fmtC = v => v < 0 ? "−" + (-v) : String(v);   // giá trị lá: −1 d�
 /* ---------- ÂM THANH (tổng hợp bằng Web Audio, không có file) ---------- */
 let AC = null;
 try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+if (AC && window.TB && TB.preloadSfx) TB.preloadSfx(AC, ["chip", "pot", "check"]);   // tiếng đặt chip / đẩy chip vào pot dạng file (assets/sfx), chưa nạp xong thì dùng tiếng tổng hợp
 // Trình duyệt tạo AudioContext ở trạng thái ngủ; đánh thức ngay lần bấm/chạm đầu tiên để tiếng xèng đầu ván (ante/blind) không bị trễ
 const wakeAC = () => { if (AC && AC.state !== "running") AC.resume().catch(() => {}); };
 for (const ev of ["pointerdown", "keydown", "touchstart"]) window.addEventListener(ev, wakeAC, { capture: true, passive: true });
@@ -758,8 +759,9 @@ function sfx(name) {
     if (name === "card") noise(t, .09, 3200, .35);
     else if (name === "deal") { noise(t, .07, 2600 + Math.random() * 900, .3); noise(t + .045, .05, 4200, .12); }
     else if (name === "clink") tone(2200 + Math.random() * 1200, t, .045, "triangle", .075);   // 1 đồng xèng chạm đích (phiếu cược hoặc pot)
-    else if (name === "chip") { tone(2400, t, .05, "triangle", .08); tone(3100, t + .04, .05, "triangle", .06); }
-    else if (name === "pot") [0, .05, .09, .14, .2].forEach((d, i) => tone(2100 + Math.random() * 1300, t + d, .05, "triangle", .09 - i * .01));   // xèng rơi vào pot
+    else if (name === "check") { if (!(window.TB && TB.playSfx && TB.playSfx(AC, "check", t))) { tone(190, t, .06, "sine", .22); tone(190, t + .25, .06, "sine", .22); } }   // gõ bàn 2 tiếng khi có người check
+    else if (name === "chip") { if (!(window.TB && TB.playSfx && TB.playSfx(AC, "chip", t))) { tone(2400, t, .05, "triangle", .08); tone(3100, t + .04, .05, "triangle", .06); } }   // đặt chip (ante, theo, tố)
+    else if (name === "pot") { if (!(window.TB && TB.playSfx && TB.playSfx(AC, "pot", t))) [0, .05, .09, .14, .2].forEach((d, i) => tone(2100 + Math.random() * 1300, t + d, .05, "triangle", .09 - i * .01)); }   // đẩy hết chip vào pot   // xèng rơi vào pot
     else if (name === "slide") { noise(t, .2, 900, .22); tone(1900, t + .2, .05, "triangle", .07); }   // chip người đi đầu trượt sang ghế mới
     else if (name === "turn") { tone(660, t, .12, "triangle", .14); tone(880, t + .1, .16, "triangle", .14); }
     else if (name === "roll") { let at = 0; for (let i = 0; i < 10; i++) { noise(t + at, .05, 1500 + Math.random() * 1500, .28 - i * .015); at += .07 + i * .022; } }   // lắc 1,5 giây, chậm dần
@@ -1215,7 +1217,7 @@ function scheduleBots() {
   }
   if (H.phase === "bet" && H.toAct >= 0 && botSeat(H.toAct)) {
     const s = H.toAct;
-    job(`${k}:a:${s}:${H.raises}:${potTotal(H)}`, botDelay() + dealWait(), () => {
+    job(`${k}:a:${s}:${H.raises}:${potTotal(H)}`, actWait() + botDelay() + dealWait(), () => {
       if (!T || T.H !== cur || cur.phase !== "bet" || cur.toAct !== s) return;
       const a = botAction(T, s);
       if (!act(T, s, a)) act(T, s, legalActions(T, s).check ? { type: "check" } : { type: "fold" });
@@ -1590,8 +1592,8 @@ function dealFly() {
 /* ---------- CHIP NGƯỜI ĐI ĐẦU ----------
    Chip tím (#fchip, nằm ngoài #seats nên không bị vẽ lại) đặt cạnh ô tên người đi đầu. Vào trận: hiện ở ghế bốc ngẫu nhiên.
    Sang ván mới: chip trượt sang người đi đầu mới, rồi từng người đặt ante theo chiều kim đồng hồ từ người đó, rồi mới chia bài.
-   Đầu ván: FCHIP_POP (trận mới) hoặc FCHIP_MOVE (chuyển chip) → ante từng người cách nhau ANTE_GAP → xèng bay ANTE_FLY → chia bài. */
-const FCHIP_MOVE = 650, FCHIP_POP = 350, ANTE_GAP = 180, ANTE_FLY = 710;
+   Đầu ván: FCHIP_POP (ván đầu trận: chip bay từ tâm bàn ra người đi đầu, chủ game chọn 11/2026) hoặc FCHIP_MOVE (chuyển chip) → ante từng người cách nhau ANTE_GAP → xèng bay ANTE_FLY → chia bài. */
+const FCHIP_MOVE = 650, FCHIP_POP = 650, ANTE_GAP = 180, ANTE_FLY = 710;
 const FCHIP = { hand: -1, seat: -1, pos: null };
 // thời gian từ lúc vào ván tới lúc chia lá đầu tiên (chủ bàn dùng để tính giờ online khi chưa vẽ)
 const introMs = (nLive, moved) => (moved ? FCHIP_MOVE : FCHIP_POP) + (nLive - 1) * ANTE_GAP + ANTE_FLY + 60;
@@ -1620,7 +1622,12 @@ function renderFChip() {
       el.animate([{ transform: `translate(${from[0] - p[0]}px,${from[1] - p[1]}px)` }, { transform: `translate(${(from[0] - p[0]) * .1}px,${(from[1] - p[1]) * .1 - 10}px) scale(1.15)`, offset: .8 }, { transform: "none" }],
         { duration: FCHIP_MOVE, easing: "cubic-bezier(.35,.1,.25,1)" });
       sfx("slide");
-    } else el.animate([{ transform: "scale(0)", opacity: 0 }, { transform: "scale(1.25)", opacity: 1, offset: .7 }, { transform: "none" }], { duration: FCHIP_POP, easing: "ease-out" });
+    } else {   // ván đầu trận: bay từ tâm bàn ra chỗ người đi đầu
+      const tb = $("#table"), dx = tb.clientWidth / 2 - p[0], dy = tb.clientHeight / 2 - p[1];
+      el.animate([{ transform: `translate(${dx}px,${dy}px) scale(.6)`, opacity: 0 }, { transform: `translate(${dx * .85}px,${dy * .85}px) scale(.9)`, opacity: 1, offset: .12 }, { transform: `translate(${dx * .1}px,${dy * .1 - 10}px) scale(1.15)`, offset: .8 }, { transform: "none" }],
+        { duration: FCHIP_POP, easing: "cubic-bezier(.35,.1,.25,1)" });
+      sfx("slide");
+    }
   }
   FCHIP.pos = p;
 }
@@ -1650,7 +1657,29 @@ const nameOf = s => s === ME ? tr("you") : V && V.seats[s] ? V.seats[s].name : "
 const labelOf = s => s === ME && V && V.seats[s] && cleanName(PREFS.name) ? `<span class="nm">${escH(V.seats[s].name)}</span><span class="youtag">${tr("n_you")}</span>` : escH(nameOf(s));
 function setBlock(el, sig, build) { if (el._sig === sig) return false; el._sig = sig; el.innerHTML = build(); return true; }
 
+/* ---------- CHỜ TIẾNG HÀNH ĐỘNG ----------
+   Có người check / theo / cược / tố thì chờ tiếng (gõ bàn, hoặc xèng bay tới chỗ cược rồi tiếng đặt chip) phát xong mới hiện lượt
+   người kế tiếp (chủ game yêu cầu 11/2026): trong lúc chờ, V.toAct hiển thị là -2 (không ai sáng viền, chưa hiện nút), máy chưa bắt đầu nghĩ. */
+const ACT_HOLD = { l_check: 520, l_call: 900, l_callall: 900, l_bet: 900, l_raise: 900 };
+const ACTW = { hand: -1, n: 0, until: 0 };
+const actWait = () => Math.max(0, ACTW.until - performance.now());
+function actHold() {
+  if (!V) return;
+  let n = 0, last = null;
+  for (const e of V.log) if (e.h === V.handNo && ACT_HOLD[e.k]) { n++; last = e; }
+  if (ACTW.hand === V.handNo && n > ACTW.n && last) {
+    ACTW.until = Math.max(ACTW.until, performance.now() + ACT_HOLD[last.k]);
+    clearTimeout(ACTW.tm); ACTW.tm = setTimeout(() => { if (V) render(); }, actWait() + 20);
+  }
+  ACTW.hand = V.handNo; ACTW.n = n;
+}
 function render() {
+  actHold();
+  const realTurn = V ? V.toAct : -1;
+  if (V && V.phase === "bet" && realTurn >= 0 && actWait() > 0) V.toAct = -2;   // đang chờ tiếng: chưa hiện lượt người kế
+  try { renderNow(); } finally { if (V && V.toAct === -2) V.toAct = realTurn; }
+}
+function renderNow() {
   renderTable(); renderMine(); renderStatus(); renderInfo(); renderLog(); renderOver(); sounds();
   if (TUT.on) tutCheck();
   // sang giai đoạn mới hoặc tới lượt mình: màn thấp thì tự cuộn cho thấy đủ khung bài của mình
@@ -1662,7 +1691,9 @@ function sounds() {
   if (!V) { prevSnd = null; return; }
   const hits = V.seats.reduce((a, s) => a + (s.live ? s.hits.length : 0), 0);
   const cur = { hand: V.handNo, hits, phase: V.phase, pot: V.pot, turn: (V.phase === "bet" || V.phase === "hit") && V.toAct === ME, done: V.phase === "done" };
+  cur.checks = V.log.reduce((a, e) => a + (e.h === V.handNo && e.k === "l_check" ? 1 : 0), 0);   // có người check: tiếng gõ bàn
   const p = prevSnd;
+  if (p && p.hand === cur.hand && cur.checks > p.checks) sfx("check");
   if (p && p.hand === cur.hand) {
     if (p.phase === "reveal" && cur.phase !== "reveal") sfx("card");
     if (cur.turn && !p.turn) sfx("turn");
@@ -1702,7 +1733,7 @@ const showBet = s => s.live && s.bet > 0 && (V.phase === "bet" || V.phase === "r
 const redrawAt = ms => setTimeout(() => { if (V) renderTable(); }, ms + 15);
 // số đồng theo cỡ tiền so với ante: 3 đến 6 đồng
 const chipCount = (amt, unit) => Math.max(3, Math.min(6, 3 + Math.round(Math.log2(Math.max(1, amt / Math.max(1, unit))))));
-function flyPx(sx, sy, ex, ey, color, n, dl = 0) {
+function flyPx(sx, sy, ex, ey, color, n, dl = 0, snd = "") {
   const fx = $("#fx");
   const len = Math.hypot(ex - sx, ey - sy) || 1, px = -(ey - sy) / len, py = (ex - sx) / len;   // hướng vuông góc để bay vòng cung
   for (let k = 0; k < n; k++) {
@@ -1718,8 +1749,9 @@ function flyPx(sx, sy, ex, ey, color, n, dl = 0) {
       { transform: at(ex + jx, ey + jy, 1), opacity: 1, offset: .9 },
       { transform: at(ex + jx, ey + jy, .9), opacity: 0 },
     ], { duration: 620, delay: dl + k * 75, easing: "cubic-bezier(.4,.2,.3,1)", fill: "both" }).onfinish = () => el.remove();
-    setTimeout(() => sfx("clink"), Math.max(0, dl + k * 75 + 620 * .9 - audioLagMs()));   // tiếng khớp lúc đồng xèng chạm đích (trừ độ trễ loa)
   }
+  // một tiếng cho cả chồng xèng (file đặt chip / đẩy chip vào pot), phát đúng lúc đồng đầu tiên chạm đích, trừ độ trễ loa
+  if (snd && n > 0) setTimeout(() => sfx(snd), Math.max(0, dl + 620 * .9 - (typeof audioLagMs === "function" ? audioLagMs() : 0)));
   return dl + 620 * .9 + (n - 1) * 75;
 }
 // dự phòng khi chưa đo được khung bài
@@ -1788,7 +1820,7 @@ function renderTable() {
     if (s.bet > prev) {
       // vừa nộp ante / theo / tố / cược thêm: xèng bay ra, số trước mặt giữ số cũ tới khi xèng tới nơi
       const dl = BETFX.delay[i] || 0; BETFX.delay[i] = 0;
-      const ms = flyPx(b.x / 100 * TW, b.y / 100 * TH, bx, by, color, chipCount(s.bet - prev, unit), dl);
+      const ms = flyPx(b.x / 100 * TW, b.y / 100 * TH, bx, by, color, chipCount(s.bet - prev, unit), dl, "chip");
       BETFX.wait[i] = { t: now + ms, from: prev, fired: false };
       redrawAt(ms);
     }
@@ -1807,7 +1839,7 @@ function renderTable() {
     const pr = (BETFX.potShown ? potEl : $("#center")).getBoundingClientRect();
     const tx = pr.left + pr.width / 2 - tr0.left, ty = pr.top + pr.height / 2 - tr0.top;
     let land = 0;
-    BETFX.pos.forEach((p, i) => { if (p && p.amt > 0 && !nowBets[i]) land = Math.max(land, flyPx(p.x, p.y, tx, ty, p.color, chipCount(p.amt, unit))); });
+    BETFX.pos.forEach((p, i) => { if (p && p.amt > 0 && !nowBets[i]) land = Math.max(land, flyPx(p.x, p.y, tx, ty, p.color, chipCount(p.amt, unit), 0, "pot")); });
     if (land) { BETFX.potWait = { t: now + land, from: BETFX.potShown, fired: false }; redrawAt(land); }
   }
   const pw = BETFX.potWait;
@@ -1925,7 +1957,7 @@ function renderMine() {
   if (ph === "bet") {
     if (V.toAct === ME && V.legal) return renderActions(ctl);
     const who = V.toAct >= 0 ? nameOf(V.toAct) : "";
-    return setBlock(ctl, "bw:" + who + LANG, () => `<p class="wait">${tr("me_wait", escH(who))}<span class="dots"></span></p>`);
+    return setBlock(ctl, "bw:" + who + LANG, () => `<p class="wait">${who ? tr("me_wait", escH(who)) : ""}<span class="dots"></span></p>`);
   }
   if (ph === "hit") {
     if (V.toAct === ME) return setBlock(ctl, `hs:${V.handNo}:${me.hits.length}:${LANG}`, () => `<div class="ctl"><button class="btn hsb hit" id="bHit"><span>HIT</span><small>${tr("c_hit_s")}</small></button><button class="btn hsb stay" id="bStay"><span>STAY</span><small>${tr("c_stay_s")}</small></button></div>`);
@@ -2024,6 +2056,7 @@ function updateTimers() {
 }
 setInterval(updateTimers, 250);
 function renderStatus() {
+  if (V && V.phase === "bet" && V.toAct === -2) return;   // đang chờ tiếng hành động: giữ câu cũ
   const el = $("#statusText");
   let s;
   if (!V) s = NET.role ? tr("st_lobby") : tr("st_idle");
